@@ -29,6 +29,8 @@ export type ReservationFilters = {
   departOn?: string;
   /** "due": only reservations with a refund not yet paid out. */
   refund?: string;
+  /** "pending": a late check-out or early check-in request waits for a decision. */
+  requests?: string;
   /** "open": confirmed without deposit and still owing it; "overdue": past its due date. */
   deposit?: string;
   /** Today's date, for "overdue". */
@@ -70,6 +72,10 @@ const depositOpen = sql`(${schema.reservations.status} IN ('confirmed', 'in_hous
   AND ${schema.reservations.amountPaid} < least(${schema.reservations.depositAmount}, ${schema.reservations.totalAmount}))`;
 const depositOverdue = (today: string) => sql`(${depositOpen} AND (${schema.reservations.guarantee} ->> 'payBy') < ${today})`;
 
+/** A late check-out or early check-in request on this booking waits for a decision. */
+const requestPending = sql<boolean>`(EXISTS (SELECT 1 FROM ${schema.lateCheckoutRequests} l WHERE l.reservation_id = ${schema.reservations.id} AND l.status = 'requested')
+  OR EXISTS (SELECT 1 FROM ${schema.earlyCheckinRequests} e WHERE e.reservation_id = ${schema.reservations.id} AND e.status = 'requested'))`;
+
 export async function listReservations(actor: Actor, filters: ReservationFilters) {
   const db = getDb();
   const properties = await visibleProperties(actor);
@@ -86,6 +92,7 @@ export async function listReservations(actor: Actor, filters: ReservationFilters
     filters.to && isIsoDate(filters.to) ? lte(schema.reservations.checkIn, filters.to) : undefined,
     filters.departOn && isIsoDate(filters.departOn) ? eq(schema.reservations.checkOut, filters.departOn) : undefined,
     filters.refund === "due" ? sql`coalesce(${schema.reservations.refundAmount}, 0) > ${refundPaid}` : undefined,
+    filters.requests === "pending" ? requestPending : undefined,
     filters.deposit === "open" ? depositOpen : filters.deposit === "overdue" && isIsoDate(filters.today) ? depositOverdue(filters.today) : undefined,
     q
       ? or(
@@ -110,6 +117,7 @@ export async function listReservations(actor: Actor, filters: ReservationFilters
       amountPaid: schema.reservations.amountPaid,
       depositAmount: schema.reservations.depositAmount,
       guarantee: schema.reservations.guarantee,
+      requestPending,
       refundAmount: schema.reservations.refundAmount,
       refundPaid,
       guestName: schema.guests.fullName,
@@ -151,6 +159,7 @@ export async function listReservations(actor: Actor, filters: ReservationFilters
       departOn: filters.departOn && isIsoDate(filters.departOn) ? filters.departOn : "",
       refund: filters.refund === "due" ? "due" : "",
       deposit: filters.deposit === "open" || filters.deposit === "overdue" ? filters.deposit : "",
+      requests: filters.requests === "pending" ? "pending" : "",
     },
   };
 }
@@ -255,6 +264,7 @@ export async function todayCounts(actor: Actor, today: string) {
       inHouse: sql<number>`count(*) FILTER (WHERE ${schema.reservations.status} = 'in_house')::int`,
       refundsDue: sql<number>`count(*) FILTER (WHERE coalesce(${schema.reservations.refundAmount}, 0) > ${refundPaid})::int`,
       depositsOverdue: sql<number>`count(*) FILTER (WHERE ${depositOverdue(today)})::int`,
+      requestsPending: sql<number>`count(*) FILTER (WHERE ${requestPending} AND ${schema.reservations.status} IN ('confirmed', 'in_house'))::int`,
     })
     .from(schema.reservations)
     .where(scope(actor));

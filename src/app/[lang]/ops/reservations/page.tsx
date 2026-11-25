@@ -56,6 +56,7 @@ async function ReservationList({
   const today = todayIn(brand.timezone);
   const data = await listReservations(staff.actor, {
     deposit: one(sp.deposit),
+    requests: one(sp.requests),
     today,
     q: one(sp.q),
     status: one(sp.status),
@@ -91,6 +92,7 @@ async function ReservationList({
         {data.applied.departOn ? <input type="hidden" name="departOn" value={data.applied.departOn} /> : null}
         {data.applied.refund ? <input type="hidden" name="refund" value={data.applied.refund} /> : null}
         {data.applied.deposit ? <input type="hidden" name="deposit" value={data.applied.deposit} /> : null}
+        {data.applied.requests ? <input type="hidden" name="requests" value={data.applied.requests} /> : null}
         <label className="space-y-1 text-xs text-stone">
           <span>{t.search}</span>
           <input name="q" defaultValue={data.applied.q} className={`w-full ${input}`} maxLength={100} />
@@ -177,6 +179,7 @@ async function ReservationList({
                   <td className="px-4 py-3">
                     <StatusBadge status={r.status} label={dict.booking.status[r.status]} />
                     {r.refundOutstanding > 0 ? <span className="mt-1 block text-xs text-danger">{t.refundDue}</span> : null}
+                    {r.requestPending ? <span className="mt-1 block text-xs text-terracotta-deep">{t.requestPending}</span> : null}
                     {deposit ? (
                       <span className={`mt-1 block text-xs ${deposit.overdue ? "text-danger" : "text-terracotta-deep"}`}>
                         {deposit.overdue ? t.depositOverdue : t.depositOpen}

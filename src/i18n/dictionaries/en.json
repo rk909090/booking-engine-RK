@@ -68,7 +68,7 @@
     "noProperties": "No properties have been assigned to you yet.",
     "signOut": "Sign out",
     "security": "Account security",
-    "comingNext": "Next: drag-and-drop calendar, requests from the guest portal, and reports."
+    "comingNext": "Next: reports, online pre-check-in, and housekeeping tasks."
   },
   "security": {
     "title": "Two-step verification",
@@ -241,7 +241,29 @@
     "cancelDone": "Booking cancelled.",
     "saveLink": "Bookmark this page to see your booking again.",
     "discount": "Discount",
-    "depositDue": "A payment of {amount} is due by {date}. Please contact us to arrange payment."
+    "depositDue": "A payment of {amount} is due by {date}. Please contact us to arrange payment.",
+    "lateTitle": "Late check-out",
+    "lateIntro": "Standard check-out is at {time}. Would you like to leave later? Choose a time; our team will confirm it, including any fee.",
+    "lateTime": "Preferred check-out time",
+    "lateNote": "Note (optional)",
+    "lateSubmit": "Send request",
+    "lateNone": "Late check-out is not available on your departure date. Please contact us if you need it.",
+    "lateRequested": "Your late check-out request until {time} is waiting for our team to confirm.",
+    "lateApproved": "Late check-out until {time} is confirmed.",
+    "lateApprovedFee": "Late check-out until {time} is confirmed, with a fee of {amount} added to your bill.",
+    "lateDeclined": "Sorry, we cannot offer late check-out until {time}. You can choose another time below.",
+    "lateWithdraw": "Withdraw request",
+    "lateMessages": {
+      "sent": "Request sent. We will confirm it.",
+      "withdrawn": "Request withdrawn.",
+      "time_unavailable": "That time is no longer available. Please choose another.",
+      "already_requested": "You already have a late check-out request.",
+      "not_allowed": "Late check-out cannot be requested for this booking.",
+      "not_pending": "This request has already been decided. Please contact us to change it.",
+      "rate_limited": "Too many attempts. Please try again in a few minutes.",
+      "not_found": "Booking not found."
+    },
+    "balanceOutstanding": "Balance due {amount}, payable by check-out at the latest."
   },
   "footer": {
     "tagline": "Private villas in Bali, looked after by a local team.",
@@ -288,7 +310,8 @@
       "agent": "Agent"
     },
     "depositOpen": "Deposit unpaid",
-    "depositOverdue": "Deposit overdue"
+    "depositOverdue": "Deposit overdue",
+    "requestPending": "Request waiting"
   },
   "resDetail": {
     "back": "All reservations",
@@ -493,7 +516,8 @@
     "departures": "Departing today",
     "inHouse": "In house",
     "refundsDue": "Refunds not yet paid",
-    "depositOverdue": "Deposits overdue"
+    "depositOverdue": "Deposits overdue",
+    "requestsPending": "Requests awaiting a decision"
   },
   "villaStatus": {
     "title": "Villa status",
@@ -691,7 +715,8 @@
     "conflictApproved": "Warning: since the approval, a guest arrives earlier. The limit is now {time}.",
     "moveHint": "To approve, move the next guest to another villa from their reservation page.",
     "openOther": "Open {code}",
-    "stale": "This request was for the old departure date ({date}) and no longer applies."
+    "stale": "This request was for the old departure date ({date}) and no longer applies.",
+    "byGuest": "Requested by the guest from their booking page"
   },
   "earlyCheckin": {
     "title": "Early check-in",
@@ -718,6 +743,7 @@
     "conflictApproved": "Warning: since the approval, the previous guest leaves later. The earliest is now {time}.",
     "moveHint": "To approve, move one of the guests to another villa from their reservation page.",
     "openOther": "Open {code}",
-    "stale": "This request was for the old arrival date ({date}) and no longer applies."
+    "stale": "This request was for the old arrival date ({date}) and no longer applies.",
+    "byGuest": "Requested by the guest from their booking page"
   }
 }

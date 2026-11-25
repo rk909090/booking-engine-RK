@@ -24,7 +24,7 @@ export type TimeRequestView = {
   /** Latest check-out (late) or earliest check-in (early); null when no neighbouring stay. */
   limit: string | null;
   conflict: boolean;
-  request: { status: string; requestedTime: string; fee: number; note: string | null; forDate: string } | null;
+  request: { status: string; requestedTime: string; fee: number; note: string | null; forDate: string; requestedBy?: string | null } | null;
   stale: boolean;
 };
 
@@ -86,6 +86,7 @@ export function TimeRequest({
         <p className="font-medium text-ink">
           {format(request.status === "approved" ? t.approved : t.requested, { time: request.requestedTime.slice(0, 5) })}
           {request.status === "approved" && request.fee > 0 ? ` · ${format(t.feeCharged, { amount: formatMoney(request.fee, lang) })}` : ""}
+          {request.requestedBy === "guest" ? <span className="block text-xs font-normal text-terracotta-deep">{t.byGuest}</span> : null}
           {request.note ? <span className="block text-xs font-normal text-stone">{request.note}</span> : null}
         </p>
       ) : null}

@@ -7,6 +7,7 @@ import { brand } from "@/config/brand";
 import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
 import { cancelReservation, createHold, createPendingPayment, findGuestReservation, recordPaymentPaid } from "@/domain/booking";
+import { cancelLateCheckoutAsGuest, requestLateCheckoutAsGuest } from "@/domain/late-checkout";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { closeCheckouts, openCheckouts } from "@/lib/payments/checkouts";
 import { getPaymentProvider, simulatorEnabled } from "@/lib/payments/provider";
@@ -173,4 +174,31 @@ export async function cancelBookingAsGuest(form: FormData) {
     if (result.ok) await closeCheckouts(reservation.id, links);
   }
   redirect(bookingPath(lang, code));
+}
+
+/** Finds the booking a guest may act on: the access token must match the code. */
+async function guestReservation(form: FormData) {
+  const code = text(form, "code").toUpperCase().slice(0, 40);
+  if (!verifyBookingAccessToken(code, text(form, "t"))) return { code, id: null };
+  const [row] = await getDb().select({ id: schema.reservations.id }).from(schema.reservations).where(eq(schema.reservations.code, code)).limit(1);
+  return { code, id: row?.id ?? null };
+}
+
+/** The guest asks for a late check-out from their booking page; staff decide. */
+export async function requestLateCheckoutFromPortal(form: FormData) {
+  const lang = localeOf(form);
+  const { code, id } = await guestReservation(form);
+  if (!id) redirect(bookingPath(lang, code));
+  if (!allowRequest(`late:${clientIp(await headers())}`, 10, 10 * 60_000)) redirect(bookingPath(lang, code, "&late=rate_limited"));
+  const result = await requestLateCheckoutAsGuest(getDb(), { reservationId: id, time: text(form, "time"), note: text(form, "note") || null });
+  redirect(bookingPath(lang, code, `&late=${result.ok ? "sent" : result.error}`));
+}
+
+/** The guest withdraws a late check-out request that is still waiting. */
+export async function cancelLateCheckoutFromPortal(form: FormData) {
+  const lang = localeOf(form);
+  const { code, id } = await guestReservation(form);
+  if (!id) redirect(bookingPath(lang, code));
+  const result = await cancelLateCheckoutAsGuest(getDb(), { reservationId: id });
+  redirect(bookingPath(lang, code, `&late=${result.ok ? "withdrawn" : result.error}`));
 }

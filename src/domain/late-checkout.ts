@@ -1,4 +1,4 @@
-import { and, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
 import { todayIn } from "./dates";
@@ -6,7 +6,8 @@ import { todayIn } from "./dates";
 type AnyDb = PgDatabase<PgQueryResultHKT, typeof schema>;
 type Tx = Parameters<Parameters<AnyDb["transaction"]>[0]>[0];
 type Executor = AnyDb | Tx;
-type Actor = { type: "staff"; id: string };
+/** Staff at the desk, or the guest from their booking page (no id). */
+type Actor = { type: "staff"; id: string } | { type: "guest"; id: null };
 
 /*
  * Late check-out as a request with a decision, instead of free text (the
@@ -163,7 +164,8 @@ export type LateCheckoutError =
   | "not_pending"
   | "stale"
   | "conflict"
-  | "invalid_fee";
+  | "invalid_fee"
+  | "time_unavailable";
 
 export type LateCheckoutResult = { ok: true } | { ok: false; error: LateCheckoutError; codes?: string[]; latestAllowed?: string | null };
 
@@ -186,7 +188,7 @@ export async function requestLateCheckout(
       forDate: r.checkOut,
       requestedTime: input.time,
       note: input.note?.trim().slice(0, 500) || null,
-      requestedBy: input.actor.id,
+      requestedBy: input.actor.id ?? "guest",
       createdAt: now,
       updatedAt: now,
     });
@@ -262,7 +264,7 @@ export async function cancelLateCheckout(db: AnyDb | Tx, input: { reservationId:
     if (!request) return { ok: false, error: "not_pending" } as const;
     await tx
       .update(schema.lateCheckoutRequests)
-      .set({ status: "cancelled", decidedBy: input.actor.id, decidedAt: now, updatedAt: now })
+      .set({ status: "cancelled", decidedBy: input.actor.id ?? "guest", decidedAt: now, updatedAt: now })
       .where(eq(schema.lateCheckoutRequests.id, request.id));
     if (request.status === "approved" && request.fee > 0) {
       const total = r.totalAmount - request.fee;
@@ -281,4 +283,96 @@ export async function cancelLateCheckout(db: AnyDb | Tx, input: { reservationId:
     return { ok: true } as const;
   };
   return (db as AnyDb).transaction(run);
+}
+
+/*
+ * Requests from the guest's booking page. The guest picks from the times
+ * still possible right now (every 30 minutes after the standard check-out, up
+ * to the next arrival's limit and never past GUEST_LATEST); nothing about the
+ * other guest is shown. Staff still approve or decline, with an optional fee.
+ * A guest can withdraw a request while it waits, not once it is decided.
+ */
+
+/** Latest departure a guest can ask for on their own; later needs the front desk. */
+export const GUEST_LATEST = "18:00";
+const GUEST_STEP_MINUTES = 30;
+
+/** Times a guest may choose, given the limit now and (on the departure day) the time now. */
+export function guestLateCheckoutTimes(input: { standardCheckOut: string; latestAllowed: string | null; nowTime: string | null }): string[] {
+  const end = Math.min(toMinutes(input.latestAllowed ?? GUEST_LATEST), toMinutes(GUEST_LATEST));
+  const times: string[] = [];
+  for (let m = toMinutes(input.standardCheckOut) + GUEST_STEP_MINUTES; m <= end; m += GUEST_STEP_MINUTES) {
+    if (input.nowTime === null || m > toMinutes(input.nowTime)) times.push(fromMinutes(m));
+  }
+  return times;
+}
+
+function timeIn(timeZone: string, now: Date): string {
+  return new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(now);
+}
+
+async function guestTimes(db: Executor, loaded: Loaded, now: Date) {
+  const fit = await check(db, loaded, loaded.property.checkOutTime.slice(0, 5), now);
+  const departureDay = loaded.r.checkOut === todayIn(loaded.property.timezone, now);
+  return guestLateCheckoutTimes({
+    standardCheckOut: fit.standardCheckOut,
+    latestAllowed: fit.latestAllowed,
+    nowTime: departureDay ? timeIn(loaded.property.timezone, now) : null,
+  });
+}
+
+function guestCanAsk(loaded: Loaded, now: Date) {
+  const { r, property } = loaded;
+  return (r.status === "confirmed" || r.status === "in_house") && r.checkOut >= todayIn(property.timezone, now);
+}
+
+/** What the guest's booking page shows: the latest request for the current departure date, and the times on offer. */
+export async function guestLateCheckout(db: AnyDb, reservationId: string, now: Date = new Date()) {
+  const loaded = await load(db, reservationId, false);
+  if (!loaded || !guestCanAsk(loaded, now)) return null;
+  const [latest] = await db
+    .select()
+    .from(schema.lateCheckoutRequests)
+    .where(and(eq(schema.lateCheckoutRequests.reservationId, reservationId), eq(schema.lateCheckoutRequests.forDate, loaded.r.checkOut)))
+    .orderBy(desc(schema.lateCheckoutRequests.createdAt))
+    .limit(1);
+  return {
+    standardCheckOut: loaded.property.checkOutTime.slice(0, 5),
+    request: latest ? { status: latest.status, time: latest.requestedTime.slice(0, 5), fee: latest.fee } : null,
+    times: await guestTimes(db, loaded, now),
+  };
+}
+
+/** A guest asks to leave later, choosing one of the times still possible. */
+export async function requestLateCheckoutAsGuest(
+  db: AnyDb,
+  input: { reservationId: string; time: string; note?: string | null; now?: Date },
+): Promise<LateCheckoutResult> {
+  const now = input.now ?? new Date();
+  const actor: Actor = { type: "guest", id: null };
+  return db.transaction(async (tx) => {
+    const loaded = await load(tx, input.reservationId, true);
+    if (!loaded) return { ok: false, error: "not_found" } as const;
+    if (!guestCanAsk(loaded, now)) return { ok: false, error: "not_allowed" } as const;
+    if (await activeRequest(tx, loaded.r.id)) return { ok: false, error: "already_requested" } as const;
+    if (!(await guestTimes(tx, loaded, now)).includes(input.time)) return { ok: false, error: "time_unavailable" } as const;
+    await tx.insert(schema.lateCheckoutRequests).values({
+      reservationId: loaded.r.id,
+      forDate: loaded.r.checkOut,
+      requestedTime: input.time,
+      note: input.note?.trim().slice(0, 500) || null,
+      requestedBy: "guest",
+      createdAt: now,
+      updatedAt: now,
+    });
+    await audit(tx, loaded.r, actor, "late_checkout.requested", { time: input.time, forDate: loaded.r.checkOut, by: "guest" }, now);
+    return { ok: true } as const;
+  });
+}
+
+/** The guest withdraws a request that staff have not decided yet. */
+export async function cancelLateCheckoutAsGuest(db: AnyDb, input: { reservationId: string; now?: Date }): Promise<LateCheckoutResult> {
+  const request = await activeRequest(db, input.reservationId);
+  if (!request || request.status !== "requested") return { ok: false, error: "not_pending" };
+  return cancelLateCheckout(db, { reservationId: input.reservationId, actor: { type: "guest", id: null }, now: input.now, reason: "Withdrawn by guest" });
 }

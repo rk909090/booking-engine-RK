@@ -10,6 +10,7 @@ import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
 import { todayIn } from "@/domain/dates";
 import { guaranteeDue } from "@/domain/guarantee";
+import { guestLateCheckout } from "@/domain/late-checkout";
 import { refundOutstanding } from "@/domain/operations";
 import { balanceDue, cancellationOutcome } from "@/domain/pricing";
 import { hasLocale, type Locale } from "@/i18n/config";
@@ -17,7 +18,7 @@ import { format } from "@/i18n/format";
 import { formatDate, formatDateRange, formatMoney } from "@/i18n/formatters";
 import { getDictionary, type Dictionary } from "@/i18n/get-dictionary";
 import { verifyBookingAccessToken } from "@/lib/booking/access";
-import { cancelBookingAsGuest } from "@/lib/booking/actions";
+import { cancelBookingAsGuest, cancelLateCheckoutFromPortal, requestLateCheckoutFromPortal } from "@/lib/booking/actions";
 import { latestCheckoutUrl } from "@/lib/site/queries";
 
 type Props = PageProps<"/[lang]/booking/[code]">;
@@ -86,6 +87,8 @@ async function BookingDetails({
   const checkoutUrl = r.status === "hold" ? await latestCheckoutUrl(r.id) : null;
   const balance = balanceDue(r);
   const depositDue = guaranteeDue(r, todayIn(row.timezone));
+  const late = r.status === "confirmed" || r.status === "in_house" ? await guestLateCheckout(getDb(), r.id) : null;
+  const lateMessage = typeof sp.late === "string" ? (t.lateMessages as Record<string, string>)[sp.late] : undefined;
   const policyOutcome =
     r.status === "confirmed"
       ? cancellationOutcome({
@@ -158,7 +161,77 @@ async function BookingDetails({
             {format(t.balanceDue, { amount: formatMoney(balance, lang), date: formatDate(r.balanceDueDate, lang) })}
           </div>
         ) : null}
+        {!depositDue && (r.status === "confirmed" || r.status === "in_house") && balance > 0 && !r.balanceDueDate ? (
+          <div className="sm:col-span-2 text-ink">{format(t.balanceOutstanding, { amount: formatMoney(balance, lang) })}</div>
+        ) : null}
       </dl>
+
+      {late ? (
+        <section className="rounded-2xl border border-line p-5" aria-labelledby="late-title">
+          <h2 id="late-title" className="font-display text-xl text-lagoon">
+            {t.lateTitle}
+          </h2>
+          {lateMessage ? (
+            sp.late === "sent" || sp.late === "withdrawn" ? (
+              <SuccessNote>{lateMessage}</SuccessNote>
+            ) : (
+              <ErrorNote>{lateMessage}</ErrorNote>
+            )
+          ) : null}
+          {late.request?.status === "requested" ? (
+            <div className="mt-2 space-y-3 text-sm text-ink">
+              <p>{format(t.lateRequested, { time: late.request.time })}</p>
+              <form action={cancelLateCheckoutFromPortal}>
+                <input type="hidden" name="lang" value={lang} />
+                <input type="hidden" name="code" value={r.code} />
+                <input type="hidden" name="t" value={token} />
+                <button type="submit" className="rounded-lg border border-line px-4 py-2 text-sm text-ink hover:bg-sand">
+                  {t.lateWithdraw}
+                </button>
+              </form>
+            </div>
+          ) : late.request?.status === "approved" ? (
+            <p className="mt-2 text-sm font-medium text-ink">
+              {late.request.fee > 0
+                ? format(t.lateApprovedFee, { time: late.request.time, amount: formatMoney(late.request.fee, lang) })
+                : format(t.lateApproved, { time: late.request.time })}
+            </p>
+          ) : (
+            <div className="mt-2 space-y-3 text-sm text-ink">
+              {late.request?.status === "declined" ? <p>{format(t.lateDeclined, { time: late.request.time })}</p> : null}
+              {late.times.length > 0 ? (
+                <form action={requestLateCheckoutFromPortal} className="space-y-3">
+                  <p className="text-stone">{format(t.lateIntro, { time: late.standardCheckOut })}</p>
+                  <input type="hidden" name="lang" value={lang} />
+                  <input type="hidden" name="code" value={r.code} />
+                  <input type="hidden" name="t" value={token} />
+                  <div className="grid gap-3 sm:grid-cols-[180px_1fr]">
+                    <label className="space-y-1.5 font-medium">
+                      <span className="block">{t.lateTime}</span>
+                      <select name="time" required defaultValue={late.times[0]} className="w-full rounded-lg border border-line bg-white px-3 py-2.5 text-ink">
+                        {late.times.map((time) => (
+                          <option key={time} value={time}>
+                            {time}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="space-y-1.5 font-medium">
+                      <span className="block">{t.lateNote}</span>
+                      <input name="note" maxLength={500} className="w-full rounded-lg border border-line bg-white px-3 py-2.5 text-ink" />
+                    </label>
+                  </div>
+                  <button type="submit" className="rounded-lg bg-lagoon px-4 py-2.5 font-medium text-ivory hover:bg-lagoon-deep">
+                    {t.lateSubmit}
+                  </button>
+                </form>
+              ) : (
+                <p className="text-stone">{t.lateNone}</p>
+              )}
+            </div>
+          )}
+        </section>
+      ) : null}
 
       <p className="text-xs text-stone">{t.saveLink}</p>
 
