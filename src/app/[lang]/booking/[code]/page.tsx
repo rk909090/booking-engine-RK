@@ -9,7 +9,8 @@ import { ErrorNote, SuccessNote } from "@/components/ui";
 import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
 import { todayIn } from "@/domain/dates";
-import { cancellationOutcome } from "@/domain/pricing";
+import { refundOutstanding } from "@/domain/operations";
+import { balanceDue, cancellationOutcome } from "@/domain/pricing";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { format } from "@/i18n/format";
 import { formatDate, formatDateRange, formatMoney } from "@/i18n/formatters";
@@ -82,8 +83,8 @@ async function BookingDetails({
   if (!row) notFound();
   const r = row.reservation;
   const checkoutUrl = r.status === "hold" ? await latestCheckoutUrl(r.id) : null;
-  const balance = r.totalAmount - r.amountPaid;
-  const outcome =
+  const balance = balanceDue(r);
+  const policyOutcome =
     r.status === "confirmed"
       ? cancellationOutcome({
           tiers: r.policySnapshot?.cancellationTiers ?? [],
@@ -93,6 +94,10 @@ async function BookingDetails({
           today: todayIn(row.timezone),
         })
       : null;
+  // Refunds already paid out (after a shortened stay) are not paid twice.
+  const outcome = policyOutcome
+    ? { ...policyOutcome, refund: await refundOutstanding(getDb(), r.id, policyOutcome.refund) }
+    : null;
   const holdTime = r.holdExpiresAt
     ? new Intl.DateTimeFormat(lang === "id" ? "id-ID" : "en-GB", { timeStyle: "short", timeZone: row.timezone }).format(r.holdExpiresAt)
     : "";

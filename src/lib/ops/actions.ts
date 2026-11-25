@@ -5,10 +5,11 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
 import { cancelReservation } from "@/domain/booking";
-import { checkIn, checkOut, markNoShow, recordRefundPayout, type OperationResult } from "@/domain/operations";
+import { applyStayChange } from "@/domain/modify";
+import { checkIn, checkOut, markNoShow, recordRefundPayout } from "@/domain/operations";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { requireStaff } from "@/lib/auth/current-staff";
-import { can, type Action } from "@/lib/authz/permissions";
+import { can, type Action, type Actor } from "@/lib/authz/permissions";
 
 /*
  * Staff actions on a reservation. Each one re-reads the session and checks
@@ -21,7 +22,18 @@ function field(form: FormData, key: string) {
   return typeof v === "string" ? v.trim() : "";
 }
 
-async function run(form: FormData, action: Action, op: (ctx: { reservationId: string; staffId: string }) => Promise<OperationResult>) {
+type Ctx = { reservationId: string; propertyId: string; unitId: string; staffId: string; actor: Actor };
+
+/**
+ * @param keepOnError query kept when the action fails, so the page can show
+ *   the same form again (never personal data).
+ */
+async function run(
+  form: FormData,
+  action: Action,
+  op: (ctx: Ctx) => Promise<{ ok: true } | { ok: false; error: string }>,
+  keepOnError = "",
+) {
   const langRaw = field(form, "lang");
   const lang: Locale = hasLocale(langRaw) ? langRaw : "id";
   const code = field(form, "code").toUpperCase();
@@ -29,7 +41,7 @@ async function run(form: FormData, action: Action, op: (ctx: { reservationId: st
 
   const staff = await requireStaff(lang);
   const [r] = await getDb()
-    .select({ id: schema.reservations.id, propertyId: schema.reservations.propertyId })
+    .select({ id: schema.reservations.id, propertyId: schema.reservations.propertyId, unitId: schema.reservations.unitId })
     .from(schema.reservations)
     .where(eq(schema.reservations.code, code))
     .limit(1);
@@ -37,8 +49,38 @@ async function run(form: FormData, action: Action, op: (ctx: { reservationId: st
   const decision = can(staff.actor, action, r.propertyId);
   if (!decision.allowed) back(decision.reason === "outside_property_scope" ? "error=not_found" : "error=role");
 
-  const result = await op({ reservationId: r.id, staffId: staff.staffId });
-  back(result.ok ? "done=1" : `error=${result.error}`);
+  const result = await op({ reservationId: r.id, propertyId: r.propertyId, unitId: r.unitId, staffId: staff.staffId, actor: staff.actor });
+  back(result.ok ? "done=1" : `${keepOnError ? `${keepOnError}&` : ""}error=${result.error}`);
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Confirms a previewed change of dates and/or villa. */
+export async function changeStayAction(form: FormData) {
+  const checkInDate = field(form, "newIn");
+  const checkOutDate = field(form, "newOut");
+  const unitId = field(form, "unit");
+  const expectedTotal = Number(field(form, "expectedTotal"));
+  const keep = new URLSearchParams({ newIn: checkInDate, newOut: checkOutDate, unit: unitId }).toString();
+  await run(
+    form,
+    "reservation.modify",
+    async (ctx) => {
+      if (!UUID.test(unitId) || !Number.isSafeInteger(expectedTotal)) return { ok: false, error: "invalid_dates" };
+      // Moving to another villa is its own permission.
+      if (unitId !== ctx.unitId && !can(ctx.actor, "reservation.move", ctx.propertyId).allowed) return { ok: false, error: "role" };
+      const result = await applyStayChange(getDb(), {
+        reservationId: ctx.reservationId,
+        checkIn: checkInDate,
+        checkOut: checkOutDate,
+        unitId,
+        expectedTotal,
+        actor: { type: "staff", id: ctx.staffId },
+      });
+      return result.ok ? { ok: true } : { ok: false, error: result.error };
+    },
+    keep,
+  );
 }
 
 export async function checkInAction(form: FormData) {

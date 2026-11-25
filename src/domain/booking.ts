@@ -11,9 +11,9 @@ type AnyDb = PgDatabase<PgQueryResultHKT, typeof schema>;
 type Tx = Parameters<Parameters<AnyDb["transaction"]>[0]>[0];
 type Executor = AnyDb | Tx;
 
-const EXCLUSION_VIOLATION = "23P01";
+export const EXCLUSION_VIOLATION = "23P01";
 
-function sqlState(error: unknown): string | undefined {
+export function sqlState(error: unknown): string | undefined {
   let current: unknown = error;
   while (current && typeof current === "object") {
     if ("code" in current && typeof current.code === "string") return current.code;
@@ -35,7 +35,7 @@ export function newBookingCode(): string {
  * SQL condition: this unit has no reservation that occupies any night of
  * [checkIn, checkOut). Holds count only until they expire.
  */
-function unitIsFree(checkIn: string, checkOut: string, now: Date) {
+export function unitIsFree(checkIn: string, checkOut: string, now: Date) {
   return sql`NOT EXISTS (
     SELECT 1 FROM ${schema.reservations} r
     WHERE r.unit_id = ${schema.units.id}
@@ -58,7 +58,7 @@ type UnitTypeWithPolicy = {
   rules: PricingRules;
 };
 
-async function loadUnitTypes(db: Executor, unitTypeIds: string[]): Promise<Map<string, UnitTypeWithPolicy>> {
+export async function loadUnitTypes(db: Executor, unitTypeIds: string[]): Promise<Map<string, UnitTypeWithPolicy>> {
   if (unitTypeIds.length === 0) return new Map();
   const rows = await db
     .select({ type: schema.unitTypes, property: schema.properties })

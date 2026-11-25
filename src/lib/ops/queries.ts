@@ -333,3 +333,12 @@ export async function villaStatus(actor: Actor, propertySlug: string | undefined
   rows.sort((a, b) => a.priority - b.priority || (a.arrival?.eta ?? "99").localeCompare(b.arrival?.eta ?? "99") || a.code.localeCompare(b.code));
   return { properties, property, today, units: rows };
 }
+
+/** Active villas of one type, for choosing where to move a booking. */
+export async function sameTypeUnits(unitTypeId: string) {
+  return getDb()
+    .select({ id: schema.units.id, code: schema.units.code, name: schema.units.name })
+    .from(schema.units)
+    .where(and(eq(schema.units.unitTypeId, unitTypeId), eq(schema.units.isActive, true)))
+    .orderBy(asc(schema.units.code));
+}

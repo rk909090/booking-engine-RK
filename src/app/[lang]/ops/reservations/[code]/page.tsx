@@ -4,8 +4,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import { OpsNav, OpsShell, StatusBadge, NoAccess } from "@/components/ops/ops-shell";
+import { StayChange } from "@/components/ops/stay-change";
 import { ErrorNote, SuccessNote } from "@/components/ui";
+import { changeability, previewStayChange } from "@/domain/modify";
 import { loadStayFacts, stayActions, type ActionState } from "@/domain/operations";
+import { balanceDue } from "@/domain/pricing";
 import { getDb } from "@/db/client";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { format } from "@/i18n/format";
@@ -14,7 +17,7 @@ import { getDictionary, type Dictionary } from "@/i18n/get-dictionary";
 import { requireStaff } from "@/lib/auth/current-staff";
 import { can, type Action } from "@/lib/authz/permissions";
 import { cancelAction, checkInAction, checkOutAction, noShowAction, refundAction } from "@/lib/ops/actions";
-import { getReservationForStaff } from "@/lib/ops/queries";
+import { getReservationForStaff, sameTypeUnits } from "@/lib/ops/queries";
 
 type Props = PageProps<"/[lang]/ops/reservations/[code]">;
 
@@ -67,11 +70,35 @@ async function Detail({
   const { reservation: r, guest, unit, property } = data;
   const facts = await loadStayFacts(getDb(), r, property.timezone, new Date());
   const actions = stayActions(facts);
-  const balance = r.totalAmount - r.amountPaid;
+  const balance = balanceDue(r);
   const fmt = timeFmt(lang, property.timezone);
   const errorCode = typeof sp.error === "string" ? sp.error : null;
+
+  // Change of dates / villa: the GET form puts the request in the URL.
+  const str = (v: unknown) => (typeof v === "string" ? v : "");
+  const changeAllowed = changeability(r.status).dates.allowed;
+  const canModify = can(staff.actor, "reservation.modify", r.propertyId).allowed;
+  const canMove = can(staff.actor, "reservation.move", r.propertyId).allowed;
+  const requestedUnit = str(sp.unit);
+  const request =
+    changeAllowed && canModify && str(sp.newIn) && str(sp.newOut)
+      ? {
+          checkIn: str(sp.newIn),
+          checkOut: str(sp.newOut),
+          unitId: /^[0-9a-f-]{36}$/i.test(requestedUnit) && (canMove || requestedUnit === r.unitId) ? requestedUnit : r.unitId,
+        }
+      : null;
+  const [preview, units] = await Promise.all([
+    request ? previewStayChange(getDb(), { reservationId: r.id, ...request }) : null,
+    changeAllowed && canModify ? sameTypeUnits(r.unitTypeId) : [],
+  ]);
+  // Errors from confirming a change are shown in the change card itself.
   const errorText =
-    errorCode === "role" ? t.roleNotAllowed : errorCode ? (t.reasons as Record<string, string>)[errorCode] ?? t.reasons.not_found : null;
+    errorCode === "role"
+      ? t.roleNotAllowed
+      : errorCode && !request
+        ? ((t.reasons as Record<string, string>)[errorCode] ?? t.reasons.not_found)
+        : null;
 
   const gate = (action: Action, state: ActionState): { enabled: boolean; why?: string } => {
     if (!can(staff.actor, action, r.propertyId).allowed) return { enabled: false, why: t.roleNotAllowed };
@@ -191,7 +218,10 @@ async function Detail({
               <ol className="space-y-2 text-sm">
                 {data.activity.map((e) => (
                   <li key={e.id} className="flex flex-wrap justify-between gap-2 border-b border-line/60 pb-2 last:border-0">
-                    <span className="text-ink">{(t.activity as Record<string, string>)[e.action] ?? e.action}</span>
+                    <span className="text-ink">
+                      {(t.activity as Record<string, string>)[e.action] ?? e.action}
+                      <ChangeDetail action={e.action} before={e.before} after={e.after} lang={lang} dict={dict} />
+                    </span>
                     <span className="text-xs text-stone">
                       {e.actorType === "staff" ? t.actorStaff : e.actorType === "guest" ? t.actorGuest : t.actorSystem} ·{" "}
                       {fmt.format(e.occurredAt)}
@@ -225,6 +255,22 @@ async function Detail({
             </div>
           </Card>
 
+          {changeAllowed && canModify ? (
+            <Card title={dict.stayChange.title}>
+              <StayChange
+                lang={lang}
+                dict={dict}
+                reservation={r}
+                units={units}
+                today={facts.today}
+                canMove={canMove}
+                request={request}
+                preview={preview}
+                priceChanged={errorCode === "price_changed"}
+              />
+            </Card>
+          ) : null}
+
           {facts.refundOutstanding > 0 ? (
             <Card title={t.refundTitle}>
               <ActionForm gate={gate("payment.refund", actions.refund)} action={refundAction} label={t.refundSubmit} hidden={hidden}>
@@ -248,6 +294,24 @@ async function Detail({
         </aside>
       </div>
     </>
+  );
+}
+
+/** "10 Feb – 12 Feb · RVP-01 → 10 Feb – 14 Feb · RVP-03" for date changes and moves. */
+function ChangeDetail({ action, before, after, lang, dict }: { action: string; before: unknown; after: unknown; lang: Locale; dict: Dictionary }) {
+  if (action !== "reservation.modified" && action !== "reservation.moved") return null;
+  type Side = { checkIn?: string; checkOut?: string; unitCode?: string; total?: number };
+  const b = (before ?? {}) as Side;
+  const a = (after ?? {}) as Side;
+  if (!b.checkIn || !b.checkOut || !a.checkIn || !a.checkOut) return null;
+  const side = (s: Side) => `${formatDateRange(s.checkIn!, s.checkOut!, lang)}${s.unitCode ? ` · ${s.unitCode}` : ""}`;
+  return (
+    <span className="block text-xs text-stone">
+      {format(dict.stayChange.change, { from: side(b), to: side(a) })}
+      {typeof b.total === "number" && typeof a.total === "number" && a.total !== b.total
+        ? ` · ${format(dict.stayChange.change, { from: formatMoney(b.total, lang), to: formatMoney(a.total, lang) })}`
+        : ""}
+    </span>
   );
 }
 

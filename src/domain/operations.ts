@@ -3,6 +3,7 @@ import { and, eq, ne, sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
 import { addDays, todayIn } from "./dates";
+import { balanceDue } from "./pricing";
 import { openBlockToday, recordState, unitState, type HkState } from "./housekeeping";
 
 type AnyDb = PgDatabase<PgQueryResultHKT, typeof schema>;
@@ -182,7 +183,7 @@ export async function checkOut(
     const facts = await loadStayFacts(tx, row.r, row.timezone, now);
     const state = stayActions(facts).checkOut;
     if (!state.allowed) return { ok: false, error: state.reason } as const;
-    const balance = row.r.totalAmount - row.r.amountPaid;
+    const balance = balanceDue(row.r);
     if (balance > 0 && !input.acknowledgeBalance) return { ok: false, error: "balance_outstanding" } as const;
 
     const earliest = addDays(row.r.checkIn, 1);
