@@ -242,6 +242,11 @@ Dasbor per peran, papan Hari Ini realtime, reservasi manual, **ubah tanggal/pind
 - Bentrok menyebutkan kode booking yang menghalangi dan menawarkan vila lain yang kosong; blokir perawatan dihormati.
 - Pemberitahuan ke tamu masuk antrean email (pengiriman email belum aktif).
 98 tes otomatis lulus; diuji di browser terhadap Supabase (pindah + perpanjang, perpanjang tamu in-house beserta bentrok dengan tamu berikutnya, perpendek → refund, Direktur tidak melihat formulir). Data uji sudah dihapus. Catatan kecepatan: dari PC pengembang, menyimpan perubahan butuh sekitar 10 detik karena latensi ke Supabase (~300 ms per query); di Hostinger belum diukur.
+
+**Status (25 Nov 2026), bagian keempat Fase 2 selesai: reservasi manual oleh staf.** Halaman "Reservasi baru" (Front Office dan Manajer Cabang) untuk booking lewat telepon, WhatsApp, walk-in, atau agen: cek ketersediaan dan harga per tipe vila, data tamu (cukup email atau nomor telepon), pilih vila tertentu atau otomatis. Harga, minimal menginap, dan kebijakan deposit sama dengan situs web. Dua cara bayar:
+- **Pembayaran sudah diterima** (tunai, transfer, EDC): minimal sebesar deposit, booking langsung terkonfirmasi.
+- **Tautan pembayaran**: vila ditahan 1, 24, atau 48 jam; tautan tampil di halaman reservasi dengan tombol salin.
+Di halaman reservasi kini ada "Catat pembayaran diterima" untuk hold (langsung terkonfirmasi, tautan yang masih terbuka ditutup) dan untuk sisa tagihan. Bila tautan yang sudah ditutup tetap dibayar, uangnya tercatat dan kelebihannya menjadi refund terutang. 106 tes otomatis lulus; diuji di browser terhadap Supabase (walk-in tunai tanpa email, tautan pembayaran lalu dibayar lewat simulator, deposit dicatat di meja depan). Data uji sudah dihapus. Belum: harga khusus/diskon oleh staf, konfirmasi tanpa deposit (garansi), dan pengiriman tautan otomatis lewat email/WhatsApp. Catatan: dari PC pengembang, membuat reservasi butuh sekitar 20–30 detik karena latensi ke Supabase.
 Temuan: session pooler Supabase di paket ini membatasi 15 koneksi total. Aplikasi kini memakai maksimal 3 koneksi per proses dan melepas koneksi yang menganggur setelah 20 detik.
 
 ### Fase 3: Revenue & distribusi
