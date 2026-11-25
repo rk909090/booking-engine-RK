@@ -1,4 +1,7 @@
+import { existsSync } from "node:fs";
 import { defineConfig } from "drizzle-kit";
+
+if (existsSync(".env.local")) process.loadEnvFile(".env.local");
 
 /*
  * Migrations run against the direct (session) connection, not the
