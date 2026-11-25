@@ -471,3 +471,39 @@ export const lateCheckoutRequests = pgTable(
       .where(sql`${t.status} IN ('requested', 'approved')`),
   ],
 );
+
+export const earlyCheckinStatus = pgEnum("early_checkin_status", ["requested", "approved", "declined", "cancelled"]);
+
+/**
+ * A guest asking to arrive before the property's check-in time on their
+ * arrival date. Approval is refused while the guest leaving the same villa
+ * that day (at the check-out time, or their approved late check-out) would
+ * leave too little time to prepare the villa.
+ */
+export const earlyCheckinRequests = pgTable(
+  "early_checkin_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reservationId: uuid("reservation_id")
+      .notNull()
+      .references(() => reservations.id, { onDelete: "cascade" }),
+    /** The arrival date the request is for. */
+    forDate: date("for_date", { mode: "string" }).notNull(),
+    requestedTime: time("requested_time").notNull(),
+    status: earlyCheckinStatus("status").notNull().default("requested"),
+    fee: bigint("fee", { mode: "number" }).notNull().default(0),
+    note: text("note"),
+    decisionNote: text("decision_note"),
+    requestedBy: text("requested_by"),
+    decidedBy: text("decided_by"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    check("early_checkin_fee_non_negative", sql`${t.fee} >= 0`),
+    // At most one open (requested or approved) request per booking.
+    uniqueIndex("early_checkin_one_active_idx")
+      .on(t.reservationId)
+      .where(sql`${t.status} IN ('requested', 'approved')`),
+  ],
+);

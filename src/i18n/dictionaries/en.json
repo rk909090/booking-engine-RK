@@ -365,7 +365,15 @@
       "late_not_pending": "No request is waiting for a decision.",
       "late_stale": "The departure date changed; this request no longer applies.",
       "late_conflict": "Cannot approve: it conflicts with the next guest in this villa.",
-      "late_invalid_fee": "Invalid fee."
+      "late_invalid_fee": "Invalid fee.",
+      "early_not_allowed": "Early check-in is only for confirmed bookings that have not arrived.",
+      "early_after_arrival": "The arrival date has passed.",
+      "early_invalid_time": "Invalid time: it must be before the standard check-in time.",
+      "early_already_requested": "There is already an open early check-in request.",
+      "early_not_pending": "No request is waiting for a decision.",
+      "early_stale": "The arrival date changed; this request no longer applies.",
+      "early_conflict": "Cannot approve: the previous guest has not left this villa yet.",
+      "early_invalid_fee": "Invalid fee."
     },
     "activityTitle": "Activity",
     "noActivity": "No activity yet.",
@@ -387,7 +395,11 @@
       "late_checkout.requested": "Late check-out requested",
       "late_checkout.approved": "Late check-out approved",
       "late_checkout.declined": "Late check-out declined",
-      "late_checkout.cancelled": "Late check-out cancelled"
+      "late_checkout.cancelled": "Late check-out cancelled",
+      "early_checkin.requested": "Early check-in requested",
+      "early_checkin.approved": "Early check-in approved",
+      "early_checkin.declined": "Early check-in declined",
+      "early_checkin.cancelled": "Early check-in cancelled"
     },
     "actorGuest": "Guest",
     "actorSystem": "System",
@@ -480,7 +492,10 @@
     "turnover": "Same-day turnover",
     "lateCheckout": "Late check-out {time}",
     "lateRequested": "Late check-out {time} requested (not decided)",
-    "lateConflict": "Conflicts with the arrival: limit {time}"
+    "lateConflict": "Conflicts with the arrival: limit {time}",
+    "earlyCheckin": "Early check-in {time}",
+    "earlyRequested": "Early check-in {time} requested (not decided)",
+    "earlyConflict": "Conflicts with the departing guest: earliest {time}"
   },
   "stayChange": {
     "title": "Change dates or villa",
@@ -528,7 +543,8 @@
       "unit_blocked": "This villa is under maintenance on some of those dates.",
       "price_changed": "The price changed since the preview. Check the new price, then confirm again."
     },
-    "lateCheckoutCancelled": "The late check-out request for the old departure date will be cancelled, with its fee."
+    "lateCheckoutCancelled": "The late check-out request for the old departure date will be cancelled, with its fee.",
+    "earlyCheckinCancelled": "The early check-in request for the old arrival date will be cancelled, with its fee."
   },
   "newBooking": {
     "title": "New booking",
@@ -583,11 +599,14 @@
   "lateCheckout": {
     "title": "Late check-out",
     "standard": "Standard check-out {time} · villa turnover {minutes} minutes.",
-    "nextArrival": "Next guest in this villa: {code} ({guest}), arriving {time}",
-    "etaGuest": "guest's estimate",
-    "etaStandard": "standard check-in time",
-    "latest": "Latest check-out: {time}.",
-    "noArrival": "No guest arrives in this villa on {date}.",
+    "other": "Next guest in this villa: {code} ({guest}), arriving {time}",
+    "sources": {
+      "early": "approved early check-in",
+      "eta": "guest's estimate",
+      "standard": "standard check-in time"
+    },
+    "limit": "Latest check-out: {time}.",
+    "noOther": "No guest arrives in this villa on {date}.",
     "time": "Requested check-out time",
     "note": "Note (optional)",
     "request": "Record request",
@@ -602,7 +621,34 @@
     "conflict": "Conflict: past {time}, the latest that leaves time to prepare the villa for the next guest.",
     "conflictApproved": "Warning: since the approval, a guest arrives earlier. The limit is now {time}.",
     "moveHint": "To approve, move the next guest to another villa from their reservation page.",
-    "openNext": "Open {code}",
+    "openOther": "Open {code}",
     "stale": "This request was for the old departure date ({date}) and no longer applies."
+  },
+  "earlyCheckin": {
+    "title": "Early check-in",
+    "standard": "Standard check-in {time} · villa turnover {minutes} minutes.",
+    "other": "Previous guest in this villa: {code} ({guest}), leaving {time}",
+    "sources": {
+      "late": "approved late check-out",
+      "standard": "standard check-out time"
+    },
+    "limit": "Earliest check-in: {time}.",
+    "noOther": "No guest leaves this villa on {date}.",
+    "time": "Requested check-in time",
+    "note": "Note (optional)",
+    "request": "Record request",
+    "requested": "Requested from {time}",
+    "approved": "Approved from {time}",
+    "fee": "Fee (IDR, optional)",
+    "feeCharged": "fee {amount}",
+    "decisionNote": "Decision note (optional)",
+    "approve": "Approve",
+    "decline": "Decline",
+    "cancel": "Cancel early check-in",
+    "conflict": "Conflict: earlier than {time}, when the villa is ready after the previous guest leaves.",
+    "conflictApproved": "Warning: since the approval, the previous guest leaves later. The earliest is now {time}.",
+    "moveHint": "To approve, move one of the guests to another villa from their reservation page.",
+    "openOther": "Open {code}",
+    "stale": "This request was for the old arrival date ({date}) and no longer applies."
   }
 }

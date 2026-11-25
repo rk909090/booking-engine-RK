@@ -56,6 +56,8 @@ export type StayChangePlan = StayChangeRequest & {
   total: number;
   /** A late check-out for the old departure date is withdrawn (and its fee removed). */
   lateCheckoutCancelled: boolean;
+  /** An early check-in for the old arrival date is withdrawn (and its fee removed). */
+  earlyCheckinCancelled: boolean;
   previousTotal: number;
   /** New total minus old total; negative when the stay got cheaper. */
   difference: number;
@@ -207,7 +209,15 @@ async function evaluate(db: Executor, r: Reservation, timezone: string, req: Sta
           .where(and(eq(schema.lateCheckoutRequests.reservationId, r.id), inArray(schema.lateCheckoutRequests.status, ["requested", "approved"])))
           .limit(1)
       : [];
-  const extras = r.extrasAmount - (late?.status === "approved" ? late.fee : 0);
+  const [early] =
+    checkIn !== r.checkIn
+      ? await db
+          .select({ status: schema.earlyCheckinRequests.status, fee: schema.earlyCheckinRequests.fee })
+          .from(schema.earlyCheckinRequests)
+          .where(and(eq(schema.earlyCheckinRequests.reservationId, r.id), inArray(schema.earlyCheckinRequests.status, ["requested", "approved"])))
+          .limit(1)
+      : [];
+  const extras = r.extrasAmount - (late?.status === "approved" ? late.fee : 0) - (early?.status === "approved" ? early.fee : 0);
   const total = price.total + extras;
   const paidOut = await refundsPaid(db, r.id);
   // A refund already paid out cannot be taken back, so it stays owed-and-paid.
@@ -228,6 +238,7 @@ async function evaluate(db: Executor, r: Reservation, timezone: string, req: Sta
       extras,
       total,
       lateCheckoutCancelled: Boolean(late),
+      earlyCheckinCancelled: Boolean(early),
       previousTotal: r.totalAmount,
       difference: total - r.totalAmount,
       balanceAfter,
@@ -327,6 +338,7 @@ export async function applyStayChange(
           total: plan.total,
           difference: plan.difference,
           lateCheckoutCancelled: plan.lateCheckoutCancelled,
+          earlyCheckinCancelled: plan.earlyCheckinCancelled,
           refundOutstanding: plan.refundOutstandingAfter,
         },
         occurredAt: now,
@@ -337,6 +349,13 @@ export async function applyStayChange(
           .update(schema.lateCheckoutRequests)
           .set({ status: "cancelled", decidedBy: input.actor.id, decidedAt: now, decisionNote: "Departure date changed", updatedAt: now })
           .where(and(eq(schema.lateCheckoutRequests.reservationId, r.id), inArray(schema.lateCheckoutRequests.status, ["requested", "approved"])));
+      }
+
+      if (plan.earlyCheckinCancelled) {
+        await tx
+          .update(schema.earlyCheckinRequests)
+          .set({ status: "cancelled", decidedBy: input.actor.id, decidedAt: now, decisionNote: "Arrival date changed", updatedAt: now })
+          .where(and(eq(schema.earlyCheckinRequests.reservationId, r.id), inArray(schema.earlyCheckinRequests.status, ["requested", "approved"])));
       }
 
       const [guest] = await tx.select({ email: schema.guests.email }).from(schema.guests).where(eq(schema.guests.id, r.guestId));

@@ -113,7 +113,7 @@ describe("late check-out requests", () => {
     const next = await booking("2027-02-12", "2027-02-14", 0);
     await requestLateCheckout(db, { reservationId: r.id, time: "15:00", actor: staff, now });
     const status = await lateCheckoutStatus(db, r.id, now);
-    expect(status?.check).toMatchObject({ latestAllowed: "12:00", conflict: true, nextArrival: { code: next.code, arrivalTime: "14:00", etaKnown: false } });
+    expect(status?.check).toMatchObject({ latestAllowed: "12:00", conflict: true, nextArrival: { code: next.code, arrivalTime: "14:00", source: "standard" } });
 
     const preview = await previewStayChange(db, { reservationId: next.id, checkIn: next.checkIn, checkOut: next.checkOut, unitId: unitIds[1], now });
     if (!preview.ok) throw new Error();

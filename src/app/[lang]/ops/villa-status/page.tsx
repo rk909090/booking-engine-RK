@@ -147,6 +147,16 @@ async function Board({
                     {format(t.arrival, { guest: u.arrival.guestName })}
                   </Link>{" "}
                   <span className="text-stone">· {u.arrival.eta ? format(t.eta, { time: u.arrival.eta.slice(0, 5) }) : t.noEta}</span>
+                  {u.earlyCheckin ? (
+                    <span className="mt-1 block text-xs">
+                      <span className={u.earlyCheckin.approved ? "font-medium text-terracotta-deep" : "text-stone"}>
+                        {format(u.earlyCheckin.approved ? t.earlyCheckin : t.earlyRequested, { time: u.earlyCheckin.time })}
+                      </span>
+                      {u.earlyCheckin.conflict ? (
+                        <span className="ml-2 font-medium text-danger">{format(t.earlyConflict, { time: u.earlyCheckin.earliestAllowed ?? "" })}</span>
+                      ) : null}
+                    </span>
+                  ) : null}
                 </li>
               ) : null}
               {u.inHouse ? (

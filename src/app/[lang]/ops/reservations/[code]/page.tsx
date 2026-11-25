@@ -5,9 +5,10 @@ import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import { OpsNav, OpsShell, StatusBadge, NoAccess } from "@/components/ops/ops-shell";
 import { CopyField } from "@/components/ops/copy-field";
-import { LateCheckout } from "@/components/ops/late-checkout";
+import { TimeRequest, type TimeRequestView } from "@/components/ops/time-request";
 import { StayChange } from "@/components/ops/stay-change";
 import { ErrorNote, SuccessNote } from "@/components/ui";
+import { earlyCheckinStatus } from "@/domain/early-checkin";
 import { lateCheckoutStatus } from "@/domain/late-checkout";
 import { changeability, previewStayChange } from "@/domain/modify";
 import { loadStayFacts, stayActions, type ActionState } from "@/domain/operations";
@@ -107,11 +108,45 @@ async function Detail({
         }
       : null;
   const stayActive = r.status === "confirmed" || r.status === "in_house";
-  const [preview, units, late] = await Promise.all([
+  const [preview, units, late, early] = await Promise.all([
     request ? previewStayChange(getDb(), { reservationId: r.id, ...request }) : null,
     changeAllowed && canModify ? sameTypeUnits(r.unitTypeId) : [],
     stayActive ? lateCheckoutStatus(getDb(), r.id, now) : null,
+    r.status === "confirmed" ? earlyCheckinStatus(getDb(), r.id, now) : null,
   ]);
+  const lateView: TimeRequestView | null = late
+    ? {
+        kind: "late",
+        standardTime: late.check.standardCheckOut,
+        turnoverMinutes: late.check.turnoverMinutes,
+        other: late.check.nextArrival
+          ? { code: late.check.nextArrival.code, guestName: late.check.nextArrival.guestName, time: late.check.nextArrival.arrivalTime, source: late.check.nextArrival.source }
+          : null,
+        limit: late.check.latestAllowed,
+        conflict: late.check.conflict,
+        request: late.request,
+        stale: late.stale,
+      }
+    : null;
+  const earlyView: TimeRequestView | null = early
+    ? {
+        kind: "early",
+        standardTime: early.check.standardCheckIn,
+        turnoverMinutes: early.check.turnoverMinutes,
+        other: early.check.previousDeparture
+          ? {
+              code: early.check.previousDeparture.code,
+              guestName: early.check.previousDeparture.guestName,
+              time: early.check.previousDeparture.departureTime,
+              source: early.check.previousDeparture.source,
+            }
+          : null,
+        limit: early.check.earliestAllowed,
+        conflict: early.check.conflict,
+        request: early.request,
+        stale: early.stale,
+      }
+    : null;
   // Errors from confirming a change are shown in the change card itself.
   const errorText =
     errorCode === "role"
@@ -331,9 +366,15 @@ async function Detail({
             </Card>
           ) : null}
 
-          {late && (canModify || late.request) ? (
+          {earlyView && (canModify || earlyView.request) ? (
+            <Card title={dict.earlyCheckin.title}>
+              <TimeRequest lang={lang} dict={dict} code={r.code} date={r.checkIn} view={earlyView} canEdit={canModify} />
+            </Card>
+          ) : null}
+
+          {lateView && (canModify || lateView.request) ? (
             <Card title={dict.lateCheckout.title}>
-              <LateCheckout lang={lang} dict={dict} code={r.code} checkOut={r.checkOut} status={late} canEdit={canModify} />
+              <TimeRequest lang={lang} dict={dict} code={r.code} date={r.checkOut} view={lateView} canEdit={canModify} />
             </Card>
           ) : null}
 

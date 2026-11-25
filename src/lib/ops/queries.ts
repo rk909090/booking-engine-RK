@@ -5,6 +5,7 @@ import * as schema from "@/db/schema";
 import { isIsoDate, todayIn } from "@/domain/dates";
 import { unitIsFree } from "@/domain/booking";
 import { readiness } from "@/domain/housekeeping";
+import { assessEarlyCheckin } from "@/domain/early-checkin";
 import { assessLateCheckout } from "@/domain/late-checkout";
 import { canAccessProperty, hasGlobalScope, type Actor } from "@/lib/authz/permissions";
 
@@ -45,6 +46,7 @@ export async function visibleProperties(actor: Actor) {
       name: schema.properties.name,
       timezone: schema.properties.timezone,
       checkInTime: schema.properties.checkInTime,
+      checkOutTime: schema.properties.checkOutTime,
       turnoverMinutes: schema.properties.turnoverMinutes,
     })
     .from(schema.properties)
@@ -251,7 +253,7 @@ export async function villaStatus(actor: Actor, propertySlug: string | undefined
   if (!property) return { properties, property: null, today: "", units: [] };
   const today = todayIn(property.timezone, now);
 
-  const [units, stays, blocks, lastEvents, lateCheckouts] = await Promise.all([
+  const [units, stays, blocks, lastEvents, lateCheckouts, earlyCheckins] = await Promise.all([
     db
       .select({
         id: schema.units.id,
@@ -317,6 +319,17 @@ export async function villaStatus(actor: Actor, propertySlug: string | undefined
           inArray(schema.lateCheckoutRequests.status, ["requested", "approved"]),
         ),
       ),
+    db
+      .select({ reservationId: schema.earlyCheckinRequests.reservationId, time: schema.earlyCheckinRequests.requestedTime, status: schema.earlyCheckinRequests.status })
+      .from(schema.earlyCheckinRequests)
+      .innerJoin(schema.reservations, eq(schema.reservations.id, schema.earlyCheckinRequests.reservationId))
+      .where(
+        and(
+          eq(schema.reservations.propertyId, property.id),
+          eq(schema.earlyCheckinRequests.forDate, today),
+          inArray(schema.earlyCheckinRequests.status, ["requested", "approved"]),
+        ),
+      ),
   ]);
 
   const staffNames = new Map(
@@ -339,19 +352,29 @@ export async function villaStatus(actor: Actor, propertySlug: string | undefined
     const last = lastEvents.find((e) => e.unitId === u.id) ?? null;
     // A guest leaving late today, and whether that still leaves time to prepare for the arrival.
     const late = inHouse?.checkOut === today ? (lateCheckouts.find((l) => l.reservationId === inHouse.id) ?? null) : null;
+    const early = arrival ? (earlyCheckins.find((e) => e.reservationId === arrival.id) ?? null) : null;
+    // When the arriving guest needs the villa, and when the departing guest really leaves (same rules as the requests).
+    const standardIn = property.checkInTime.slice(0, 5);
+    const eta = arrival?.eta?.slice(0, 5) ?? null;
+    const readyBy = arrival ? (early?.status === "approved" ? early.time.slice(0, 5) : eta && eta > standardIn ? eta : standardIn) : null;
+    const leavesAt = inHouse?.checkOut === today ? (late?.status === "approved" ? late.time.slice(0, 5) : property.checkOutTime.slice(0, 5)) : null;
     const lateCheckout = late
       ? {
           time: late.time.slice(0, 5),
           approved: late.status === "approved",
-          ...assessLateCheckout({
-            requestedTime: late.time.slice(0, 5),
-            arrivalTime: arrival ? (arrival.eta ?? property.checkInTime).slice(0, 5) : null,
-            turnoverMinutes: property.turnoverMinutes,
-          }),
+          ...assessLateCheckout({ requestedTime: late.time.slice(0, 5), arrivalTime: readyBy, turnoverMinutes: property.turnoverMinutes }),
+        }
+      : null;
+    const earlyCheckin = early
+      ? {
+          time: early.time.slice(0, 5),
+          approved: early.status === "approved",
+          ...assessEarlyCheckin({ requestedTime: early.time.slice(0, 5), departureTime: leavesAt, turnoverMinutes: property.turnoverMinutes }),
         }
       : null;
     return {
       lateCheckout,
+      earlyCheckin,
       ...u,
       state,
       readiness: r.readiness,

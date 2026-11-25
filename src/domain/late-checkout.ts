@@ -11,9 +11,11 @@ type Actor = { type: "staff"; id: string };
 /*
  * Late check-out as a request with a decision, instead of free text (the
  * reference demo's bug B3). The villa must be cleaned and inspected before the
- * next guest arrives, so the latest possible departure is that guest's
- * arrival time (their ETA, or the property's check-in time) minus the
- * property's turnover time. Approval is refused past that point; staff can
+ * next guest arrives, so the latest possible departure is the time that guest
+ * needs the villa minus the property's turnover time. That time is their
+ * approved early check-in, otherwise the property's check-in time (or their
+ * ETA when it is later: a guest arriving at 18:00 does not need the villa at
+ * 14:00; one arriving at 10:00 without an approved early check-in waits). Approval is refused past that point; staff can
  * move the arriving guest to another villa first.
  */
 
@@ -36,7 +38,15 @@ export function assessLateCheckout(input: { requestedTime: string; arrivalTime: 
   return { latestAllowed: fromMinutes(latest), conflict: toMinutes(input.requestedTime) > latest };
 }
 
-export type NextArrival = { reservationId: string; code: string; guestName: string; arrivalTime: string; etaKnown: boolean };
+export type NextArrival = {
+  reservationId: string;
+  code: string;
+  guestName: string;
+  /** When the villa must be ready for them. */
+  arrivalTime: string;
+  /** Where that time comes from. */
+  source: "early" | "eta" | "standard";
+};
 
 export type LateCheckoutCheck = {
   standardCheckOut: string;
@@ -65,13 +75,25 @@ async function nextArrival(db: Executor, { r, property }: Loaded, now: Date): Pr
     )
     .limit(1);
   if (!next) return null;
-  return {
-    reservationId: next.id,
-    code: next.code,
-    guestName: next.guestName,
-    arrivalTime: (next.eta ?? property.checkInTime).slice(0, 5),
-    etaKnown: next.eta !== null,
-  };
+  const [early] = await db
+    .select({ time: schema.earlyCheckinRequests.requestedTime })
+    .from(schema.earlyCheckinRequests)
+    .where(
+      and(
+        eq(schema.earlyCheckinRequests.reservationId, next.id),
+        eq(schema.earlyCheckinRequests.forDate, r.checkOut),
+        eq(schema.earlyCheckinRequests.status, "approved"),
+      ),
+    )
+    .limit(1);
+  const standard = property.checkInTime.slice(0, 5);
+  const eta = next.eta?.slice(0, 5) ?? null;
+  const [arrivalTime, source]: [string, NextArrival["source"]] = early
+    ? [early.time.slice(0, 5), "early"]
+    : eta && eta > standard
+      ? [eta, "eta"]
+      : [standard, "standard"];
+  return { reservationId: next.id, code: next.code, guestName: next.guestName, arrivalTime, source };
 }
 
 async function check(db: Executor, loaded: Loaded, requestedTime: string, now: Date): Promise<LateCheckoutCheck> {

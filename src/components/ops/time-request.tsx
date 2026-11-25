@@ -1,58 +1,83 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ErrorNote } from "@/components/ui";
-import type { lateCheckoutStatus } from "@/domain/late-checkout";
 import type { Locale } from "@/i18n/config";
 import { format } from "@/i18n/format";
 import { formatDate, formatMoney } from "@/i18n/formatters";
 import type { Dictionary } from "@/i18n/get-dictionary";
-import { cancelLateCheckoutAction, decideLateCheckoutAction, requestLateCheckoutAction } from "@/lib/ops/actions";
+import {
+  cancelEarlyCheckinAction,
+  cancelLateCheckoutAction,
+  decideEarlyCheckinAction,
+  decideLateCheckoutAction,
+  requestEarlyCheckinAction,
+  requestLateCheckoutAction,
+} from "@/lib/ops/actions";
 
-type Status = NonNullable<Awaited<ReturnType<typeof lateCheckoutStatus>>>;
-
-const input = "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink";
-const add30 = (time: string) => {
-  const [h, m] = time.split(":").map(Number);
-  const total = h * 60 + m + 30;
-  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+/** Late check-out or early check-in, in one shape for the card. */
+export type TimeRequestView = {
+  kind: "late" | "early";
+  standardTime: string;
+  turnoverMinutes: number;
+  /** The neighbouring stay in the same villa: the next arrival (late) or the previous departure (early). */
+  other: { code: string; guestName: string; time: string; source: string } | null;
+  /** Latest check-out (late) or earliest check-in (early); null when no neighbouring stay. */
+  limit: string | null;
+  conflict: boolean;
+  request: { status: string; requestedTime: string; fee: number; note: string | null; forDate: string } | null;
+  stale: boolean;
 };
 
-/** Request, decide and withdraw a late check-out, with the next arrival in view. */
-export function LateCheckout({
+const input = "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink";
+
+function shift(time: string, minutes: number) {
+  const [h, m] = time.split(":").map(Number);
+  const total = Math.min(23 * 60 + 30, Math.max(6 * 60, h * 60 + m + minutes));
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
+/** Request, decide and withdraw a change of arrival or departure time, with the neighbouring stay in view. */
+export function TimeRequest({
   lang,
   dict,
   code,
-  checkOut,
-  status,
+  date,
+  view,
   canEdit,
 }: {
   lang: Locale;
   dict: Dictionary;
   code: string;
-  checkOut: string;
-  status: Status;
+  /** The departure (late) or arrival (early) date. */
+  date: string;
+  view: TimeRequestView;
   canEdit: boolean;
 }) {
-  const t = dict.lateCheckout;
-  const { request, check, stale } = status;
+  const t = view.kind === "late" ? dict.lateCheckout : dict.earlyCheckin;
+  const actions =
+    view.kind === "late"
+      ? { request: requestLateCheckoutAction, decide: decideLateCheckoutAction, cancel: cancelLateCheckoutAction }
+      : { request: requestEarlyCheckinAction, decide: decideEarlyCheckinAction, cancel: cancelEarlyCheckinAction };
+  const { request, other, stale } = view;
   const hidden: ReactNode = (
     <>
       <input type="hidden" name="lang" value={lang} />
       <input type="hidden" name="code" value={code} />
     </>
   );
-  const next = check.nextArrival;
+  const sources = t.sources as Record<string, string>;
+  const suggested = view.kind === "late" ? shift(view.standardTime, 30) : shift(view.standardTime, -120);
 
   return (
     <div className="space-y-3 text-sm">
-      <p className="text-xs text-stone">{format(t.standard, { time: check.standardCheckOut, minutes: check.turnoverMinutes })}</p>
-      {next ? (
+      <p className="text-xs text-stone">{format(t.standard, { time: view.standardTime, minutes: view.turnoverMinutes })}</p>
+      {other ? (
         <p className="text-xs text-ink">
-          {format(t.nextArrival, { code: next.code, guest: next.guestName, time: next.arrivalTime })} ({next.etaKnown ? t.etaGuest : t.etaStandard}).{" "}
-          <strong>{format(t.latest, { time: check.latestAllowed ?? "" })}</strong>
+          {format(t.other, { code: other.code, guest: other.guestName, time: other.time })} ({sources[other.source] ?? other.source}).{" "}
+          <strong>{format(t.limit, { time: view.limit ?? "" })}</strong>
         </p>
       ) : (
-        <p className="text-xs text-ink">{format(t.noArrival, { date: formatDate(checkOut, lang) })}</p>
+        <p className="text-xs text-ink">{format(t.noOther, { date: formatDate(date, lang) })}</p>
       )}
 
       {stale && request ? <ErrorNote>{format(t.stale, { date: formatDate(request.forDate, lang) })}</ErrorNote> : null}
@@ -65,14 +90,14 @@ export function LateCheckout({
         </p>
       ) : null}
 
-      {request && check.conflict && !stale ? (
+      {request && view.conflict && !stale ? (
         <div className="space-y-1">
-          <ErrorNote>{format(request.status === "approved" ? t.conflictApproved : t.conflict, { time: check.latestAllowed ?? "" })}</ErrorNote>
-          {next ? (
+          <ErrorNote>{format(request.status === "approved" ? t.conflictApproved : t.conflict, { time: view.limit ?? "" })}</ErrorNote>
+          {other ? (
             <p className="text-xs text-stone">
               {t.moveHint}{" "}
-              <Link href={`/${lang}/ops/reservations/${next.code}`} className="text-lagoon hover:underline">
-                {format(t.openNext, { code: next.code })}
+              <Link href={`/${lang}/ops/reservations/${other.code}`} className="text-lagoon hover:underline">
+                {format(t.openOther, { code: other.code })}
               </Link>
             </p>
           ) : null}
@@ -80,11 +105,19 @@ export function LateCheckout({
       ) : null}
 
       {canEdit && !request ? (
-        <form action={requestLateCheckoutAction} className="space-y-2">
+        <form action={actions.request} className="space-y-2">
           {hidden}
           <label className="block space-y-1 text-xs text-stone">
             <span>{t.time}</span>
-            <input type="time" name="time" required step={1800} min={add30(check.standardCheckOut)} defaultValue={add30(check.standardCheckOut)} className={input} />
+            <input
+              type="time"
+              name="time"
+              required
+              step={1800}
+              {...(view.kind === "late" ? { min: shift(view.standardTime, 30) } : { max: shift(view.standardTime, -30) })}
+              defaultValue={suggested}
+              className={input}
+            />
           </label>
           <label className="block space-y-1 text-xs text-stone">
             <span>{t.note}</span>
@@ -97,7 +130,7 @@ export function LateCheckout({
       ) : null}
 
       {canEdit && request?.status === "requested" && !stale ? (
-        <form action={decideLateCheckoutAction} className="space-y-2">
+        <form action={actions.decide} className="space-y-2">
           {hidden}
           <label className="block space-y-1 text-xs text-stone">
             <span>{t.fee}</span>
@@ -112,7 +145,7 @@ export function LateCheckout({
               type="submit"
               name="decision"
               value="approve"
-              disabled={check.conflict}
+              disabled={view.conflict}
               className="flex-1 rounded-lg bg-lagoon px-4 py-2 text-sm font-medium text-ivory hover:bg-lagoon-deep disabled:cursor-not-allowed disabled:bg-stone/40"
             >
               {t.approve}
@@ -125,7 +158,7 @@ export function LateCheckout({
       ) : null}
 
       {canEdit && request && (request.status === "approved" || stale) ? (
-        <form action={cancelLateCheckoutAction}>
+        <form action={actions.cancel}>
           {hidden}
           <button type="submit" className="w-full rounded-lg border border-line px-4 py-2 text-sm text-ink hover:bg-sand">
             {t.cancel}

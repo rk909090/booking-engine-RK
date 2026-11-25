@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
 import { cancelReservation } from "@/domain/booking";
+import { cancelEarlyCheckin, decideEarlyCheckin, requestEarlyCheckin } from "@/domain/early-checkin";
 import { cancelLateCheckout, decideLateCheckout, requestLateCheckout } from "@/domain/late-checkout";
 import { applyStayChange } from "@/domain/modify";
 import { checkIn, checkOut, markNoShow, recordManualPayment, recordRefundPayout } from "@/domain/operations";
@@ -186,5 +187,43 @@ export async function cancelLateCheckoutAction(form: FormData) {
   await run(form, "reservation.modify", async ({ reservationId, staffId }) => {
     const result = await cancelLateCheckout(getDb(), { reservationId, actor: { type: "staff", id: staffId } });
     return result.ok ? { ok: true } : { ok: false, error: lateError(result.error) };
+  });
+}
+
+const earlyError = (e: string) => (e === "not_found" ? e : `early_${e}`);
+
+/** Records a guest's request to check in early. */
+export async function requestEarlyCheckinAction(form: FormData) {
+  await run(form, "reservation.modify", async ({ reservationId, staffId }) => {
+    const result = await requestEarlyCheckin(getDb(), {
+      reservationId,
+      time: field(form, "time").slice(0, 5),
+      note: field(form, "note") || null,
+      actor: { type: "staff", id: staffId },
+    });
+    return result.ok ? { ok: true } : { ok: false, error: earlyError(result.error) };
+  });
+}
+
+/** Approves (with an optional fee) or declines a pending early check-in. */
+export async function decideEarlyCheckinAction(form: FormData) {
+  await run(form, "reservation.modify", async ({ reservationId, staffId }) => {
+    const approve = field(form, "decision") === "approve";
+    const result = await decideEarlyCheckin(getDb(), {
+      reservationId,
+      approve,
+      fee: approve ? Number(field(form, "fee").replace(/[^\d]/g, "") || "0") : 0,
+      note: field(form, "note") || null,
+      actor: { type: "staff", id: staffId },
+    });
+    return result.ok ? { ok: true } : { ok: false, error: earlyError(result.error) };
+  });
+}
+
+/** Withdraws an early check-in request or approval. */
+export async function cancelEarlyCheckinAction(form: FormData) {
+  await run(form, "reservation.modify", async ({ reservationId, staffId }) => {
+    const result = await cancelEarlyCheckin(getDb(), { reservationId, actor: { type: "staff", id: staffId } });
+    return result.ok ? { ok: true } : { ok: false, error: earlyError(result.error) };
   });
 }

@@ -159,6 +159,7 @@ export function StayChange({ lang, dict, reservation: r, units, today, canMove, 
           </details>
           <p className="text-xs text-stone">{t.keptPrice}</p>
           {preview.plan.lateCheckoutCancelled ? <p className="text-xs text-danger">{t.lateCheckoutCancelled}</p> : null}
+          {preview.plan.earlyCheckinCancelled ? <p className="text-xs text-danger">{t.earlyCheckinCancelled}</p> : null}
           <p className="text-xs text-stone">{t.guestNotice}</p>
           <form action={changeStayAction} className="flex gap-2">
             <input type="hidden" name="lang" value={lang} />
