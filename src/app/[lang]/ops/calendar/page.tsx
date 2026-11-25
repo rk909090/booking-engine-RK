@@ -3,14 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { OpsNav, OpsShell, NoAccess } from "@/components/ops/ops-shell";
-import { addDays, diffDays, isIsoDate, todayIn } from "@/domain/dates";
+import { addDays, isIsoDate, todayIn } from "@/domain/dates";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { format } from "@/i18n/format";
-import { formatDate } from "@/i18n/formatters";
 import { getDictionary, type Dictionary } from "@/i18n/get-dictionary";
 import { requireStaff } from "@/lib/auth/current-staff";
 import { can } from "@/lib/authz/permissions";
 import { calendarData, visibleProperties } from "@/lib/ops/queries";
+import { TapeChartBoard } from "@/components/ops/tape-chart-board";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/ops/calendar">): Promise<Metadata> {
   const { lang } = await params;
@@ -34,13 +34,6 @@ export default async function OpsCalendarPage({ params, searchParams }: PageProp
 function one(v: string | string[] | undefined) {
   return Array.isArray(v) ? v[0] : v;
 }
-
-const barTone: Record<string, string> = {
-  hold: "bg-sand text-terracotta-deep border-terracotta/40 border-dashed",
-  confirmed: "bg-lagoon-soft text-lagoon border-lagoon/30",
-  in_house: "bg-lagoon text-ivory border-lagoon",
-  checked_out: "bg-line text-stone border-line",
-};
 
 async function TapeChart({
   lang,
@@ -70,7 +63,8 @@ async function TapeChart({
     const qs = new URLSearchParams({ property: data.property?.slug ?? "", from, days: String(span), ...overrides });
     return `/${lang}/ops/calendar?${qs}`;
   };
-  const columns = `minmax(140px, 180px) repeat(${span}, minmax(44px, 1fr))`;
+  const canModify = data.property ? can(staff.actor, "reservation.modify", data.property.id).allowed : false;
+  const canMove = data.property ? can(staff.actor, "reservation.move", data.property.id).allowed : false;
 
   return (
     <>
@@ -115,82 +109,18 @@ async function TapeChart({
         </div>
       </div>
 
-      <div className="mt-5 overflow-x-auto rounded-xl border border-line bg-white/70">
-        <div className="grid text-xs" style={{ gridTemplateColumns: columns, minWidth: 180 + span * 44 }}>
-          <div className="sticky left-0 z-10 border-b border-r border-line bg-white px-3 py-2 font-medium text-stone">{t.unit}</div>
-          {days.map((d) => (
-            <div
-              key={d}
-              className={`border-b border-line px-1 py-2 text-center ${d === today ? "bg-terracotta/10 font-semibold text-terracotta-deep" : "text-stone"}`}
-            >
-              {formatDate(d, lang, { weekday: "short" })}
-              <span className="block text-sm text-ink">{Number(d.slice(8))}</span>
-            </div>
-          ))}
-
-          {data.units.map((u, row) => {
-            const gridRow = row + 2;
-            return [
-              <div key={`${u.id}-label`} className="sticky left-0 z-10 border-b border-r border-line bg-white px-3 py-2" style={{ gridRow, gridColumn: 1 }}>
-                <span className="block text-sm text-ink">{u.name}</span>
-                <span className="font-mono text-[11px] text-stone">{u.code}</span>
-              </div>,
-              ...days.map((d, i) => (
-                <div
-                  key={`${u.id}-${d}`}
-                  className={`border-b border-line/60 ${d === today ? "bg-terracotta/5" : ""}`}
-                  style={{ gridRow, gridColumn: i + 2 }}
-                />
-              )),
-              ...data.blocks
-                .filter((b) => b.unitId === u.id)
-                .map((b) => {
-                  const start = Math.max(0, diffDays(from, b.startDate));
-                  const end = Math.min(span, diffDays(from, b.endDate));
-                  if (end <= start) return null;
-                  return (
-                    <div
-                      key={b.id}
-                      title={`${t.block}: ${b.reason}`}
-                      className="z-0 mx-0.5 my-1.5 truncate rounded-md border border-danger/30 bg-[repeating-linear-gradient(45deg,#f6e3e1,#f6e3e1_6px,#fbf1ef_6px,#fbf1ef_12px)] px-2 py-1 text-[11px] leading-tight text-danger"
-                      style={{ gridRow, gridColumn: `${start + 2} / ${end + 2}` }}
-                    >
-                      <span className="font-medium">{t.block}</span>
-                      <span className="block opacity-80">{b.reason}</span>
-                    </div>
-                  );
-                }),
-              ...data.stays
-                .filter((s) => s.unitId === u.id)
-                .map((s) => {
-                  const start = Math.max(0, diffDays(from, s.checkIn));
-                  const end = Math.min(span, diffDays(from, s.checkOut));
-                  if (end <= start) return null;
-                  return (
-                    <Link
-                      key={s.code}
-                      href={`/${lang}/ops/reservations/${s.code}`}
-                      title={`${s.guestName} · ${s.code} · ${dict.booking.status[s.status]}`}
-                      className={`z-0 mx-0.5 my-1.5 truncate rounded-md border px-2 py-1 text-[11px] leading-tight hover:brightness-95 ${barTone[s.status] ?? barTone.confirmed}`}
-                      style={{ gridRow, gridColumn: `${start + 2} / ${end + 2}` }}
-                    >
-                      <span className="font-medium">{s.guestName}</span>
-                      <span className="block opacity-80">{dict.booking.status[s.status]}</span>
-                    </Link>
-                  );
-                }),
-            ];
-          })}
-        </div>
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-4 text-xs text-stone" aria-label={t.legend}>
-        {(["hold", "confirmed", "in_house", "checked_out"] as const).map((s) => (
-          <span key={s} className="flex items-center gap-1.5">
-            <span className={`inline-block h-3 w-5 rounded border ${barTone[s]}`} /> {dict.booking.status[s]}
-          </span>
-        ))}
-      </div>
+      <TapeChartBoard
+        lang={lang}
+        dict={{ cal: t, sc: dict.stayChange, status: dict.booking.status }}
+        from={from}
+        days={days}
+        today={today}
+        units={data.units}
+        stays={data.stays}
+        blocks={data.blocks}
+        canModify={canModify}
+        canMove={canMove}
+      />
     </>
   );
 }

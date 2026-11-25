@@ -198,7 +198,7 @@ export async function calendarData(actor: Actor, propertySlug: string | undefine
 
   const [units, stays] = await Promise.all([
     db
-      .select({ id: schema.units.id, code: schema.units.code, name: schema.units.name, typeName: schema.unitTypes.name })
+      .select({ id: schema.units.id, code: schema.units.code, name: schema.units.name, typeName: schema.unitTypes.name, unitTypeId: schema.units.unitTypeId })
       .from(schema.units)
       .innerJoin(schema.unitTypes, eq(schema.unitTypes.id, schema.units.unitTypeId))
       .where(and(eq(schema.units.propertyId, property.id), eq(schema.units.isActive, true)))

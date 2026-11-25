@@ -472,7 +472,21 @@
     "unit": "Unit",
     "hold": "Ditahan",
     "legend": "Keterangan",
-    "block": "Perawatan"
+    "block": "Perawatan",
+    "dragHint": "Seret pesanan untuk memindahkannya ke tanggal lain atau vila lain yang bertipe sama, atau tarik ujung kanannya untuk mengubah check-out. Anda selalu melihat harga dan sisa tagihan dulu sebelum menyimpan.",
+    "resizeHandle": "Tarik untuk mengubah tanggal check-out",
+    "checking": "Memeriksa harga dan ketersediaan...",
+    "saving": "Menyimpan...",
+    "saved": "Perubahan disimpan.",
+    "failed": "Gagal menghubungi server. Coba lagi.",
+    "roleNotAllowed": "Peran Anda tidak dapat mengubah pesanan ini.",
+    "issues": {
+      "different_type": "Pesanan hanya bisa dipindah ke vila yang bertipe sama.",
+      "in_house_unit": "Tamu yang sedang menginap tidak bisa dipindah vila; hanya check-out yang bisa diubah.",
+      "no_move": "Peran Anda tidak dapat memindah tamu ke vila lain.",
+      "not_movable": "Pesanan ini tidak bisa diubah dari kalender.",
+      "no_change": "Tidak ada yang berubah."
+    }
   },
   "opsHome": {
     "arrivals": "Tiba hari ini",

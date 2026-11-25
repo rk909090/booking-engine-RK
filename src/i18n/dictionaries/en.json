@@ -472,7 +472,21 @@
     "unit": "Unit",
     "hold": "Held",
     "legend": "Legend",
-    "block": "Maintenance"
+    "block": "Maintenance",
+    "dragHint": "Drag a booking to other dates or another villa of the same type, or drag its right edge to change the check-out. You always see the price and balance before saving.",
+    "resizeHandle": "Drag to change the check-out date",
+    "checking": "Checking price and availability...",
+    "saving": "Saving...",
+    "saved": "Change saved.",
+    "failed": "Could not reach the server. Please try again.",
+    "roleNotAllowed": "Your role cannot change this booking.",
+    "issues": {
+      "different_type": "Bookings can only move to a villa of the same type.",
+      "in_house_unit": "Guests in house cannot change villa; only the check-out can change.",
+      "no_move": "Your role cannot move guests to another villa.",
+      "not_movable": "This booking cannot be changed from the calendar.",
+      "no_change": "Nothing changed."
+    }
   },
   "opsHome": {
     "arrivals": "Arriving today",
