@@ -87,6 +87,8 @@ Jadi "10x" bukan berarti tampilan yang lebih cantik. Artinya:
 - Mata uang: rencana kita tetap **menagih dalam IDR**. Mata uang lain hanya untuk tampilan perkiraan.
 - Lingkungan uji (test mode) dan kunci API terpisah untuk staging dan produksi.
 
+**Status (25 Nov 2026):** dokumentasi resmi Xendit kini menyebut Invoice API sebagai *legacy* dan halaman referensinya tidak bisa dibuka lagi, jadi kode dipindah ke **Payment Sessions** (`POST /sessions`, `session_type: PAY`, `mode: PAYMENT_LINK`, IDR/ID). Webhook `payment_session.completed`/`expired` dicek dengan `x-callback-token`, lalu status dan jumlah dibaca ulang dari API Xendit sebelum booking dikonfirmasi. Tautan pembayaran ditutup di Xendit saat meja depan menerima uang atau booking dibatalkan. Sudah diuji dengan Xendit tiruan (tes otomatis), **belum** dengan Xendit sungguhan karena **belum ada akun Xendit**. Langkah berikutnya: daftar di dashboard.xendit.co/register (Test Mode tersedia setelah daftar menurut dokumentasi), buat secret key (Money-in: Write), set webhook ke `https://be.attarahospitality.com/api/webhooks/xendit`, isi `XENDIT_SECRET_KEY` dan `XENDIT_CALLBACK_TOKEN` di hPanel, lalu tes end-to-end. Catatan dari halaman biaya Xendit: ada biaya minimum bulanan USD 50 (kecuali bulan pertama), dan untuk Indonesia akun perorangan/Perseroan Perorangan hanya boleh sebagai sub-akun.
+
 **Di sisi ops:** setiap pembayaran, refund, dan tagihan kedaluwarsa tercatat di folio dan log audit. Staf bisa membuat **link pembayaran** untuk reservasi manual (telepon/WA) dan untuk pelunasan sisa tagihan.
 
 ### Konsekuensi keputusan "satu brand dulu"
