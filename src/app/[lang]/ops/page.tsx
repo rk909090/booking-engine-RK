@@ -65,11 +65,12 @@ async function StaffHome({ lang, dict }: { lang: Locale; dict: Dictionary }) {
       </div>
 
       {counts ? (
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <Stat label={dict.opsHome.arrivals} value={counts.arrivals} href={listHref(`from=${today}&to=${today}`)} />
           <Stat label={dict.opsHome.departures} value={counts.departures} href={listHref(`departOn=${today}`)} />
           <Stat label={dict.opsHome.inHouse} value={counts.inHouse} href={listHref("status=in_house")} />
           <Stat label={dict.opsHome.refundsDue} value={counts.refundsDue} href={listHref("refund=due")} warn={counts.refundsDue > 0} />
+          <Stat label={dict.opsHome.depositOverdue} value={counts.depositsOverdue} href={listHref("deposit=overdue")} warn={counts.depositsOverdue > 0} />
         </ul>
       ) : null}
 

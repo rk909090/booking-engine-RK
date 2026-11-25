@@ -9,6 +9,7 @@ import { ErrorNote, SuccessNote } from "@/components/ui";
 import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
 import { todayIn } from "@/domain/dates";
+import { guaranteeDue } from "@/domain/guarantee";
 import { refundOutstanding } from "@/domain/operations";
 import { balanceDue, cancellationOutcome } from "@/domain/pricing";
 import { hasLocale, type Locale } from "@/i18n/config";
@@ -84,6 +85,7 @@ async function BookingDetails({
   const r = row.reservation;
   const checkoutUrl = r.status === "hold" ? await latestCheckoutUrl(r.id) : null;
   const balance = balanceDue(r);
+  const depositDue = guaranteeDue(r, todayIn(row.timezone));
   const policyOutcome =
     r.status === "confirmed"
       ? cancellationOutcome({
@@ -146,7 +148,12 @@ async function BookingDetails({
         {r.discountAmount ? <Item label={t.discount} value={`−${formatMoney(r.discountAmount, lang)}`} /> : null}
         <Item label={t.total} value={formatMoney(r.totalAmount, lang)} />
         <Item label={t.paid} value={formatMoney(r.amountPaid, lang)} />
-        {r.status === "confirmed" && balance > 0 && r.balanceDueDate ? (
+        {depositDue ? (
+          <div className="sm:col-span-2 font-medium text-ink">
+            {format(t.depositDue, { amount: formatMoney(depositDue.amount, lang), date: formatDate(depositDue.payBy, lang) })}
+          </div>
+        ) : null}
+        {!depositDue && r.status === "confirmed" && balance > 0 && r.balanceDueDate ? (
           <div className="sm:col-span-2 text-ink">
             {format(t.balanceDue, { amount: formatMoney(balance, lang), date: formatDate(r.balanceDueDate, lang) })}
           </div>

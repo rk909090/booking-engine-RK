@@ -68,7 +68,7 @@
     "noProperties": "No properties have been assigned to you yet.",
     "signOut": "Sign out",
     "security": "Account security",
-    "comingNext": "Next: villa status and housekeeping, changing stay dates, and reports."
+    "comingNext": "Next: drag-and-drop calendar, requests from the guest portal, and reports."
   },
   "security": {
     "title": "Two-step verification",
@@ -240,7 +240,8 @@
     "cancelButton": "Cancel booking",
     "cancelDone": "Booking cancelled.",
     "saveLink": "Bookmark this page to see your booking again.",
-    "discount": "Discount"
+    "discount": "Discount",
+    "depositDue": "A payment of {amount} is due by {date}. Please contact us to arrange payment."
   },
   "footer": {
     "tagline": "Private villas in Bali, looked after by a local team.",
@@ -285,7 +286,9 @@
       "walk_in": "Walk-in",
       "ota": "OTA",
       "agent": "Agent"
-    }
+    },
+    "depositOpen": "Deposit unpaid",
+    "depositOverdue": "Deposit overdue"
   },
   "resDetail": {
     "back": "All reservations",
@@ -378,7 +381,12 @@
       "discount_not_allowed": "Discounts are only for confirmed bookings or guests in house.",
       "discount_invalid_discount": "Invalid discount: enter a discount between 0 and 100%.",
       "discount_reason_required": "Write the reason for the discount.",
-      "discount_over_limit": "The discount is over your role's limit."
+      "discount_over_limit": "The discount is over your role's limit.",
+      "guarantee_not_hold": "Only bookings still on hold can be confirmed without a deposit.",
+      "guarantee_hold_expired": "The hold has expired.",
+      "guarantee_reason_required": "Write the reason for confirming without a deposit.",
+      "guarantee_invalid_pay_by": "The due date must be between today and the check-out date.",
+      "guarantee_not_guaranteed": "This booking is not waiting for a deposit."
     },
     "activityTitle": "Activity",
     "noActivity": "No activity yet.",
@@ -406,7 +414,9 @@
       "early_checkin.declined": "Early check-in declined",
       "early_checkin.cancelled": "Early check-in cancelled",
       "reservation.discounted": "Discount given",
-      "reservation.discount_removed": "Discount removed"
+      "reservation.discount_removed": "Discount removed",
+      "reservation.guaranteed": "Confirmed without deposit",
+      "reservation.pay_by_changed": "Deposit due date changed"
     },
     "actorGuest": "Guest",
     "actorSystem": "System",
@@ -440,7 +450,16 @@
     "discountNone": "No discount yet.",
     "discountLimit": "Your limit: {limit}% of the nights' price. Service and tax are charged on the price after the discount.",
     "discountApply": "Save discount",
-    "discountRemove": "Remove discount"
+    "discountRemove": "Remove discount",
+    "guaranteeTitle": "Confirm without deposit",
+    "guaranteeHint": "For repeat guests, agents or companies billed later, or guests paying on arrival. The booking is confirmed at once; the amount normally paid at booking ({amount}) is due by the date you choose.",
+    "guaranteeReason": "Reason",
+    "guaranteePayBy": "Deposit due by",
+    "guaranteeSubmit": "Confirm without deposit",
+    "guaranteeOpen": "Confirmed without deposit: {amount} unpaid, due {date}.",
+    "guaranteeOverdue": "Overdue: {amount} was due by {date}.",
+    "guaranteeReasonLine": "Reason: {reason}",
+    "payBySubmit": "Change due date"
   },
   "opsCalendar": {
     "title": "Calendar",
@@ -459,7 +478,8 @@
     "arrivals": "Arriving today",
     "departures": "Departing today",
     "inHouse": "In house",
-    "refundsDue": "Refunds not yet paid"
+    "refundsDue": "Refunds not yet paid",
+    "depositOverdue": "Deposits overdue"
   },
   "villaStatus": {
     "title": "Villa status",
@@ -610,7 +630,11 @@
       "role": "Your role cannot create bookings.",
       "invalid_amount_full": "Arrival is close: the amount must be paid in full, {amount}.",
       "invalid_discount": "Invalid discount: enter the discount and its reason.",
-      "over_limit": "The discount is over your limit ({limit}% of the nights' price)."
+      "over_limit": "The discount is over your limit ({limit}% of the nights' price).",
+      "guarantee_reason_required": "Write the reason for confirming without a deposit.",
+      "guarantee_invalid_pay_by": "The due date must be between today and the check-out date.",
+      "guarantee_failed": "Confirming without a deposit failed and the villa was released. Please try again.",
+      "guarantee_role": "Your role cannot confirm without a deposit."
     },
     "modeReceivedHintFull": "The booking is confirmed at once. Arrival is close, so payment in full is due: {amount}.",
     "discountTitle": "Discount (optional)",
@@ -621,7 +645,11 @@
     "discountValue": "Discount",
     "discountReason": "Reason for the discount",
     "discountLimit": "Your limit: {limit}% of the nights' price.",
-    "afterDiscount": "After discount: total {total}, due now {dueNow}."
+    "afterDiscount": "After discount: total {total}, due now {dueNow}.",
+    "modeGuarantee": "Confirm without deposit (guarantee)",
+    "modeGuaranteeHint": "The booking is confirmed at once without payment. The amount normally paid at booking ({amount}) is due by the date you choose; after that the booking is flagged for follow-up (never cancelled automatically).",
+    "guaranteeReason": "Reason (e.g. repeat guest, agent, pays on arrival)",
+    "guaranteePayBy": "Deposit due by"
   },
   "lateCheckout": {
     "title": "Late check-out",

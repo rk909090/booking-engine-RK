@@ -25,6 +25,7 @@ import {
   SAMPLE_CANCELLATION_TIERS,
   type CancellationTier,
   type DiscountTerms,
+  type Guarantee,
   type PolicySnapshot,
   type PriceSnapshot,
   type PropertyContent,
@@ -244,6 +245,8 @@ export const reservations = pgTable(
     discountAmount: bigint("discount_amount", { mode: "number" }).notNull().default(0),
     /** How the discount was given, so it can be re-applied when the dates change. */
     discount: jsonb("discount").$type<DiscountTerms>(),
+    /** Set when staff confirmed the booking without the deposit (see domain/guarantee.ts). */
+    guarantee: jsonb("guarantee").$type<Guarantee>(),
     balanceDueDate: date("balance_due_date", { mode: "string" }),
     /** Refund owed after cancellation; paying it out is tracked on payments. */
     refundAmount: bigint("refund_amount", { mode: "number" }),

@@ -19,6 +19,7 @@ export const actions = [
   "reservation.modify",
   "reservation.move",
   "reservation.discount",
+  "reservation.guarantee",
   "reservation.check_in",
   "reservation.check_out",
   "reservation.no_show",
@@ -53,6 +54,8 @@ const matrix: Record<Action, readonly Role[]> = {
   "reservation.move": R.operators,
   /** Each role's ceiling is a property setting (see domain/discount.ts). */
   "reservation.discount": R.operators,
+  /** Confirm without the deposit (always with a reason; see domain/guarantee.ts). */
+  "reservation.guarantee": R.operators,
   "reservation.check_in": R.operators,
   "reservation.check_out": R.operators,
   "reservation.no_show": R.operators,

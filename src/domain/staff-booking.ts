@@ -5,6 +5,7 @@ import { createHold, loadUnitTypes, type HoldError, type HoldInput } from "./boo
 import { todayIn } from "./dates";
 import { recordManualPayment, type ManualPaymentError, type PaymentMethod } from "./operations";
 import { discountLimitBp, withinLimit } from "./discount";
+import { confirmWithoutDeposit, validPayBy, type GuaranteeError } from "./guarantee";
 import { quoteStay, validDiscount } from "./pricing";
 import type { Discount, DiscountTerms } from "./types";
 
@@ -15,7 +16,9 @@ type AnyDb = PgDatabase<PgQueryResultHKT, typeof schema>;
  * - the money is already received (cash, transfer, card machine): it must
  *   cover the deposit due under the property's policy and confirms at once;
  * - the guest pays later through a payment link: the villa is held for the
- *   chosen time and confirmed by the payment, like a website booking.
+ *   chosen time and confirmed by the payment, like a website booking;
+ * - confirmed without the deposit (a guarantee, see guarantee.ts): a reason
+ *   and the date the deposit is due by are required.
  */
 
 export const STAFF_SOURCES = ["direct", "walk_in", "agent"] as const;
@@ -32,7 +35,10 @@ export type StaffBookingInput = Omit<HoldInput, "source" | "holdMinutes" | "cand
   /** The staff member's role, which sets their discount ceiling. */
   role: string;
   discount?: (Discount & { reason: string }) | null;
-  payment: { kind: "received"; amount: number; method: PaymentMethod; reference?: string | null } | { kind: "link"; holdHours: number };
+  payment:
+    | { kind: "received"; amount: number; method: PaymentMethod; reference?: string | null }
+    | { kind: "link"; holdHours: number }
+    | { kind: "guarantee"; reason: string; payBy: string };
 };
 
 export type StaffBookingError =
@@ -40,7 +46,8 @@ export type StaffBookingError =
   | { kind: "invalid_amount"; dueNow: number; total: number }
   | { kind: "invalid_discount" }
   | { kind: "over_limit"; limitBp: number }
-  | { kind: "payment"; error: ManualPaymentError };
+  | { kind: "payment"; error: ManualPaymentError }
+  | { kind: "guarantee"; error: GuaranteeError };
 
 export type StaffBookingResult =
   | { ok: true; reservation: typeof schema.reservations.$inferSelect; confirmed: boolean }
@@ -70,6 +77,12 @@ export async function createStaffBooking(db: AnyDb, input: StaffBookingInput): P
     const limitBp = discountLimitBp(loaded.property, input.role);
     if (!withinLimit(quote.quote.discount ?? 0, quote.quote.subtotal, limitBp)) return { ok: false, error: { kind: "over_limit", limitBp } };
   }
+  if (payment.kind === "guarantee") {
+    if (!payment.reason.trim()) return { ok: false, error: { kind: "guarantee", error: "reason_required" } };
+    if (!validPayBy(payment.payBy, todayIn(loaded.property.timezone, now), input.checkOut)) {
+      return { ok: false, error: { kind: "guarantee", error: "invalid_pay_by" } };
+    }
+  }
   if (payment.kind === "received") {
     const { dueNow, total } = quote.quote;
     if (!Number.isSafeInteger(payment.amount) || payment.amount < dueNow || payment.amount > total) {
@@ -96,6 +109,23 @@ export async function createStaffBooking(db: AnyDb, input: StaffBookingInput): P
   if (!held.ok) return held;
   if (payment.kind === "link") return { ok: true, reservation: held.reservation, confirmed: false };
 
+  const release = () => db.update(schema.reservations).set({ status: "expired", updatedAt: now }).where(eq(schema.reservations.id, held.reservation.id));
+  if (payment.kind === "guarantee") {
+    const confirmed = await confirmWithoutDeposit(db, {
+      reservationId: held.reservation.id,
+      reason: payment.reason,
+      payBy: payment.payBy,
+      actor: { type: "staff", id: input.actorId },
+      now,
+    });
+    if (!confirmed.ok) {
+      await release();
+      return { ok: false, error: { kind: "guarantee", error: confirmed.error } };
+    }
+    const [reservation] = await db.select().from(schema.reservations).where(eq(schema.reservations.id, held.reservation.id));
+    return { ok: true, reservation, confirmed: true };
+  }
+
   const paid = await recordManualPayment(db, {
     reservationId: held.reservation.id,
     amount: payment.amount,
@@ -106,7 +136,7 @@ export async function createStaffBooking(db: AnyDb, input: StaffBookingInput): P
   });
   if (!paid.ok) {
     // Not expected after the checks above; release the villa rather than leave a stray hold.
-    await db.update(schema.reservations).set({ status: "expired", updatedAt: now }).where(eq(schema.reservations.id, held.reservation.id));
+    await release();
     return { ok: false, error: { kind: "payment", error: paid.error } };
   }
   const [reservation] = await db.select().from(schema.reservations).where(eq(schema.reservations.id, held.reservation.id));

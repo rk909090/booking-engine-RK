@@ -18,6 +18,10 @@ type Props = {
   quote: { subtotal: number; total: number; dueNow: number; serviceRateBp: number; taxRateBp: number; depositRateBp: number; payInFull: boolean };
   /** This staff member's discount ceiling in basis points. */
   limitBp: number;
+  /** Whether this staff member may confirm without a deposit. */
+  canGuarantee: boolean;
+  /** Today's date at the property (earliest deposit due date). */
+  today: string;
 };
 
 const bp = (amount: number, rate: number) => Math.round((amount * rate) / 10_000);
@@ -47,13 +51,15 @@ function Fields({
   units,
   quote,
   limitBp,
+  canGuarantee,
+  today,
   state,
   action,
   pending,
 }: Props & { state: StaffBookingFormState; action: (form: FormData) => void; pending: boolean }) {
   const t = dict.newBooking;
   const v = state.values ?? {};
-  const [mode, setMode] = useState(v.mode === "link" ? "link" : "received");
+  const [mode, setMode] = useState(v.mode === "link" || (v.mode === "guarantee" && canGuarantee) ? v.mode : "received");
   const money = (n: number) => formatMoney(n, lang);
   const [discountKind, setDiscountKind] = useState(v.discountKind || "");
   const [discountValue, setDiscountValue] = useState(v.discountValue || "");
@@ -187,6 +193,25 @@ function Fields({
               ))}
             </select>
           </label>
+        ) : null}
+        {canGuarantee ? (
+          <>
+            <label className="flex items-start gap-2 text-sm text-ink">
+              <input type="radio" name="mode" value="guarantee" checked={mode === "guarantee"} onChange={() => setMode("guarantee")} className="mt-1 accent-lagoon" />
+              <span>
+                {t.modeGuarantee}
+                <span className="block text-xs text-stone">{format(t.modeGuaranteeHint, { amount: money(now.dueNow) })}</span>
+              </span>
+            </label>
+            {mode === "guarantee" ? (
+              <div className="grid gap-3 pl-6 sm:grid-cols-3">
+                <div className="sm:col-span-2">
+                  <Field label={t.guaranteeReason} name="guaranteeReason" required maxLength={300} defaultValue={v.guaranteeReason} autoComplete="off" />
+                </div>
+                <Field label={t.guaranteePayBy} name="payBy" type="date" required min={today} max={stay.checkOut} defaultValue={v.payBy || stay.checkIn} />
+              </div>
+            ) : null}
+          </>
         ) : null}
       </fieldset>
 

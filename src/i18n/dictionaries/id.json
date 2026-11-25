@@ -68,7 +68,7 @@
     "noProperties": "Belum ada properti yang ditugaskan ke Anda.",
     "signOut": "Keluar",
     "security": "Keamanan akun",
-    "comingNext": "Berikutnya: status vila dan housekeeping, ubah tanggal menginap, dan laporan."
+    "comingNext": "Berikutnya: kalender drag-and-drop, permintaan dari portal tamu, dan laporan."
   },
   "security": {
     "title": "Verifikasi dua langkah",
@@ -240,7 +240,8 @@
     "cancelButton": "Batalkan pesanan",
     "cancelDone": "Pesanan dibatalkan.",
     "saveLink": "Simpan tautan halaman ini untuk melihat pesanan Anda lagi.",
-    "discount": "Diskon"
+    "discount": "Diskon",
+    "depositDue": "Pembayaran {amount} perlu diterima paling lambat {date}. Hubungi kami untuk cara pembayaran."
   },
   "footer": {
     "tagline": "Vila privat di Bali, dirawat oleh tim lokal.",
@@ -285,7 +286,9 @@
       "walk_in": "Walk-in",
       "ota": "OTA",
       "agent": "Agen"
-    }
+    },
+    "depositOpen": "Deposit belum dibayar",
+    "depositOverdue": "Deposit lewat tenggat"
   },
   "resDetail": {
     "back": "Semua reservasi",
@@ -378,7 +381,12 @@
       "discount_not_allowed": "Diskon hanya untuk reservasi terkonfirmasi atau tamu yang sedang menginap.",
       "discount_invalid_discount": "Diskon tidak valid: isi besar diskon antara 0 dan 100%.",
       "discount_reason_required": "Tulis alasan diskon.",
-      "discount_over_limit": "Diskon melebihi batas peran Anda."
+      "discount_over_limit": "Diskon melebihi batas peran Anda.",
+      "guarantee_not_hold": "Konfirmasi tanpa deposit hanya untuk reservasi yang masih ditahan.",
+      "guarantee_hold_expired": "Waktu tahan vila sudah habis.",
+      "guarantee_reason_required": "Tulis alasan konfirmasi tanpa deposit.",
+      "guarantee_invalid_pay_by": "Tenggat bayar harus antara hari ini dan tanggal check-out.",
+      "guarantee_not_guaranteed": "Booking ini tidak sedang menunggu deposit."
     },
     "activityTitle": "Aktivitas",
     "noActivity": "Belum ada aktivitas.",
@@ -406,7 +414,9 @@
       "early_checkin.declined": "Early check-in ditolak",
       "early_checkin.cancelled": "Early check-in dibatalkan",
       "reservation.discounted": "Diskon diberikan",
-      "reservation.discount_removed": "Diskon dihapus"
+      "reservation.discount_removed": "Diskon dihapus",
+      "reservation.guaranteed": "Dikonfirmasi tanpa deposit",
+      "reservation.pay_by_changed": "Tenggat deposit diubah"
     },
     "actorGuest": "Tamu",
     "actorSystem": "Sistem",
@@ -440,7 +450,16 @@
     "discountNone": "Belum ada diskon.",
     "discountLimit": "Batas Anda: {limit}% dari harga malam. Service dan pajak dihitung dari harga setelah diskon.",
     "discountApply": "Simpan diskon",
-    "discountRemove": "Hapus diskon"
+    "discountRemove": "Hapus diskon",
+    "guaranteeTitle": "Konfirmasi tanpa deposit",
+    "guaranteeHint": "Untuk tamu langganan, agen atau korporat yang ditagih kemudian, atau tamu yang bayar saat datang. Booking langsung terkonfirmasi; jumlah yang biasanya dibayar saat booking ({amount}) ditagih paling lambat tanggal yang Anda pilih.",
+    "guaranteeReason": "Alasan",
+    "guaranteePayBy": "Deposit dibayar paling lambat",
+    "guaranteeSubmit": "Konfirmasi tanpa deposit",
+    "guaranteeOpen": "Dikonfirmasi tanpa deposit: {amount} belum dibayar, tenggat {date}.",
+    "guaranteeOverdue": "Lewat tenggat: {amount} seharusnya dibayar paling lambat {date}.",
+    "guaranteeReasonLine": "Alasan: {reason}",
+    "payBySubmit": "Ubah tenggat"
   },
   "opsCalendar": {
     "title": "Kalender",
@@ -459,7 +478,8 @@
     "arrivals": "Tiba hari ini",
     "departures": "Berangkat hari ini",
     "inHouse": "Sedang menginap",
-    "refundsDue": "Refund belum dibayar"
+    "refundsDue": "Refund belum dibayar",
+    "depositOverdue": "Deposit lewat tenggat"
   },
   "villaStatus": {
     "title": "Status vila",
@@ -610,7 +630,11 @@
       "role": "Peran Anda tidak dapat membuat reservasi.",
       "invalid_amount_full": "Kedatangan sudah dekat: jumlah harus lunas, {amount}.",
       "invalid_discount": "Diskon tidak valid: isi besar diskon dan alasannya.",
-      "over_limit": "Diskon melebihi batas Anda ({limit}% dari harga malam)."
+      "over_limit": "Diskon melebihi batas Anda ({limit}% dari harga malam).",
+      "guarantee_reason_required": "Tulis alasan konfirmasi tanpa deposit.",
+      "guarantee_invalid_pay_by": "Tenggat bayar harus antara hari ini dan tanggal check-out.",
+      "guarantee_failed": "Konfirmasi tanpa deposit gagal dan vila sudah dilepas. Coba lagi.",
+      "guarantee_role": "Peran Anda tidak dapat mengonfirmasi tanpa deposit."
     },
     "modeReceivedHintFull": "Booking langsung terkonfirmasi. Kedatangan sudah dekat, jadi harus lunas: {amount}.",
     "discountTitle": "Diskon (opsional)",
@@ -621,7 +645,11 @@
     "discountValue": "Besar diskon",
     "discountReason": "Alasan diskon",
     "discountLimit": "Batas Anda: {limit}% dari harga malam.",
-    "afterDiscount": "Setelah diskon: total {total}, bayar sekarang {dueNow}."
+    "afterDiscount": "Setelah diskon: total {total}, bayar sekarang {dueNow}.",
+    "modeGuarantee": "Konfirmasi tanpa deposit (garansi)",
+    "modeGuaranteeHint": "Booking langsung terkonfirmasi tanpa pembayaran. Jumlah yang biasanya dibayar saat booking ({amount}) harus diterima paling lambat tanggal yang Anda pilih; lewat tenggat, booking ditandai untuk ditagih (tidak batal otomatis).",
+    "guaranteeReason": "Alasan (mis. tamu langganan, agen, bayar saat datang)",
+    "guaranteePayBy": "Deposit dibayar paling lambat"
   },
   "lateCheckout": {
     "title": "Late check-out",

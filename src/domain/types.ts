@@ -38,6 +38,12 @@ export type Discount = { kind: "percent"; bp: number } | { kind: "amount"; amoun
 /** A discount as given to a booking: kept so it can be re-applied when the dates change. */
 export type DiscountTerms = Discount & { reason: string; givenBy: string | null; givenAt: string };
 
+/**
+ * A booking confirmed by staff before the deposit was paid. The deposit is
+ * due by `payBy`; after that the booking is flagged, never cancelled automatically.
+ */
+export type Guarantee = { reason: string; payBy: string; givenBy: string; givenAt: string };
+
 /** Price breakdown frozen onto a reservation when it is created. */
 export type PriceSnapshot = {
   nights: Array<{ date: string; rate: number; season: string | null }>;

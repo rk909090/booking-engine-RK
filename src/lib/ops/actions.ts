@@ -6,6 +6,7 @@ import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
 import { cancelReservation } from "@/domain/booking";
 import { setDiscount } from "@/domain/discount";
+import { changePayBy, confirmWithoutDeposit } from "@/domain/guarantee";
 import { cancelEarlyCheckin, decideEarlyCheckin, requestEarlyCheckin } from "@/domain/early-checkin";
 import { cancelLateCheckout, decideLateCheckout, requestLateCheckout } from "@/domain/late-checkout";
 import { applyStayChange } from "@/domain/modify";
@@ -243,5 +244,26 @@ export async function setDiscountAction(form: FormData) {
       actor: { type: "staff", id: staffId },
     });
     return result.ok ? { ok: true } : { ok: false, error: result.error === "not_found" ? "not_found" : `discount_${result.error}` };
+  });
+}
+
+/** Confirms a live hold without the deposit, with a reason and the date the deposit is due by. */
+export async function confirmWithoutDepositAction(form: FormData) {
+  await run(form, "reservation.guarantee", async ({ reservationId, staffId }) => {
+    const result = await confirmWithoutDeposit(getDb(), {
+      reservationId,
+      reason: field(form, "reason"),
+      payBy: field(form, "payBy"),
+      actor: { type: "staff", id: staffId },
+    });
+    return result.ok ? { ok: true } : { ok: false, error: result.error === "not_found" ? "not_found" : `guarantee_${result.error}` };
+  });
+}
+
+/** Moves the deposit deadline of a booking confirmed without the deposit. */
+export async function changePayByAction(form: FormData) {
+  await run(form, "reservation.guarantee", async ({ reservationId, staffId }) => {
+    const result = await changePayBy(getDb(), { reservationId, payBy: field(form, "payBy"), actor: { type: "staff", id: staffId } });
+    return result.ok ? { ok: true } : { ok: false, error: result.error === "not_found" ? "not_found" : `guarantee_${result.error}` };
   });
 }

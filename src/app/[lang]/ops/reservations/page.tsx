@@ -3,6 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { OpsNav, OpsShell, StatusBadge, NoAccess } from "@/components/ops/ops-shell";
+import { brand } from "@/config/brand";
+import { todayIn } from "@/domain/dates";
+import { guaranteeDue } from "@/domain/guarantee";
 import * as schema from "@/db/schema";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { format } from "@/i18n/format";
@@ -50,7 +53,10 @@ async function ReservationList({
   if (!can(staff.actor, "reservation.view").allowed) return <NoAccess lang={lang} dict={dict} staff={staff} />;
   const sp = await searchParams;
   const t = dict.resList;
+  const today = todayIn(brand.timezone);
   const data = await listReservations(staff.actor, {
+    deposit: one(sp.deposit),
+    today,
     q: one(sp.q),
     status: one(sp.status),
     property: one(sp.property),
@@ -84,6 +90,7 @@ async function ReservationList({
       <form method="get" className="mt-5 grid gap-3 rounded-xl border border-line bg-white/70 p-4 md:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] md:items-end">
         {data.applied.departOn ? <input type="hidden" name="departOn" value={data.applied.departOn} /> : null}
         {data.applied.refund ? <input type="hidden" name="refund" value={data.applied.refund} /> : null}
+        {data.applied.deposit ? <input type="hidden" name="deposit" value={data.applied.deposit} /> : null}
         <label className="space-y-1 text-xs text-stone">
           <span>{t.search}</span>
           <input name="q" defaultValue={data.applied.q} className={`w-full ${input}`} maxLength={100} />
@@ -147,7 +154,9 @@ async function ReservationList({
               </tr>
             </thead>
             <tbody>
-              {data.rows.map((r) => (
+              {data.rows.map((r) => {
+                const deposit = guaranteeDue(r, today);
+                return (
                 <tr key={r.id} className="border-b border-line/60 last:border-0 hover:bg-sand/40">
                   <td className="px-4 py-3 font-mono">
                     <Link href={`/${lang}/ops/reservations/${r.code}`} className="text-lagoon underline-offset-4 hover:underline">
@@ -168,11 +177,17 @@ async function ReservationList({
                   <td className="px-4 py-3">
                     <StatusBadge status={r.status} label={dict.booking.status[r.status]} />
                     {r.refundOutstanding > 0 ? <span className="mt-1 block text-xs text-danger">{t.refundDue}</span> : null}
+                    {deposit ? (
+                      <span className={`mt-1 block text-xs ${deposit.overdue ? "text-danger" : "text-terracotta-deep"}`}>
+                        {deposit.overdue ? t.depositOverdue : t.depositOpen}
+                      </span>
+                    ) : null}
                   </td>
                   <td className="px-4 py-3 text-right text-ink">{formatMoney(r.totalAmount, lang)}</td>
                   <td className="px-4 py-3 text-right text-ink">{formatMoney(r.amountPaid, lang)}</td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

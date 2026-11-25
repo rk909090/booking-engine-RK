@@ -211,6 +211,8 @@ async function NewBooking({
               payInFull: chosen.quote.quote.payInFull,
             }}
             limitBp={can(staff.actor, "reservation.discount", property.id).allowed ? discountLimitBp(property, staff.actor.role) : 0}
+            canGuarantee={can(staff.actor, "reservation.guarantee", property.id).allowed}
+            today={today}
           />
         </section>
       ) : null}

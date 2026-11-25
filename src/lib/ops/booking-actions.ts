@@ -25,7 +25,11 @@ export type StaffBookingFormError =
   | "payment"
   | "role"
   | "invalid_discount"
-  | "over_limit";
+  | "over_limit"
+  | "guarantee_reason_required"
+  | "guarantee_invalid_pay_by"
+  | "guarantee_failed"
+  | "guarantee_role";
 
 /** Kept in memory only (never in the URL) so the form can be shown again after an error. */
 export type StaffBookingFormState = {
@@ -36,7 +40,7 @@ export type StaffBookingFormState = {
   values?: Record<string, string>;
 };
 
-const KEPT_FIELDS = ["fullName", "email", "phone", "country", "arrival", "requests", "source", "unitId", "mode", "amount", "method", "reference", "holdHours", "amountTouched", "discountKind", "discountValue", "discountReason"];
+const KEPT_FIELDS = ["fullName", "email", "phone", "country", "arrival", "requests", "source", "unitId", "mode", "amount", "method", "reference", "holdHours", "amountTouched", "discountKind", "discountValue", "discountReason", "guaranteeReason", "payBy"];
 
 function text(form: FormData, key: string): string {
   const value = form.get(key);
@@ -45,7 +49,7 @@ function text(form: FormData, key: string): string {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Creates a staff booking: confirmed with money received, or held with a payment link. */
+/** Creates a staff booking: confirmed with money received or without deposit, or held with a payment link. */
 export async function createStaffBookingAction(_prev: StaffBookingFormState, form: FormData): Promise<StaffBookingFormState> {
   const langRaw = text(form, "lang");
   const lang: Locale = hasLocale(langRaw) ? langRaw : "id";
@@ -68,6 +72,7 @@ export async function createStaffBookingAction(_prev: StaffBookingFormState, for
   const mode = text(form, "mode");
   const method = text(form, "method");
   const holdHours = Number(text(form, "holdHours"));
+  if (mode === "guarantee" && !can(staff.actor, "reservation.guarantee", type.propertyId).allowed) return fail("guarantee_role");
   const result = await createStaffBooking(getDb(), {
     unitTypeId,
     unitId: UUID.test(unitId) ? unitId : null,
@@ -94,7 +99,9 @@ export async function createStaffBookingAction(_prev: StaffBookingFormState, for
     payment:
       mode === "link"
         ? { kind: "link", holdHours: (LINK_HOLD_HOURS as readonly number[]).includes(holdHours) ? holdHours : 24 }
-        : {
+        : mode === "guarantee"
+          ? { kind: "guarantee", reason: text(form, "guaranteeReason"), payBy: text(form, "payBy") }
+          : {
             kind: "received",
             amount: Number(text(form, "amount").replace(/[^\d]/g, "")),
             method: (PAYMENT_METHODS as readonly string[]).includes(method) ? (method as PaymentMethod) : "other",
@@ -107,6 +114,9 @@ export async function createStaffBookingAction(_prev: StaffBookingFormState, for
     if (e.kind === "invalid_amount") return fail("invalid_amount", { amountRange: { min: e.dueNow, max: e.total } });
     if (e.kind === "payment") return fail("payment");
     if (e.kind === "over_limit") return fail("over_limit", { limitBp: e.limitBp });
+    if (e.kind === "guarantee") {
+      return fail(e.error === "reason_required" ? "guarantee_reason_required" : e.error === "invalid_pay_by" ? "guarantee_invalid_pay_by" : "guarantee_failed");
+    }
     return fail(e.kind);
   }
 

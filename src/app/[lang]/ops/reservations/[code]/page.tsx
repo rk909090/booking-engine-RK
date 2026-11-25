@@ -11,6 +11,7 @@ import { StayChange } from "@/components/ops/stay-change";
 import { ErrorNote, SuccessNote } from "@/components/ui";
 import { discountLimitBp } from "@/domain/discount";
 import { earlyCheckinStatus } from "@/domain/early-checkin";
+import { guaranteeDue } from "@/domain/guarantee";
 import { lateCheckoutStatus } from "@/domain/late-checkout";
 import { changeability, previewStayChange } from "@/domain/modify";
 import { loadStayFacts, stayActions, type ActionState } from "@/domain/operations";
@@ -22,7 +23,16 @@ import { formatDate, formatDateRange, formatMoney } from "@/i18n/formatters";
 import { getDictionary, type Dictionary } from "@/i18n/get-dictionary";
 import { requireStaff } from "@/lib/auth/current-staff";
 import { can, type Action } from "@/lib/authz/permissions";
-import { cancelAction, checkInAction, checkOutAction, noShowAction, recordPaymentAction, refundAction } from "@/lib/ops/actions";
+import {
+  cancelAction,
+  changePayByAction,
+  checkInAction,
+  checkOutAction,
+  confirmWithoutDepositAction,
+  noShowAction,
+  recordPaymentAction,
+  refundAction,
+} from "@/lib/ops/actions";
 import { getReservationForStaff, sameTypeUnits } from "@/lib/ops/queries";
 
 type Props = PageProps<"/[lang]/ops/reservations/[code]">;
@@ -93,6 +103,8 @@ async function Detail({
         ? { min: 1, max: balance, hint: format(t.collectBalanceHint, { amount: formatMoney(balance, lang) }) }
         : null;
   const canCollect = can(staff.actor, "payment.record", r.propertyId).allowed;
+  const canGuarantee = can(staff.actor, "reservation.guarantee", r.propertyId).allowed;
+  const depositDue = guaranteeDue(r, facts.today);
   const errorCode = typeof sp.error === "string" ? sp.error : null;
 
   // Change of dates / villa: the GET form puts the request in the URL.
@@ -186,6 +198,18 @@ async function Detail({
         {sp.created === "1" ? <SuccessNote>{t.created}</SuccessNote> : null}
         {sp.created === "link" && r.holdExpiresAt ? <SuccessNote>{format(t.createdLink, { time: fmt.format(r.holdExpiresAt) })}</SuccessNote> : null}
         {errorText ? <ErrorNote>{errorText}</ErrorNote> : null}
+        {depositDue ? (
+          <p
+            role="status"
+            className={`rounded-lg border px-4 py-3 text-sm ${depositDue.overdue ? "border-danger/40 bg-danger/5 text-danger" : "border-terracotta/40 bg-sand text-ink"}`}
+          >
+            {format(depositDue.overdue ? t.guaranteeOverdue : t.guaranteeOpen, {
+              amount: formatMoney(depositDue.amount, lang),
+              date: formatDate(depositDue.payBy, lang),
+            })}{" "}
+            <span className="text-stone">{format(t.guaranteeReasonLine, { reason: depositDue.terms.reason })}</span>
+          </p>
+        ) : null}
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_380px]">
@@ -329,6 +353,57 @@ async function Detail({
                 </label>
                 <button type="submit" className="w-full rounded-lg bg-lagoon px-4 py-2 text-sm font-medium text-ivory hover:bg-lagoon-deep">
                   {t.collectSubmit}
+                </button>
+              </form>
+            </Card>
+          ) : null}
+
+          {holdLive && canGuarantee ? (
+            <Card title={t.guaranteeTitle}>
+              <form action={confirmWithoutDepositAction} className="space-y-2">
+                {hidden}
+                <p className="text-xs text-stone">{format(t.guaranteeHint, { amount: formatMoney(r.depositAmount, lang) })}</p>
+                <label className="block space-y-1 text-xs text-stone">
+                  <span>{t.guaranteeReason}</span>
+                  <input name="reason" required maxLength={300} className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" />
+                </label>
+                <label className="block space-y-1 text-xs text-stone">
+                  <span>{t.guaranteePayBy}</span>
+                  <input
+                    type="date"
+                    name="payBy"
+                    required
+                    min={facts.today}
+                    max={r.checkOut}
+                    defaultValue={r.checkIn}
+                    className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink"
+                  />
+                </label>
+                <button type="submit" className="w-full rounded-lg border border-lagoon px-4 py-2 text-sm font-medium text-lagoon hover:bg-lagoon-soft">
+                  {t.guaranteeSubmit}
+                </button>
+              </form>
+            </Card>
+          ) : null}
+
+          {depositDue && canGuarantee ? (
+            <Card title={t.guaranteeTitle}>
+              <form action={changePayByAction} className="space-y-2">
+                {hidden}
+                <label className="block space-y-1 text-xs text-stone">
+                  <span>{t.guaranteePayBy}</span>
+                  <input
+                    type="date"
+                    name="payBy"
+                    required
+                    min={facts.today}
+                    max={r.checkOut}
+                    defaultValue={depositDue.payBy < facts.today ? facts.today : depositDue.payBy}
+                    className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink"
+                  />
+                </label>
+                <button type="submit" className="w-full rounded-lg border border-line px-4 py-2 text-sm text-ink hover:bg-sand">
+                  {t.payBySubmit}
                 </button>
               </form>
             </Card>
