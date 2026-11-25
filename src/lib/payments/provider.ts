@@ -24,9 +24,14 @@ export type CheckoutRequest = {
 
 export type CheckoutSession = { providerRef: string; checkoutUrl: string; expiresAt: Date };
 
+/** A checkout as the provider reports it, read from the provider itself. */
+export type CheckoutState = { status: "pending" | "paid" | "expired" | "cancelled"; amount: number | null; currency: string | null };
+
 export interface PaymentProvider {
   readonly name: "simulated" | "xendit";
   createCheckout(request: CheckoutRequest, appUrl: string): Promise<CheckoutSession>;
+  /** Makes an open checkout unusable (best effort; a checkout already closed is fine). */
+  cancelCheckout(providerRef: string): Promise<void>;
 }
 
 const simulated: PaymentProvider = {
@@ -39,58 +44,129 @@ const simulated: PaymentProvider = {
       expiresAt: request.expiresAt,
     };
   },
+  async cancelCheckout() {
+    // The simulator reads the payment's status from the database.
+  },
 };
 
+export class XenditError extends Error {
+  constructor(
+    readonly httpStatus: number,
+    readonly errorCode: string | null,
+    message: string,
+  ) {
+    super(message);
+    this.name = "XenditError";
+  }
+}
+
+type Fetch = typeof fetch;
+
+const XENDIT_API = "https://api.xendit.co";
+
 /**
- * Xendit hosted invoice (POST /v2/invoices, Basic auth with the secret key).
- * Not yet exercised against Xendit's test mode: verify with test keys before
- * taking real payments.
+ * Xendit Payment Sessions with a Xendit-hosted payment page
+ * (POST /sessions, session_type PAY, mode PAYMENT_LINK). Xendit's older
+ * Invoice API is documented as legacy; Sessions replace it.
+ * The session id (ps-...) is our provider reference.
  */
-function xendit(secretKey: string): PaymentProvider {
+export function createXenditProvider(secretKey: string, fetchImpl: Fetch = fetch) {
+  const authorization = `Basic ${Buffer.from(`${secretKey}:`).toString("base64")}`;
+
+  async function call<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
+    const response = await fetchImpl(`${XENDIT_API}${path}`, {
+      method,
+      headers: { authorization, "content-type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const text = await response.text();
+    let json: Record<string, unknown> = {};
+    try {
+      json = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+    } catch {
+      // Not JSON; reported below by status.
+    }
+    if (!response.ok) {
+      const code = typeof json.error_code === "string" ? json.error_code : null;
+      const message = typeof json.message === "string" ? json.message : `HTTP ${response.status}`;
+      throw new XenditError(response.status, code, `Xendit ${method} ${path} failed: ${code ?? response.status} ${message}`);
+    }
+    return json as T;
+  }
+
+  type Session = {
+    payment_session_id: string;
+    status: "ACTIVE" | "COMPLETED" | "EXPIRED" | "CANCELED";
+    payment_link_url: string | null;
+    expires_at?: string;
+    amount?: number;
+    currency?: string;
+  };
+
+  const statusOf: Record<Session["status"], CheckoutState["status"]> = {
+    ACTIVE: "pending",
+    COMPLETED: "paid",
+    EXPIRED: "expired",
+    CANCELED: "cancelled",
+  };
+
   return {
-    name: "xendit",
-    async createCheckout(request) {
-      const externalId = `pay_${randomBytes(12).toString("base64url")}`;
-      const seconds = Math.max(60, Math.floor((request.expiresAt.getTime() - Date.now()) / 1000));
-      const response = await fetch("https://api.xendit.co/v2/invoices", {
-        method: "POST",
-        headers: {
-          authorization: `Basic ${Buffer.from(`${secretKey}:`).toString("base64")}`,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          external_id: externalId,
-          amount: request.amount,
-          currency: request.currency,
-          description: request.description,
-          invoice_duration: seconds,
-          payer_email: request.customer.email || undefined,
-          customer: {
-            given_names: request.customer.name,
-            email: request.customer.email || undefined,
-            mobile_number: request.customer.phone || undefined,
-          },
-          success_redirect_url: request.successUrl,
-          failure_redirect_url: request.failureUrl,
-          locale: request.locale,
-        }),
+    name: "xendit" as const,
+
+    async createCheckout(request: CheckoutRequest): Promise<CheckoutSession> {
+      const session = await call<Session>("POST", "/sessions", {
+        reference_id: `pay_${randomBytes(12).toString("base64url")}`,
+        session_type: "PAY",
+        mode: "PAYMENT_LINK",
+        amount: request.amount,
+        currency: request.currency,
+        country: "ID",
+        description: request.description.slice(0, 1000),
+        success_return_url: request.successUrl,
+        cancel_return_url: request.failureUrl,
+        expires_at: request.expiresAt.toISOString(),
       });
-      if (!response.ok) {
-        throw new Error(`Xendit invoice failed: HTTP ${response.status}`);
+      if (!session.payment_session_id || !session.payment_link_url) {
+        throw new XenditError(502, null, "Xendit session response has no id or payment link");
       }
-      const invoice = (await response.json()) as { invoice_url: string; expiry_date?: string };
       return {
-        providerRef: externalId,
-        checkoutUrl: invoice.invoice_url,
-        expiresAt: invoice.expiry_date ? new Date(invoice.expiry_date) : request.expiresAt,
+        providerRef: session.payment_session_id,
+        checkoutUrl: session.payment_link_url,
+        expiresAt: session.expires_at ? new Date(session.expires_at) : request.expiresAt,
+      };
+    },
+
+    async cancelCheckout(providerRef: string): Promise<void> {
+      try {
+        await call("POST", `/sessions/${encodeURIComponent(providerRef)}/cancel`);
+      } catch (error) {
+        // Already completed, expired or cancelled: nothing left to close.
+        if (error instanceof XenditError && (error.httpStatus === 422 || error.httpStatus === 404)) return;
+        throw error;
+      }
+    },
+
+    /** The session as Xendit has it now; the webhook trusts this, not its own body. */
+    async getCheckout(providerRef: string): Promise<CheckoutState> {
+      const session = await call<Session>("GET", `/sessions/${encodeURIComponent(providerRef)}`);
+      return {
+        status: statusOf[session.status] ?? "pending",
+        amount: typeof session.amount === "number" ? session.amount : null,
+        currency: session.currency ?? null,
       };
     },
   };
 }
 
-export function getPaymentProvider(): PaymentProvider {
+export type XenditProvider = ReturnType<typeof createXenditProvider>;
+
+export function xenditProvider(): XenditProvider | null {
   const key = process.env.XENDIT_SECRET_KEY;
-  return key ? xendit(key) : simulated;
+  return key ? createXenditProvider(key) : null;
+}
+
+export function getPaymentProvider(): PaymentProvider {
+  return xenditProvider() ?? simulated;
 }
 
 export function simulatorEnabled(): boolean {

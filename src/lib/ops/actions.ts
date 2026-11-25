@@ -11,6 +11,7 @@ import { checkIn, checkOut, markNoShow, recordManualPayment, recordRefundPayout 
 import { hasLocale, type Locale } from "@/i18n/config";
 import { requireStaff } from "@/lib/auth/current-staff";
 import { can, type Action, type Actor } from "@/lib/authz/permissions";
+import { closeCheckouts, openCheckouts } from "@/lib/payments/checkouts";
 
 /*
  * Staff actions on a reservation. Each one re-reads the session and checks
@@ -108,11 +109,13 @@ export async function noShowAction(form: FormData) {
 
 export async function cancelAction(form: FormData) {
   await run(form, "reservation.cancel", async ({ reservationId, staffId }) => {
+    const links = await openCheckouts(reservationId);
     const result = await cancelReservation(getDb(), {
       reservationId,
       actor: { type: "staff", id: staffId },
       reason: field(form, "reason").slice(0, 500) || null,
     });
+    if (result.ok) await closeCheckouts(reservationId, links);
     return result.ok ? { ok: true } : { ok: false, error: result.error === "not_found" ? "not_found" : "final_status" };
   });
 }
@@ -131,6 +134,7 @@ export async function refundAction(form: FormData) {
 /** Money received at the front desk: confirms a hold, or pays toward the balance. */
 export async function recordPaymentAction(form: FormData) {
   await run(form, "payment.record", async ({ reservationId, staffId }) => {
+    const links = await openCheckouts(reservationId);
     const result = await recordManualPayment(getDb(), {
       reservationId,
       amount: Number(field(form, "amount").replace(/[^\d]/g, "")),
@@ -138,7 +142,11 @@ export async function recordPaymentAction(form: FormData) {
       reference: field(form, "reference") || null,
       actor: { type: "staff", id: staffId },
     });
-    if (result.ok) return { ok: true };
+    if (result.ok) {
+      // Confirming a hold closes its payment links (the database side is done already).
+      if (result.confirmed) await closeCheckouts(reservationId, links);
+      return { ok: true };
+    }
     return { ok: false, error: result.error === "invalid_amount" ? "payment_amount" : result.error };
   });
 }

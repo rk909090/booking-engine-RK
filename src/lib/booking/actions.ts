@@ -8,6 +8,7 @@ import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
 import { cancelReservation, createHold, createPendingPayment, findGuestReservation, recordPaymentPaid } from "@/domain/booking";
 import { hasLocale, type Locale } from "@/i18n/config";
+import { closeCheckouts, openCheckouts } from "@/lib/payments/checkouts";
 import { getPaymentProvider, simulatorEnabled } from "@/lib/payments/provider";
 import { appUrl, bookingAccessToken, verifyBookingAccessToken } from "./access";
 import { allowRequest, clientIp } from "./rate-limit";
@@ -167,7 +168,9 @@ export async function cancelBookingAsGuest(form: FormData) {
     .where(eq(schema.reservations.code, code))
     .limit(1);
   if (reservation) {
-    await cancelReservation(getDb(), { reservationId: reservation.id, actor: { type: "guest" }, reason: "Cancelled by guest" });
+    const links = await openCheckouts(reservation.id);
+    const result = await cancelReservation(getDb(), { reservationId: reservation.id, actor: { type: "guest" }, reason: "Cancelled by guest" });
+    if (result.ok) await closeCheckouts(reservation.id, links);
   }
   redirect(bookingPath(lang, code));
 }
