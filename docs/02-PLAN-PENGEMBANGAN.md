@@ -215,6 +215,8 @@ Durasi sengaja tidak saya tulis karena bergantung pada ukuran tim dan keputusan 
 Repo, CI/CD, lingkungan staging, design system dan token, skema DB inti + migrasi, auth staf, RBAC dasar, seed data, i18n.
 **Selesai bila:** staf bisa login dengan 2FA, peran dan cakupan cabang dipaksakan di server, dan CI menjalankan test + lint + cek i18n.
 
+**Status (25 Nov 2026):** semua kriteria terpenuhi di kode dan sudah diuji end-to-end secara lokal terhadap Supabase (3 akun uji: Front Office, Housekeeping, Direktur; akun uji sudah dihapus). Di `be.attarahospitality.com` kode sudah ter-deploy, tetapi login baru berfungsi setelah `DATABASE_URL`, `BETTER_AUTH_URL`, dan `BETTER_AUTH_SECRET` diisi di environment variables Hostinger. Catatan: dari PC pengembang, setiap query ke Supabase butuh sekitar 300 ms, sehingga halaman staf terasa lambat secara lokal. Kecepatan di Hostinger belum diukur.
+
 ### Fase 1: MVP Booking Engine (bisa menerima uang sungguhan)
 Inventaris (cabang, tipe, unit), tarif dasar + musim + min-stay, pencarian dan kalender ketersediaan, halaman vila, checkout dengan hold 15 menit, pembayaran Xendit (deposit/penuh, webhook, hold kedaluwarsa otomatis), email + WA konfirmasi, portal tamu (lihat/batal), situs publik ID/EN, SEO dasar.
 **Selesai bila:** tamu bisa memesan dan membayar di staging dengan uang uji, uji konkurensi membuktikan tidak ada double-booking, dan pembatalan menghitung refund sesuai kebijakan.
