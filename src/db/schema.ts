@@ -18,6 +18,9 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
+import { authUsers } from "./auth-schema";
+
+export * from "./auth-schema";
 
 /*
  * Core domain schema (Fase 0). Money is stored as whole rupiah in bigint:
@@ -137,8 +140,10 @@ export const guests = pgTable(
 
 export const staffMembers = pgTable("staff_members", {
   id: uuid("id").primaryKey().defaultRandom(),
-  /** Link to the auth provider's user id, filled in when auth is wired up. */
-  authUserId: text("auth_user_id").unique(),
+  /** The Better Auth user this staff member signs in as. */
+  authUserId: text("auth_user_id")
+    .unique()
+    .references(() => authUsers.id, { onDelete: "set null" }),
   email: text("email").notNull().unique(),
   fullName: text("full_name").notNull(),
   role: staffRole("role").notNull(),

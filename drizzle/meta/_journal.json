@@ -15,6 +15,20 @@
       "when": 1795589360230,
       "tag": "0001_reservation_overlap_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795591141667,
+      "tag": "0002_auth",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795591649458,
+      "tag": "0003_revoke_public_api_grants",
+      "breakpoints": true
     }
   ]
 }
