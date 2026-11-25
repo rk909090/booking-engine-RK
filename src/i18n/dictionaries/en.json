@@ -250,7 +250,8 @@
     "reservations": "Reservations",
     "calendar": "Calendar",
     "menu": "Operations menu",
-    "villaStatus": "Villa status"
+    "villaStatus": "Villa status",
+    "newBooking": "New booking"
   },
   "resList": {
     "title": "Reservations",
@@ -352,7 +353,11 @@
       "invalid_amount": "The amount is invalid or more than the refund owed.",
       "in_house": "The guest has checked in and is staying.",
       "unit_not_ready": "The villa is not ready: finish cleaning and inspection first.",
-      "unit_blocked": "The villa is under maintenance and cannot be occupied."
+      "unit_blocked": "The villa is under maintenance and cannot be occupied.",
+      "hold_expired": "The hold has expired. Create a new booking.",
+      "nothing_due": "Nothing is due.",
+      "invalid_method": "Unknown payment method.",
+      "payment_amount": "This amount is not valid for this booking."
     },
     "activityTitle": "Activity",
     "noActivity": "No activity yet.",
@@ -368,11 +373,33 @@
       "payment.received_after_cancellation": "Payment received after cancellation",
       "refund.paid_out": "Refund paid out",
       "reservation.modified": "Stay dates changed",
-      "reservation.moved": "Moved to another villa"
+      "reservation.moved": "Moved to another villa",
+      "payment.received_manual": "Payment received at the front desk",
+      "payment.overpaid": "Overpaid: refund owed"
     },
     "actorGuest": "Guest",
     "actorSystem": "System",
-    "actorStaff": "Staff"
+    "actorStaff": "Staff",
+    "created": "Booking created and confirmed.",
+    "createdLink": "Booking created. The villa is held until {time}; send the guest the payment link below.",
+    "payLinkTitle": "Payment link",
+    "payLinkHint": "Send it to the guest by WhatsApp or email. Valid until {time}.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "collectTitle": "Record a payment received",
+    "collectHoldHint": "At least the deposit, {min}. The booking is confirmed at once and open payment links are closed.",
+    "collectBalanceHint": "Balance due {amount}.",
+    "collectAmount": "Amount (IDR)",
+    "collectMethod": "Method",
+    "collectReference": "Reference (optional)",
+    "collectSubmit": "Record payment",
+    "methods": {
+      "cash": "Cash",
+      "bank_transfer": "Bank transfer",
+      "card": "Card (EDC)",
+      "other": "Other"
+    },
+    "collectHoldHintFull": "Payment in full is due: {amount}. The booking is confirmed at once and open payment links are closed."
   },
   "opsCalendar": {
     "title": "Calendar",
@@ -485,5 +512,55 @@
       "unit_blocked": "This villa is under maintenance on some of those dates.",
       "price_changed": "The price changed since the preview. Check the new price, then confirm again."
     }
+  },
+  "newBooking": {
+    "title": "New booking",
+    "intro": "For bookings by phone, WhatsApp, walk-in or agents. Prices, minimum stay and deposit policy are the same as on the website.",
+    "property": "Property",
+    "search": "Check availability",
+    "typesTitle": "Choose a villa type",
+    "choose": "Choose",
+    "chosen": "Chosen",
+    "dueNowDeposit": "Due now (deposit): {amount}",
+    "dueNowFull": "Due now (in full): {amount}",
+    "formTitle": "Guest & payment",
+    "fullName": "Full name",
+    "email": "Email",
+    "phone": "Phone / WhatsApp",
+    "contactHint": "Give an email, a phone number, or both.",
+    "country": "Country code (e.g. ID)",
+    "arrival": "Expected arrival time",
+    "requests": "Special requests",
+    "source": "Booking source",
+    "unit": "Villa",
+    "unitAuto": "Automatic (first free villa)",
+    "paymentTitle": "Payment",
+    "modeReceived": "Payment already received",
+    "modeReceivedHint": "The booking is confirmed at once. At least {min}, at most {max}.",
+    "amount": "Amount received (IDR)",
+    "method": "Method",
+    "reference": "Reference (transfer no. / card slip)",
+    "modeLink": "Send the guest a payment link",
+    "modeLinkHint": "The villa is held until the guest pays {amount}. The link appears on the reservation page to send by WhatsApp or email.",
+    "holdFor": "Hold the villa for",
+    "hold": {
+      "1": "1 hour",
+      "24": "24 hours",
+      "48": "48 hours"
+    },
+    "submit": "Create booking",
+    "working": "Working...",
+    "errors": {
+      "invalid_guest": "Enter the guest's name and a valid email or a phone number.",
+      "sold_out": "This villa was just taken for those dates. Choose another villa or dates.",
+      "too_many_guests": "Too many guests for this villa.",
+      "unknown_unit_type": "Villa type not found.",
+      "quote": "These dates cannot be booked. Check the dates and minimum stay.",
+      "invalid_amount": "The amount must be between {min} and {max}.",
+      "payment": "The payment link could not be created and the villa was released. Try again.",
+      "role": "Your role cannot create bookings.",
+      "invalid_amount_full": "Arrival is close: the amount must be paid in full, {amount}."
+    },
+    "modeReceivedHintFull": "The booking is confirmed at once. Arrival is close, so payment in full is due: {amount}."
   }
 }

@@ -6,7 +6,7 @@ import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
 import { cancelReservation } from "@/domain/booking";
 import { applyStayChange } from "@/domain/modify";
-import { checkIn, checkOut, markNoShow, recordRefundPayout } from "@/domain/operations";
+import { checkIn, checkOut, markNoShow, recordManualPayment, recordRefundPayout } from "@/domain/operations";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { requireStaff } from "@/lib/auth/current-staff";
 import { can, type Action, type Actor } from "@/lib/authz/permissions";
@@ -125,4 +125,19 @@ export async function refundAction(form: FormData) {
       actor: { type: "staff", id: staffId },
     }),
   );
+}
+
+/** Money received at the front desk: confirms a hold, or pays toward the balance. */
+export async function recordPaymentAction(form: FormData) {
+  await run(form, "payment.record", async ({ reservationId, staffId }) => {
+    const result = await recordManualPayment(getDb(), {
+      reservationId,
+      amount: Number(field(form, "amount").replace(/[^\d]/g, "")),
+      method: field(form, "method"),
+      reference: field(form, "reference") || null,
+      actor: { type: "staff", id: staffId },
+    });
+    if (result.ok) return { ok: true };
+    return { ok: false, error: result.error === "invalid_amount" ? "payment_amount" : result.error };
+  });
 }

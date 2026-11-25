@@ -69,8 +69,17 @@ async function ReservationList({
   return (
     <>
       <OpsNav lang={lang} dict={dict} staff={staff} current="reservations" />
-      <h1 className="font-display text-3xl text-lagoon">{t.title}</h1>
-      <p className="mt-1 text-sm text-stone">{t.intro}</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-3xl text-lagoon">{t.title}</h1>
+          <p className="mt-1 text-sm text-stone">{t.intro}</p>
+        </div>
+        {can(staff.actor, "reservation.create").allowed ? (
+          <Link href={`/${lang}/ops/reservations/new`} className="rounded-lg bg-lagoon px-4 py-2 text-sm font-medium text-ivory hover:bg-lagoon-deep">
+            + {dict.opsNav.newBooking}
+          </Link>
+        ) : null}
+      </div>
 
       <form method="get" className="mt-5 grid gap-3 rounded-xl border border-line bg-white/70 p-4 md:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] md:items-end">
         {data.applied.departOn ? <input type="hidden" name="departOn" value={data.applied.departOn} /> : null}

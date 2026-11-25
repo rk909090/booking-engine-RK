@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import { OpsNav, OpsShell, StatusBadge, NoAccess } from "@/components/ops/ops-shell";
+import { CopyField } from "@/components/ops/copy-field";
 import { StayChange } from "@/components/ops/stay-change";
 import { ErrorNote, SuccessNote } from "@/components/ui";
 import { changeability, previewStayChange } from "@/domain/modify";
@@ -16,7 +17,7 @@ import { formatDate, formatDateRange, formatMoney } from "@/i18n/formatters";
 import { getDictionary, type Dictionary } from "@/i18n/get-dictionary";
 import { requireStaff } from "@/lib/auth/current-staff";
 import { can, type Action } from "@/lib/authz/permissions";
-import { cancelAction, checkInAction, checkOutAction, noShowAction, refundAction } from "@/lib/ops/actions";
+import { cancelAction, checkInAction, checkOutAction, noShowAction, recordPaymentAction, refundAction } from "@/lib/ops/actions";
 import { getReservationForStaff, sameTypeUnits } from "@/lib/ops/queries";
 
 type Props = PageProps<"/[lang]/ops/reservations/[code]">;
@@ -72,6 +73,21 @@ async function Detail({
   const actions = stayActions(facts);
   const balance = balanceDue(r);
   const fmt = timeFmt(lang, property.timezone);
+  const now = new Date();
+  const holdLive = r.status === "hold" && r.holdExpiresAt !== null && r.holdExpiresAt > now;
+  const openLink = holdLive ? data.payments.find((p) => p.status === "pending" && p.checkoutUrl && (!p.expiresAt || p.expiresAt > now)) : undefined;
+  // Money the desk can take now: at least the deposit on a hold, or toward the balance.
+  const collect =
+    holdLive
+      ? { min: r.depositAmount, max: r.totalAmount, hint:
+            r.depositAmount === r.totalAmount
+              ? format(t.collectHoldHintFull, { amount: formatMoney(r.totalAmount, lang) })
+              : format(t.collectHoldHint, { min: formatMoney(r.depositAmount, lang) }),
+        }
+      : (r.status === "confirmed" || r.status === "in_house") && balance > 0
+        ? { min: 1, max: balance, hint: format(t.collectBalanceHint, { amount: formatMoney(balance, lang) }) }
+        : null;
+  const canCollect = can(staff.actor, "payment.record", r.propertyId).allowed;
   const errorCode = typeof sp.error === "string" ? sp.error : null;
 
   // Change of dates / villa: the GET form puts the request in the URL.
@@ -126,6 +142,8 @@ async function Detail({
 
       <div className="mt-4 space-y-2">
         {sp.done ? <SuccessNote>{t.done}</SuccessNote> : null}
+        {sp.created === "1" ? <SuccessNote>{t.created}</SuccessNote> : null}
+        {sp.created === "link" && r.holdExpiresAt ? <SuccessNote>{format(t.createdLink, { time: fmt.format(r.holdExpiresAt) })}</SuccessNote> : null}
         {errorText ? <ErrorNote>{errorText}</ErrorNote> : null}
       </div>
 
@@ -234,6 +252,43 @@ async function Detail({
         </div>
 
         <aside className="space-y-4">
+          {openLink?.checkoutUrl ? (
+            <Card title={t.payLinkTitle}>
+              <p className="mb-2 text-xs text-stone">{format(t.payLinkHint, { time: fmt.format(openLink.expiresAt ?? r.holdExpiresAt!) })}</p>
+              <CopyField value={openLink.checkoutUrl} copyLabel={t.copy} copiedLabel={t.copied} />
+            </Card>
+          ) : null}
+
+          {collect && canCollect ? (
+            <Card title={t.collectTitle}>
+              <form action={recordPaymentAction} className="space-y-2">
+                {hidden}
+                <p className="text-xs text-stone">{collect.hint}</p>
+                <label className="block space-y-1 text-xs text-stone">
+                  <span>{t.collectAmount}</span>
+                  <input name="amount" inputMode="numeric" required defaultValue={String(collect.min === 1 ? collect.max : collect.min)} className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" />
+                </label>
+                <label className="block space-y-1 text-xs text-stone">
+                  <span>{t.collectMethod}</span>
+                  <select name="method" defaultValue="bank_transfer" className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    {(["cash", "bank_transfer", "card", "other"] as const).map((m) => (
+                      <option key={m} value={m}>
+                        {t.methods[m]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block space-y-1 text-xs text-stone">
+                  <span>{t.collectReference}</span>
+                  <input name="reference" maxLength={200} className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" />
+                </label>
+                <button type="submit" className="w-full rounded-lg bg-lagoon px-4 py-2 text-sm font-medium text-ivory hover:bg-lagoon-deep">
+                  {t.collectSubmit}
+                </button>
+              </form>
+            </Card>
+          ) : null}
+
           <Card title={t.actionsTitle}>
             <div className="space-y-4">
               <ActionForm gate={gate("reservation.check_in", actions.checkIn)} action={checkInAction} label={t.checkIn} hidden={hidden} />

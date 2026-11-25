@@ -3,6 +3,7 @@ import { and, eq, ne, sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
 import { addDays, todayIn } from "./dates";
+import { createPendingPayment, recordPaymentPaid } from "./booking";
 import { balanceDue } from "./pricing";
 import { openBlockToday, recordState, unitState, type HkState } from "./housekeeping";
 
@@ -251,5 +252,64 @@ export async function recordRefundPayout(
       .returning({ id: schema.payments.id });
     await audit(tx, row.r, input.actor, "refund.paid_out", {}, { paymentId: payment.id, amount: input.amount, reference: input.reference.trim() }, now);
     return { ok: true } as const;
+  });
+}
+
+export const PAYMENT_METHODS = ["cash", "bank_transfer", "card", "other"] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+export type ManualPaymentError = "not_found" | "final_status" | "hold_expired" | "nothing_due" | "invalid_amount" | "invalid_method";
+
+/**
+ * Records money the front desk received directly (cash, bank transfer, card
+ * machine). On a hold it must cover at least the deposit and confirms the
+ * booking; on a confirmed or in-house booking it pays toward the balance.
+ */
+export async function recordManualPayment(
+  db: AnyDb,
+  input: { reservationId: string; amount: number; method: string; reference?: string | null; actor: Actor; now?: Date },
+): Promise<{ ok: true; confirmed: boolean } | { ok: false; error: ManualPaymentError }> {
+  const now = input.now ?? new Date();
+  if (!(PAYMENT_METHODS as readonly string[]).includes(input.method)) return { ok: false, error: "invalid_method" };
+  const reference = input.reference?.trim().slice(0, 200) || null;
+  return db.transaction(async (tx) => {
+    const row = await lockReservation(tx, input.reservationId);
+    if (!row) return { ok: false, error: "not_found" } as const;
+    const r = row.r;
+    let min = 1;
+    let max: number;
+    let purpose: "deposit" | "full" | "balance";
+    if (r.status === "hold") {
+      if (!r.holdExpiresAt || r.holdExpiresAt <= now) return { ok: false, error: "hold_expired" } as const;
+      min = r.depositAmount;
+      max = r.totalAmount;
+      purpose = input.amount === r.totalAmount ? "full" : "deposit";
+    } else if (r.status === "confirmed" || r.status === "in_house") {
+      max = balanceDue(r);
+      if (max <= 0) return { ok: false, error: "nothing_due" } as const;
+      purpose = "balance";
+    } else {
+      return { ok: false, error: "final_status" } as const;
+    }
+    if (!Number.isSafeInteger(input.amount) || input.amount < min || input.amount > max) return { ok: false, error: "invalid_amount" } as const;
+
+    const providerRef = `manual_${randomBytes(9).toString("base64url")}`;
+    await createPendingPayment(tx, { reservationId: r.id, provider: "manual", providerRef, purpose, amount: input.amount, checkoutUrl: null, expiresAt: null });
+    const outcome = await recordPaymentPaid(tx as unknown as AnyDb, {
+      provider: "manual",
+      providerRef,
+      amount: input.amount,
+      paidAt: now,
+      raw: { method: input.method, reference, recordedBy: input.actor.id },
+    });
+    if (outcome.kind === "confirmed") {
+      // Payment links still open for this booking must not take the money a second time.
+      await tx
+        .update(schema.payments)
+        .set({ status: "cancelled", updatedAt: now })
+        .where(and(eq(schema.payments.reservationId, r.id), eq(schema.payments.status, "pending")));
+    }
+    await audit(tx, r, input.actor, "payment.received_manual", {}, { amount: input.amount, method: input.method, reference, purpose }, now);
+    return { ok: true, confirmed: outcome.kind === "confirmed" } as const;
   });
 }

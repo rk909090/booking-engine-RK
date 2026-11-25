@@ -14,7 +14,7 @@ export type CheckoutRequest = {
   amount: number;
   currency: string;
   description: string;
-  customer: { name: string; email: string; phone?: string | null };
+  customer: { name: string; email?: string | null; phone?: string | null };
   /** Where the provider sends the guest afterwards. */
   successUrl: string;
   failureUrl: string;
@@ -64,10 +64,10 @@ function xendit(secretKey: string): PaymentProvider {
           currency: request.currency,
           description: request.description,
           invoice_duration: seconds,
-          payer_email: request.customer.email,
+          payer_email: request.customer.email || undefined,
           customer: {
             given_names: request.customer.name,
-            email: request.customer.email,
+            email: request.customer.email || undefined,
             mobile_number: request.customer.phone || undefined,
           },
           success_redirect_url: request.successUrl,

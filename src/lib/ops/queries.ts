@@ -3,6 +3,7 @@ import { and, asc, count, desc, eq, gte, ilike, inArray, lte, or, sql, type SQL 
 import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
 import { isIsoDate, todayIn } from "@/domain/dates";
+import { unitIsFree } from "@/domain/booking";
 import { readiness } from "@/domain/housekeeping";
 import { canAccessProperty, hasGlobalScope, type Actor } from "@/lib/authz/permissions";
 
@@ -340,5 +341,14 @@ export async function sameTypeUnits(unitTypeId: string) {
     .select({ id: schema.units.id, code: schema.units.code, name: schema.units.name })
     .from(schema.units)
     .where(and(eq(schema.units.unitTypeId, unitTypeId), eq(schema.units.isActive, true)))
+    .orderBy(asc(schema.units.code));
+}
+
+/** Villas of one type free for every night of [checkIn, checkOut). */
+export async function freeUnitsOfType(unitTypeId: string, checkIn: string, checkOut: string, now: Date) {
+  return getDb()
+    .select({ id: schema.units.id, code: schema.units.code })
+    .from(schema.units)
+    .where(and(eq(schema.units.unitTypeId, unitTypeId), eq(schema.units.isActive, true), unitIsFree(checkIn, checkOut, now)))
     .orderBy(asc(schema.units.code));
 }

@@ -250,7 +250,8 @@
     "reservations": "Reservasi",
     "calendar": "Kalender",
     "menu": "Menu operasional",
-    "villaStatus": "Status vila"
+    "villaStatus": "Status vila",
+    "newBooking": "Reservasi baru"
   },
   "resList": {
     "title": "Reservasi",
@@ -352,7 +353,11 @@
       "invalid_amount": "Jumlah tidak valid atau melebihi refund yang terutang.",
       "in_house": "Tamu sudah check-in dan sedang menginap.",
       "unit_not_ready": "Vila belum siap: selesaikan pembersihan dan inspeksi dulu.",
-      "unit_blocked": "Vila sedang dalam perawatan dan tidak bisa ditempati."
+      "unit_blocked": "Vila sedang dalam perawatan dan tidak bisa ditempati.",
+      "hold_expired": "Waktu tahan vila sudah habis. Buat reservasi baru.",
+      "nothing_due": "Tidak ada tagihan yang perlu dibayar.",
+      "invalid_method": "Metode pembayaran tidak dikenal.",
+      "payment_amount": "Jumlah pembayaran tidak valid untuk reservasi ini."
     },
     "activityTitle": "Aktivitas",
     "noActivity": "Belum ada aktivitas.",
@@ -368,11 +373,33 @@
       "payment.received_after_cancellation": "Pembayaran diterima setelah dibatalkan",
       "refund.paid_out": "Refund dibayarkan",
       "reservation.modified": "Tanggal menginap diubah",
-      "reservation.moved": "Dipindah ke vila lain"
+      "reservation.moved": "Dipindah ke vila lain",
+      "payment.received_manual": "Pembayaran diterima di meja depan",
+      "payment.overpaid": "Kelebihan bayar: refund terutang"
     },
     "actorGuest": "Tamu",
     "actorSystem": "Sistem",
-    "actorStaff": "Staf"
+    "actorStaff": "Staf",
+    "created": "Reservasi dibuat dan terkonfirmasi.",
+    "createdLink": "Reservasi dibuat. Vila ditahan sampai {time}; kirim tautan pembayaran di bawah ke tamu.",
+    "payLinkTitle": "Tautan pembayaran",
+    "payLinkHint": "Kirim ke tamu lewat WhatsApp atau email. Berlaku sampai {time}.",
+    "copy": "Salin",
+    "copied": "Tersalin",
+    "collectTitle": "Catat pembayaran diterima",
+    "collectHoldHint": "Minimal deposit {min}. Booking langsung terkonfirmasi dan tautan pembayaran yang masih terbuka ditutup.",
+    "collectBalanceHint": "Sisa tagihan {amount}.",
+    "collectAmount": "Jumlah (Rp)",
+    "collectMethod": "Metode",
+    "collectReference": "Referensi (opsional)",
+    "collectSubmit": "Catat pembayaran",
+    "methods": {
+      "cash": "Tunai",
+      "bank_transfer": "Transfer bank",
+      "card": "Kartu (EDC)",
+      "other": "Lainnya"
+    },
+    "collectHoldHintFull": "Harus lunas {amount}. Booking langsung terkonfirmasi dan tautan pembayaran yang masih terbuka ditutup."
   },
   "opsCalendar": {
     "title": "Kalender",
@@ -485,5 +512,55 @@
       "unit_blocked": "Vila ini sedang dalam perawatan pada sebagian tanggal tersebut.",
       "price_changed": "Harga berubah sejak pratinjau. Periksa harga baru, lalu konfirmasi lagi."
     }
+  },
+  "newBooking": {
+    "title": "Reservasi baru",
+    "intro": "Untuk booking lewat telepon, WhatsApp, walk-in, atau agen. Harga, minimal menginap, dan kebijakan deposit sama dengan situs web.",
+    "property": "Properti",
+    "search": "Cek ketersediaan",
+    "typesTitle": "Pilih tipe vila",
+    "choose": "Pilih",
+    "chosen": "Dipilih",
+    "dueNowDeposit": "Bayar sekarang (deposit): {amount}",
+    "dueNowFull": "Bayar sekarang (lunas): {amount}",
+    "formTitle": "Data tamu & pembayaran",
+    "fullName": "Nama lengkap",
+    "email": "Email",
+    "phone": "Telepon / WhatsApp",
+    "contactHint": "Isi email, nomor telepon, atau keduanya.",
+    "country": "Kode negara (mis. ID)",
+    "arrival": "Perkiraan jam tiba",
+    "requests": "Permintaan khusus",
+    "source": "Sumber booking",
+    "unit": "Vila",
+    "unitAuto": "Otomatis (vila kosong pertama)",
+    "paymentTitle": "Pembayaran",
+    "modeReceived": "Pembayaran sudah diterima",
+    "modeReceivedHint": "Booking langsung terkonfirmasi. Minimal {min}, maksimal {max}.",
+    "amount": "Jumlah diterima (Rp)",
+    "method": "Metode",
+    "reference": "Referensi (no. transfer / struk EDC)",
+    "modeLink": "Kirim tautan pembayaran ke tamu",
+    "modeLinkHint": "Vila ditahan sampai tamu membayar {amount}. Tautannya tampil di halaman reservasi untuk dikirim lewat WhatsApp atau email.",
+    "holdFor": "Tahan vila selama",
+    "hold": {
+      "1": "1 jam",
+      "24": "24 jam",
+      "48": "48 jam"
+    },
+    "submit": "Buat reservasi",
+    "working": "Memproses...",
+    "errors": {
+      "invalid_guest": "Isi nama tamu, serta email yang valid atau nomor telepon.",
+      "sold_out": "Vila ini baru saja terisi untuk tanggal tersebut. Pilih vila atau tanggal lain.",
+      "too_many_guests": "Jumlah tamu melebihi kapasitas vila.",
+      "unknown_unit_type": "Tipe vila tidak ditemukan.",
+      "quote": "Tanggal ini tidak bisa dipesan. Periksa tanggal dan minimal menginap.",
+      "invalid_amount": "Jumlah harus antara {min} dan {max}.",
+      "payment": "Tautan pembayaran gagal dibuat dan vila sudah dilepas. Coba lagi.",
+      "role": "Peran Anda tidak dapat membuat reservasi.",
+      "invalid_amount_full": "Kedatangan sudah dekat: jumlah harus lunas, {amount}."
+    },
+    "modeReceivedHintFull": "Booking langsung terkonfirmasi. Kedatangan sudah dekat, jadi harus lunas: {amount}."
   }
 }

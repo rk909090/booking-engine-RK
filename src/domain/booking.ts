@@ -173,14 +173,19 @@ export type HoldInput = {
   checkOut: string;
   adults: number;
   children: number;
-  guest: { fullName: string; email: string; phone?: string | null; countryCode?: string | null };
+  /** Email is required for website bookings; staff may give a phone number instead. */
+  guest: { fullName: string; email?: string | null; phone?: string | null; countryCode?: string | null };
   specialRequests?: string | null;
   estimatedArrival?: string | null;
   locale: Locale;
   source: (typeof schema.bookingSource.enumValues)[number];
   now?: Date;
-  /** Tests only: try these units first, in this order. */
+  /** Only these units, in this order (a villa chosen by staff, or tests). */
   candidateUnitIds?: string[];
+  /** How long the hold lasts; the property's hold time when omitted. */
+  holdMinutes?: number;
+  /** Staff member who created the booking, for the audit log. */
+  actorId?: string;
 };
 
 export type HoldError =
@@ -202,9 +207,16 @@ export type HoldResult =
  */
 export async function createHold(db: AnyDb, input: HoldInput): Promise<HoldResult> {
   const now = input.now ?? new Date();
-  const email = input.guest.email.trim().toLowerCase();
+  const email = (input.guest.email ?? "").trim().toLowerCase();
+  const phone = input.guest.phone?.trim() || null;
   const fullName = input.guest.fullName.trim();
-  if (!fullName || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, error: { kind: "invalid_guest" } };
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  // A guest must be reachable: a valid email, or (staff bookings only) a phone number.
+  const reachable = emailValid || (!email && phone !== null && input.source !== "website");
+  if (!fullName || !reachable) return { ok: false, error: { kind: "invalid_guest" } };
+  if (input.holdMinutes !== undefined && (!Number.isInteger(input.holdMinutes) || input.holdMinutes < 5 || input.holdMinutes > 7 * 24 * 60)) {
+    throw new Error("holdMinutes out of range");
+  }
   if (!Number.isInteger(input.adults) || input.adults < 1 || !Number.isInteger(input.children) || input.children < 0) {
     return { ok: false, error: { kind: "invalid_guest" } };
   }
@@ -255,13 +267,13 @@ export async function createHold(db: AnyDb, input: HoldInput): Promise<HoldResul
       .insert(schema.guests)
       .values({
         fullName,
-        email,
-        phone: input.guest.phone?.trim() || null,
+        email: email || null,
+        phone,
         countryCode: input.guest.countryCode?.trim().toUpperCase() || null,
       })
       .returning();
 
-    const holdExpiresAt = new Date(now.getTime() + property.holdMinutes * 60_000);
+    const holdExpiresAt = new Date(now.getTime() + (input.holdMinutes ?? property.holdMinutes) * 60_000);
     for (const unitId of order) {
       try {
         const reservation = await tx.transaction(async (sp) => {
@@ -320,6 +332,7 @@ export async function createHold(db: AnyDb, input: HoldInput): Promise<HoldResul
         });
         await tx.insert(schema.auditEvents).values({
           actorType: input.source === "website" ? "guest" : "staff",
+          actorId: input.actorId ?? null,
           propertyId: property.id,
           entityType: "reservation",
           entityId: reservation.id,
@@ -468,6 +481,13 @@ export async function recordPaymentPaid(
     }
 
     await audit("payment.recorded", { paymentId: payment.id, amount: payment.amount });
+    // Paid more than the stay costs (for example a payment link used after the
+    // front desk took the money): the excess is owed back to the guest.
+    const overpaid = reservation.amountPaid - reservation.totalAmount;
+    if (overpaid > (reservation.refundAmount ?? 0)) {
+      await tx.update(schema.reservations).set({ refundAmount: overpaid }).where(eq(schema.reservations.id, reservation.id));
+      await audit("payment.overpaid", { paymentId: payment.id, refundOwed: overpaid });
+    }
     return { kind: "recorded", reservationId: reservation.id } as const;
   });
 }
