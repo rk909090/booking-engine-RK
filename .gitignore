@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next.js / build
+.next/
+out/
+build/
+dist/
+
+# env & secrets
+.env
+.env.*
+!.env.example
+
+# supabase local
+supabase/.temp/
+supabase/.branches/
+
+# logs & misc
+*.log
+.DS_Store
+Thumbs.db
+coverage/
+.vercel/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# claude local settings
+.claude/settings.local.json

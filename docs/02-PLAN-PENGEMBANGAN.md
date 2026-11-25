@@ -1,0 +1,263 @@
+# Plan Pengembangan: Booking Engine + PMS Vila "10x"
+
+Dasar plan ini adalah analisis demo SAVARA di [01-ANALISIS-DEMO-SAVARA.md](01-ANALISIS-DEMO-SAVARA.md).
+Status: **draf untuk diputuskan bersama**. Ada beberapa keputusan terbuka di bagian 9 yang mengubah lingkup.
+
+**Keputusan 25 Nov 2026:** kita membangun untuk **satu brand dulu** (satu pengelola vila dengan beberapa cabang, seperti Savara), bukan SaaS multi-tenant.
+
+---
+
+## 1. Apa arti "10x lebih baik"
+
+Demo SAVARA sudah bagus di **desain, guardrail aturan bisnis, dan RBAC**. Kelemahannya: semuanya **simulasi**, dan banyak fitur inti hotel nyata masih berlabel "milestone berikutnya".
+Jadi "10x" bukan berarti tampilan yang lebih cantik. Artinya:
+
+1. **Nyata dan andal**: database, login, pembayaran, notifikasi, dan jaminan tidak ada double-booking di level database.
+2. **Menghasilkan uang**: mesin tarif, deposit, upsell, promo, dan distribusi ke OTA.
+3. **Menghemat waktu staf**: papan "hari ini" yang selalu benar, housekeeping di HP, dan tugas otomatis dari setiap permintaan tamu.
+4. **Tamu bisa melayani diri sendiri**: kelola booking, pre-check-in online, dan pesan pengalaman.
+5. **Data untuk keputusan**: laporan dengan periode, YoY, pace/pickup, ekspor, dan laporan pemilik.
+
+### Target terukur (demo → kita)
+
+| Area | Demo SAVARA | Target kita |
+|---|---|---|
+| Data | Di browser, hilang saat ganti perangkat | PostgreSQL, multi-perangkat, backup harian |
+| Double-booking | Dicek di UI saja | **Dicegah oleh constraint DB** (exclusion constraint) + hold 15 menit saat checkout |
+| Pembayaran | Simulasi, bayar penuh saja | Gateway nyata (QRIS, VA, kartu, e-wallet), deposit/sisa, refund |
+| Tarif | 1 harga datar per tipe | Musim, akhir pekan, min-stay, LOS discount, promo, paket tarif, pajak & service |
+| Ubah tanggal | Belum ada | Ada, termasuk selisih harga otomatis |
+| Distribusi | Situs sendiri saja | + iCal (Airbnb/Booking.com) → channel manager |
+| Notifikasi | Tidak ada | Email + WhatsApp (konfirmasi, pengingat, pre-arrival) |
+| Portal tamu | Lihat saja, di browser yang sama | Ubah/batal sesuai kebijakan, pre-check-in, add-on, folio |
+| Housekeeping | Tombol di dasbor | PWA mobile: tugas, checklist, foto, ditugaskan ke petugas |
+| Laporan | 5 bulan tetap, tanpa ekspor | Periode bebas, YoY, pace, ekspor CSV/XLSX, laporan terjadwal |
+| Konsistensi papan hari ini | Bug B1–B2 | Satu sumber state di server + realtime, tanpa kilatan state usang |
+| Performa publik | Belum diukur | LCP < 2,0 dtk di 4G, skor Lighthouse ≥ 95 |
+
+---
+
+## 2. Prinsip produk (yang kita pertahankan dari demo, lalu tingkatkan)
+
+- **Tombol nonaktif selalu menjelaskan alasannya** (dari demo, dipertahankan).
+- **Satu sumber kebenaran**: semua status diturunkan dari event di server, bukan dihitung ulang di tiap halaman (memperbaiki B2).
+- **Setiap aksi tercatat** dengan siapa, apa, kapan (sampai detik), dan nilai sebelum/sesudah (memperbaiki B6).
+- **Label jujur** untuk data ilustratif.
+- **Bilingual penuh** (ID/EN), termasuk judul halaman dan pesan error (memperbaiki B7). Kunci terjemahan dicek di CI.
+- **Mobile-first untuk staf lapangan, desktop-first untuk back office.**
+
+---
+
+## 3. Arsitektur yang diusulkan
+
+> Rekomendasi. Bisa berubah sesuai keputusan di bagian 9.
+
+| Lapisan | Pilihan | Alasan |
+|---|---|---|
+| Framework | **Next.js (App Router) + TypeScript** | Sama dengan demo. SSR/SEO untuk situs publik, satu codebase untuk publik dan ops |
+| UI | Tailwind + komponen sendiri (design tokens) + Storybook | Menggantikan `/internal/components` |
+| Database | **PostgreSQL** | `daterange` + `EXCLUDE USING gist` untuk mencegah dua reservasi di unit yang sama pada malam yang sama |
+| ORM | Drizzle (atau Prisma) | Migrasi bertipe |
+| Auth | Better Auth / Auth.js + **2FA** untuk staf; magic link untuk tamu | Demo tidak punya login |
+| Job & jadwal | Antrean job (mis. Inngest/BullMQ) | Hold kedaluwarsa, pengingat, sinkronisasi iCal, laporan terjadwal |
+| Realtime | SSE/WebSocket untuk papan hari ini dan housekeeping | Menghilangkan state usang (B1, B2) |
+| Pembayaran | **Xendit** (diputuskan): QRIS, virtual account, e-wallet, dan kartu | Satu gateway untuk tamu domestik dan internasional. Rincian ada di bagian 3a |
+| Notifikasi | Email (Resend/SES) + **WhatsApp Business Cloud API** | WhatsApp adalah kanal utama di Indonesia |
+| File | Penyimpanan S3-compatible | Foto vila, foto housekeeping, dokumen ID tamu (terenkripsi) |
+| Observability | Sentry + log terstruktur + uptime check | |
+| Testing | Vitest (unit), **property-based test untuk ketersediaan & harga**, Playwright (E2E per peran) | Aturan bisnis adalah inti produk |
+
+### 3a. Pembayaran dengan Xendit
+
+**Pendekatan MVP: halaman pembayaran yang di-host Xendit** (Invoice/Payment Link). Tamu diarahkan ke halaman Xendit lalu kembali ke situs kita.
+- Alasan: paling cepat dibangun, semua metode tampil di satu halaman, dan data kartu tidak pernah menyentuh server kita, sehingga beban kepatuhan keamanan kartu jauh lebih ringan.
+- Nanti (Fase 3+) bisa diganti ke pembayaran tertanam di halaman kita sendiri kalau ingin pengalaman yang lebih mulus.
+
+**Alur:**
+1. Tamu menyelesaikan langkah "Data diri". Server membuat reservasi berstatus **Hold** (unit dikunci 15 menit) dan membuat tagihan Xendit untuk deposit atau pembayaran penuh, dengan masa berlaku yang sama.
+2. Tamu membayar di halaman Xendit.
+3. **Webhook Xendit** masuk. Server memverifikasi token callback, mencatat pembayaran (idempoten, jadi webhook ganda tidak tercatat dua kali), dan mengubah Hold menjadi **Confirmed**.
+4. Kalau tagihan kedaluwarsa atau gagal, Hold dilepas otomatis oleh job terjadwal dan unit kembali tersedia.
+5. Halaman "kembali dari Xendit" hanya **membaca** status dari server. Status lunas tidak pernah ditentukan dari parameter URL.
+
+**Hal yang harus dicek di dokumentasi Xendit saat implementasi** (belum saya verifikasi, jadi jangan dianggap pasti):
+- Metode mana yang mendukung **refund lewat API**. Untuk metode yang tidak mendukung (misalnya kemungkinan VA), refund dilakukan lewat transfer keluar dan dicatat manual di folio.
+- Dukungan kartu internasional dan biaya per metode, untuk menentukan apakah biaya dibebankan ke tamu atau ditanggung properti.
+- Mata uang: rencana kita tetap **menagih dalam IDR**. Mata uang lain hanya untuk tampilan perkiraan.
+- Lingkungan uji (test mode) dan kunci API terpisah untuk staging dan produksi.
+
+**Di sisi ops:** setiap pembayaran, refund, dan tagihan kedaluwarsa tercatat di folio dan log audit. Staf bisa membuat **link pembayaran** untuk reservasi manual (telepon/WA) dan untuk pelunasan sisa tagihan.
+
+### Konsekuensi keputusan "satu brand dulu"
+
+- **Tidak dibangun sekarang:** routing per tenant (subdomain/domain per klien), tagihan langganan, onboarding mandiri, dan isolasi data antar-tenant. Ini memangkas cukup banyak pekerjaan di Fase 0.
+- **Tetap dijaga agar pindah ke SaaS nanti cukup migrasi, bukan tulis ulang:**
+  - Konten dan identitas brand (nama, logo, warna, teks halaman, kebijakan, template pesan) disimpan di **konfigurasi atau database**, bukan di dalam kode.
+  - Semua data operasional sudah tercakup per **Property/Cabang**. Kalau nanti jadi multi-tenant, cukup ditambah satu lapisan `Organization` di atasnya.
+  - Otorisasi di server sudah lewat satu fungsi pengecek cakupan, sehingga cakupan tenant bisa ditambahkan di satu tempat.
+- **Mode demo** memakai database dan lingkungan terpisah, bukan tenant.
+
+### Model domain inti
+
+```
+Brand (1 baris konfigurasi) ─┬─ Property/Branch ─┬─ UnitType (Ayung Pavilion) ─┬─ Unit (UBD-AYG-01)
+                             │                   │                             └─ RatePlan ─ RateCalendar (harga per malam)
+                             │                   ├─ Policy (pembatalan, deposit, check-in/out, pajak, service)
+                             │                   └─ Staff ─ Role ─ Shift
+                             ├─ Guest (profil, tag, consent, merge)
+                             └─ Reservation ─┬─ StayNight (unit × tanggal, dengan EXCLUDE constraint)
+                                       ├─ Folio ─ Charge / Payment / Refund
+                                       ├─ Request/Task (permintaan tamu → tugas dengan SLA)
+                                       ├─ Message (email/WA, riwayat komunikasi)
+                                       └─ AuditEvent
+Unit ─ HousekeepingTask / MaintenanceTicket / Block (perawatan, owner use)
+Channel (Website, Direct, OTA, Agent) ─ ChannelMapping ─ SyncLog
+```
+
+### State machine reservasi
+
+```
+Draft/Hold(TTL) → Confirmed → InHouse → CheckedOut
+       │              │           └→ (extend / move / early checkout)
+       └→ Expired     ├→ Cancelled (+ biaya sesuai kebijakan)
+                      └→ NoShow (+ biaya sesuai kebijakan)
+```
+Transisi hanya lewat service di server yang memvalidasi aturan (tanggal, housekeeping, peran, pembayaran) dan menulis `AuditEvent`.
+
+---
+
+## 4. Fitur per modul
+
+### A. Booking engine publik
+- Pencarian dengan **kalender ketersediaan & harga per malam** (tanggal yang tidak tersedia digelapkan, min-stay terlihat).
+- Halaman vila: galeri, **peta**, ulasan (terverifikasi dari tamu yang benar-benar menginap), kebijakan pembatalan yang jelas sebelum bayar, fasilitas lengkap, dan "x unit tersisa" yang jujur.
+- Hasil pencarian bisa diurutkan dan difilter (harga, kamar, fasilitas, destinasi), plus tampilan peta.
+- Checkout ≤ 3 langkah: **hold unit 15 menit** dengan penghitung waktu, pilihan **deposit atau bayar penuh**, kode promo, **add-on pengalaman** (chef, spa, transfer bandara), pajak & service yang benar, mata uang tampilan (IDR/USD/AUD/EUR, tagihan tetap IDR).
+- Konfirmasi: email + WhatsApp, PDF voucher, "tambahkan ke kalender".
+- Enquiry yang benar-benar terkirim dan masuk ke inbox ops sebagai lead.
+- SEO: JSON-LD `LodgingBusiness`/`Hotel`/`Offer`, Open Graph, sitemap, hreflang (demo sudah punya canonical & hreflang).
+
+### B. Portal tamu (magic link, tanpa password)
+- Lihat, **ubah tanggal**, atau **batalkan** sesuai kebijakan (biaya dihitung otomatis).
+- **Pre-check-in online**: data tamu, unggah paspor/KTP (terenkripsi, retensi terbatas), ETA, detail penerbangan, permintaan transfer.
+- Pesan add-on dan pengalaman sebelum atau selama menginap. Bayar sisa tagihan.
+- Folio digital dan invoice. Minta ulasan setelah check-out.
+
+### C. Front office (perbaikan langsung dari temuan)
+- **Papan Hari Ini** realtime dengan tombol check-in/out langsung di baris (demo mengharuskan membuka setiap reservasi).
+- **Late check-out / early check-in sebagai permintaan dengan persetujuan**, dengan deteksi konflik otomatis terhadap kedatangan berikutnya (memperbaiki B3) dan biaya opsional.
+- **Ubah tanggal, pindah unit, dan upgrade tipe** dengan selisih harga dan persetujuan.
+- Kartu registrasi digital dan tanda tangan di tablet.
+- Folio: tambah biaya (minibar, spa, transfer), terima pembayaran, split bill, refund, dan **blokir check-out kalau masih ada saldo** (atau beri peringatan).
+- Kalender: **drag-and-drop** untuk memindah dan mengubah tanggal, harga per malam di header, blok owner/perawatan.
+- Daftar reservasi: sortir, paginasi, filter tersimpan di URL, ekspor, dan aksi massal.
+
+### D. Housekeeping & maintenance (PWA mobile, bisa offline)
+- Tugas dibuat otomatis dari check-out, pergantian tamu, dan permintaan. Bisa **ditugaskan ke petugas**, dengan prioritas berdasarkan jam kedatangan berikutnya.
+- **Checklist inspeksi** per tipe vila, foto bukti, dan catatan barang tertinggal.
+- **Tiket maintenance**: lapor (dengan foto) → tugaskan → selesai. Unit diblok otomatis dan dibuka kembali (demo tidak punya tombol menutup status Perawatan).
+- Push notification ke HP petugas.
+
+### E. Permintaan tamu → tugas (memperbaiki B4)
+- Setiap permintaan khusus (dari booking, WA, atau staf) menjadi **tugas** dengan pemilik, tenggat/SLA, status, dan biaya opsional.
+- Inbox terpadu email + WhatsApp per reservasi (riwayat komunikasi).
+
+### F. Mesin tarif & revenue
+- Rate plan (Flexible, Non-refundable, Breakfast incl.), musim, harga akhir pekan, min/max stay, closed-to-arrival, diskon lama menginap dan early-bird, kode promo.
+- Pajak hotel dan service charge **dapat dikonfigurasi per cabang** (tarif persisnya diisi oleh klien atau akuntan, bukan kita yang menebak).
+- Kebijakan pembatalan dan deposit per rate plan.
+- Tahap lanjut: **saran harga dinamis** berbasis okupansi dan pace (keputusan tetap di manusia).
+
+### G. Distribusi
+- Tahap 1: **iCal impor/ekspor** per unit (Airbnb, Booking.com, VRBO) untuk mencegah overbooking.
+- Tahap 2: integrasi **channel manager** (penyedia dipilih bersama) untuk sinkronisasi tarif dan ketersediaan dua arah.
+- Atribusi sumber booking dan komisi per kanal.
+
+### H. Laporan & insight
+- Pemilih periode bebas, **perbandingan YoY**, okupansi/ADR/RevPAR per cabang, tipe, dan unit.
+- **Pace & pickup**, lead time, lama menginap, campuran kanal, tingkat pembatalan dan no-show.
+- Ekspor CSV/XLSX dan **laporan terjadwal** via email.
+- **Laporan pemilik vila (owner statement)**: pendapatan, biaya, dan bagi hasil per unit. Ini umum di vila Bali yang dikelola atas nama pemilik.
+
+### I. Tamu (CRM)
+- Profil tamu: riwayat lintas cabang, preferensi, tanggal spesial, tag otomatis (VIP, tamu kembali).
+- **Gabungkan duplikat**, kelola consent marketing, dan hapus/ekspor data atas permintaan (kepatuhan UU PDP).
+
+### J. Tim, akses & pengaturan
+- Login nyata, 2FA, SSO opsional.
+- **RBAC granular** (izin per aksi, bukan per halaman) dan cakupan per cabang. Peran dapat dikustomisasi.
+- Jadwal sif dan tukar sif.
+- Konfigurasi per cabang: jam check-in/out, kebijakan, pajak, template pesan.
+- Log audit yang bisa dicari dan diekspor.
+
+### K. Mode demo (tetap ada, tapi lebih baik)
+- Lingkungan demo terpisah (database sendiri) dengan **data seed yang bisa direset** dan **lompat waktu** (fitur bagus dari demo), tetapi berjalan di server yang sama dengan produk nyata. Dengan begitu demo selalu identik dengan produk.
+
+---
+
+## 5. Kualitas non-fungsional
+
+- **Keamanan**: semua otorisasi di server (bukan hanya menyembunyikan menu), rate limit di lookup reservasi publik, enkripsi dokumen identitas, header keamanan, audit dependensi di CI.
+- **Integritas data**: transaksi DB untuk setiap transisi status, idempotency key untuk webhook pembayaran, uji properti "tidak pernah ada dua reservasi aktif pada unit-malam yang sama".
+- **Performa**: gambar responsif (AVIF/WebP), ISR untuk halaman vila dan destinasi, LCP < 2,0 dtk.
+- **Aksesibilitas**: WCAG 2.2 AA. Pertahankan tabel alternatif untuk grafik seperti di demo.
+- **i18n**: tidak boleh ada string hard-coded. CI gagal kalau ada kunci terjemahan yang hilang.
+- **Testing**: E2E Playwright untuk alur kunci setiap peran (booking publik, check-in/out, pergantian tamu, no-show, batal, ubah tanggal).
+
+---
+
+## 6. Roadmap bertahap
+
+Durasi sengaja tidak saya tulis karena bergantung pada ukuran tim dan keputusan di bagian 9. Setiap fase punya **kriteria selesai** yang bisa diuji.
+
+### Fase 0: Fondasi
+Repo, CI/CD, lingkungan staging, design system dan token, skema DB inti + migrasi, auth staf, RBAC dasar, seed data, i18n.
+**Selesai bila:** staf bisa login dengan 2FA, peran dan cakupan cabang dipaksakan di server, dan CI menjalankan test + lint + cek i18n.
+
+### Fase 1: MVP Booking Engine (bisa menerima uang sungguhan)
+Inventaris (cabang, tipe, unit), tarif dasar + musim + min-stay, pencarian dan kalender ketersediaan, halaman vila, checkout dengan hold 15 menit, pembayaran Xendit (deposit/penuh, webhook, hold kedaluwarsa otomatis), email + WA konfirmasi, portal tamu (lihat/batal), situs publik ID/EN, SEO dasar.
+**Selesai bila:** tamu bisa memesan dan membayar di staging dengan uang uji, uji konkurensi membuktikan tidak ada double-booking, dan pembatalan menghitung refund sesuai kebijakan.
+
+### Fase 2: PMS Operasional (menyamai lalu melampaui demo)
+Dasbor per peran, papan Hari Ini realtime, reservasi manual, **ubah tanggal/pindah/upgrade**, check-in/out dengan folio, kalender drag-and-drop, Status Vila, PWA housekeeping, tiket maintenance, permintaan → tugas, log audit.
+**Selesai bila:** skenario demo (Kenji check-out → bersih → inspeksi → Sofia check-in) berjalan tanpa bug B1–B6, dan konflik late check-out terdeteksi otomatis.
+
+### Fase 3: Revenue & distribusi
+Rate plan lengkap, promo, add-on/pengalaman, iCal sync, laporan (periode, YoY, pace, ekspor), CRM tamu, pre-check-in online.
+**Selesai bila:** satu unit tersinkron dua arah dengan Airbnb lewat iCal tanpa overbooking selama periode uji, dan laporan bisa diekspor.
+
+### Fase 4: Skala & pembeda
+Channel manager, owner portal dan statement, harga dinamis (saran), jadwal sif, evaluasi apakah layak menjadi SaaS multi-tenant, aplikasi tamu/upsell otomatis, asisten AI untuk balasan WA tamu (draf saja, staf yang mengirim).
+
+---
+
+## 7. Urutan kerja minggu pertama setelah plan disetujui
+
+1. Putuskan poin-poin di bagian 9.
+2. Scaffold proyek Next.js + TypeScript + PostgreSQL + Drizzle, dengan CI.
+3. Tulis skema inti (`Property`, `UnitType`, `Unit`, `Reservation`, `StayNight` dengan exclusion constraint, `AuditEvent`) dan uji properti double-booking **sebelum** membangun UI.
+4. Porting design tokens (warna, tipografi) agar setara kualitas demo.
+5. Seed data contoh (boleh meniru skala demo: 5 cabang, 14 tipe, 44 unit) untuk mode demo.
+
+---
+
+## 8. Risiko & mitigasi
+
+| Risiko | Mitigasi |
+|---|---|
+| Lingkup membengkak (PMS penuh itu besar) | Fase ketat dan MVP fokus menerima booking + pembayaran dulu |
+| Integrasi OTA/channel manager lama dan berbiaya | Mulai dengan iCal. Channel manager di Fase 4 setelah ada klien nyata |
+| Aturan pajak/kebijakan salah | Dibuat dapat dikonfigurasi, dengan nilai diisi dan disetujui klien |
+| Data pribadi tamu (paspor) | Enkripsi, retensi terbatas, akses berbasis peran, log akses (UU PDP) |
+| Kualitas desain turun dibanding demo | Design system sejak Fase 0, dengan review visual di setiap PR |
+
+---
+
+## 9. Keputusan terbuka (perlu jawaban Anda)
+
+1. ~~**Model bisnis:** satu brand atau SaaS multi-tenant?~~ **Diputuskan: satu brand dulu** (lihat bagian 3).
+2. ~~**Gateway pembayaran:** Xendit, Midtrans, atau Stripe?~~ **Diputuskan: Xendit**, dimulai dengan halaman pembayaran yang di-host Xendit (lihat bagian 3a).
+3. **Hosting:** VPS/cloud mana? (Vercel + Neon/Supabase, VPS sendiri, dll.)
+4. **Lingkup MVP:** apakah Fase 1 (booking + bayar) cukup untuk peluncuran pertama, atau PMS (Fase 2) harus ikut?
+5. **Bahasa & mata uang:** cukup ID/EN dan IDR, atau perlu bahasa/mata uang tambahan sejak awal?
+6. **Klien pertama / data nyata:** apakah sudah ada properti nyata untuk uji coba, atau kita mulai dengan data contoh?
