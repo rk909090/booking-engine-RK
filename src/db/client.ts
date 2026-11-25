@@ -22,6 +22,12 @@ export function getDb(): Database {
   if (url.includes(".pooler.supabase.com:6543/")) {
     console.warn("[db] DATABASE_URL uses Supabase's transaction pooler (6543); use the session pooler (5432). See .env.example.");
   }
-  db = drizzle(postgres(url, { prepare: false, max: 5 }), { schema });
+  // Supabase's session pooler allows 15 clients in total on this plan, shared
+  // by every server, script and migration. Keep this process to a few
+  // connections and let idle ones go so others are not locked out.
+  db = drizzle(
+    postgres(url, { prepare: false, max: 3, idle_timeout: 20, max_lifetime: 60 * 30, connect_timeout: 10 }),
+    { schema },
+  );
   return db;
 }

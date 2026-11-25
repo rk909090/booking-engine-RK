@@ -33,6 +33,12 @@ describe("permissions matrix", () => {
     });
   });
 
+  it("lets only branch managers record refund payouts", () => {
+    expect(can(actor("branch_manager"), "payment.refund", UBUD).allowed).toBe(true);
+    expect(can(actor("front_office"), "payment.refund", UBUD).allowed).toBe(false);
+    expect(can(actor("director", { propertyIds: [] }), "payment.refund", UBUD).allowed).toBe(false);
+  });
+
   it("hides reports and team from front office", () => {
     expect(can(actor("front_office"), "performance.view", UBUD).allowed).toBe(false);
     expect(can(actor("front_office"), "team.view", UBUD).allowed).toBe(false);

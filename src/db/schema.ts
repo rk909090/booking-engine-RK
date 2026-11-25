@@ -306,7 +306,8 @@ export const rateSeasons = pgTable(
   ],
 );
 
-export const paymentProvider = pgEnum("payment_provider", ["simulated", "xendit"]);
+/** manual: money moved outside the app (bank transfer, cash), recorded by staff. */
+export const paymentProvider = pgEnum("payment_provider", ["simulated", "xendit", "manual"]);
 export const paymentPurpose = pgEnum("payment_purpose", ["deposit", "balance", "full", "refund"]);
 export const paymentStatus = pgEnum("payment_status", ["pending", "paid", "expired", "failed", "cancelled"]);
 

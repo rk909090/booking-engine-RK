@@ -230,6 +230,9 @@ Inventaris (cabang, tipe, unit), tarif dasar + musim + min-stay, pencarian dan k
 Dasbor per peran, papan Hari Ini realtime, reservasi manual, **ubah tanggal/pindah/upgrade**, check-in/out dengan folio, kalender drag-and-drop, Status Vila, PWA housekeeping, tiket maintenance, permintaan → tugas, log audit.
 **Selesai bila:** skenario demo (Kenji check-out → bersih → inspeksi → Sofia check-in) berjalan tanpa bug B1–B6, dan konflik late check-out terdeteksi otomatis.
 
+**Status (25 Nov 2026), bagian pertama Fase 2 selesai:** beranda staf dengan angka hari ini, daftar reservasi (filter di URL, cari, paginasi, filter refund terutang), detail reservasi (harga per malam, transaksi, log aktivitas per detik), aksi check-in/check-out/no-show/batal/catat refund dengan alasan tertulis bila tidak tersedia, dan kalender tape chart per properti. Semua diuji di browser terhadap Supabase dengan akun manajer uji (sudah dihapus). Belum: status vila & housekeeping, ubah tanggal/pindah unit, drag-and-drop kalender, reservasi manual oleh staf, dan folio tambahan (minibar, dll.).
+Temuan: session pooler Supabase di paket ini membatasi 15 koneksi total. Aplikasi kini memakai maksimal 3 koneksi per proses dan melepas koneksi yang menganggur setelah 20 detik.
+
 ### Fase 3: Revenue & distribusi
 Rate plan lengkap, promo, add-on/pengalaman, iCal sync, laporan (periode, YoY, pace, ekspor), CRM tamu, pre-check-in online.
 **Selesai bila:** satu unit tersinkron dua arah dengan Airbnb lewat iCal tanpa overbooking selama periode uji, dan laporan bisa diekspor.

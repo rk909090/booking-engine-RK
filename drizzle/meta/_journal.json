@@ -43,6 +43,13 @@
       "when": 1795593764484,
       "tag": "0005_rate_season_overlap_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795596576999,
+      "tag": "0006_manual_payments",
+      "breakpoints": true
     }
   ]
 }
