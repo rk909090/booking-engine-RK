@@ -29,3 +29,10 @@ coverage/
 
 # claude local settings
 .claude/settings.local.json
+
+# from create-next-app
+*.pem
+*.tsbuildinfo
+next-env.d.ts
+.pnp
+.pnp.*

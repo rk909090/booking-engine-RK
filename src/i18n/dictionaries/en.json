@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "title": "Private villas in Bali",
+    "description": "Book private villas directly from the people who run them, with live rates and availability."
+  },
+  "language": {
+    "label": "Language",
+    "id": "Bahasa Indonesia",
+    "en": "English"
+  },
+  "home": {
+    "eyebrow": "Bali · Private villas",
+    "title": "Quiet places, cared for with heart.",
+    "intro": "Our booking site is being built. Soon you will be able to check availability and book directly here.",
+    "statusLabel": "Status",
+    "status": "Development environment"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "title": "Vila privat di Bali",
+    "description": "Pesan vila privat langsung dari pengelolanya, dengan harga dan ketersediaan terkini."
+  },
+  "language": {
+    "label": "Bahasa",
+    "id": "Bahasa Indonesia",
+    "en": "English"
+  },
+  "home": {
+    "eyebrow": "Bali · Vila privat",
+    "title": "Tempat tenang, dirawat dengan sepenuh hati.",
+    "intro": "Situs pemesanan kami sedang dibangun. Sebentar lagi Anda dapat memeriksa ketersediaan dan memesan langsung di sini.",
+    "statusLabel": "Status",
+    "status": "Lingkungan pengembangan"
+  }
+}
