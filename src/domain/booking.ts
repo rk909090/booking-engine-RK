@@ -259,7 +259,16 @@ export async function createHold(db: AnyDb, input: HoldInput): Promise<HoldResul
           unitIsFree(input.checkIn, input.checkOut, now),
         ),
       )
-      .orderBy(asc(schema.units.code));
+      // Villas whose guest has an approved late check-out on the arrival day go last.
+      .orderBy(
+        sql`EXISTS (
+          SELECT 1 FROM ${schema.lateCheckoutRequests} l
+          JOIN ${schema.reservations} p ON p.id = l.reservation_id
+          WHERE p.unit_id = ${schema.units.id} AND p.check_out = ${input.checkIn}::date
+            AND l.status = 'approved' AND p.status IN ('confirmed', 'in_house')
+        )`,
+        asc(schema.units.code),
+      );
     const order = input.candidateUnitIds ?? free.map((u) => u.id);
     if (order.length === 0) return { ok: false, error: { kind: "sold_out" } } as const;
 

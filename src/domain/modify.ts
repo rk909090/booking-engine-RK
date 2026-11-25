@@ -1,4 +1,4 @@
-import { and, asc, eq, lte, ne, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, lte, ne, sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
 import type { PriceSnapshot } from "@/domain/types";
@@ -48,7 +48,14 @@ export type StayChangeRequest = { checkIn: string; checkOut: string; unitId: str
 
 export type StayChangePlan = StayChangeRequest & {
   unitCode: string;
+  /** The nights. */
   price: PriceSnapshot;
+  /** Charges on top of the nights after the change. */
+  extras: number;
+  /** New total: nights plus extras. */
+  total: number;
+  /** A late check-out for the old departure date is withdrawn (and its fee removed). */
+  lateCheckoutCancelled: boolean;
   previousTotal: number;
   /** New total minus old total; negative when the stay got cheaper. */
   difference: number;
@@ -191,10 +198,21 @@ async function evaluate(db: Executor, r: Reservation, timezone: string, req: Sta
   }
 
   const price = repriceStay(loaded.rules, r.priceSnapshot ?? null, checkIn, checkOut);
+  // A late check-out belongs to the old departure date.
+  const [late] =
+    checkOut !== r.checkOut
+      ? await db
+          .select({ status: schema.lateCheckoutRequests.status, fee: schema.lateCheckoutRequests.fee })
+          .from(schema.lateCheckoutRequests)
+          .where(and(eq(schema.lateCheckoutRequests.reservationId, r.id), inArray(schema.lateCheckoutRequests.status, ["requested", "approved"])))
+          .limit(1)
+      : [];
+  const extras = r.extrasAmount - (late?.status === "approved" ? late.fee : 0);
+  const total = price.total + extras;
   const paidOut = await refundsPaid(db, r.id);
   // A refund already paid out cannot be taken back, so it stays owed-and-paid.
-  const refundAmount = Math.max(paidOut, r.amountPaid - price.total);
-  const balanceAfter = price.total - r.amountPaid + refundAmount;
+  const refundAmount = Math.max(paidOut, r.amountPaid - total);
+  const balanceAfter = total - r.amountPaid + refundAmount;
   const balanceDueDays = r.policySnapshot?.balanceDueDays ?? loaded.property.balanceDueDays;
   // Close to arrival (or in house) the usual due date has passed: it is due now.
   const usualDue = addDays(checkIn, -balanceDueDays);
@@ -207,8 +225,11 @@ async function evaluate(db: Executor, r: Reservation, timezone: string, req: Sta
       unitId,
       unitCode: unit.code,
       price,
+      extras,
+      total,
+      lateCheckoutCancelled: Boolean(late),
       previousTotal: r.totalAmount,
-      difference: price.total - r.totalAmount,
+      difference: total - r.totalAmount,
       balanceAfter,
       refundOutstandingAfter: refundAmount - paidOut,
       refundAmount: refundAmount > 0 ? refundAmount : null,
@@ -269,7 +290,7 @@ export async function applyStayChange(
       const result = await evaluate(tx, r, row.timezone, input, now);
       if (!result.ok) return result;
       const plan = result.plan;
-      if (plan.price.total !== input.expectedTotal) return { ok: false, error: "price_changed" } as const;
+      if (plan.total !== input.expectedTotal) return { ok: false, error: "price_changed" } as const;
 
       await tx
         .update(schema.reservations)
@@ -277,7 +298,8 @@ export async function applyStayChange(
           checkIn: plan.checkIn,
           checkOut: plan.checkOut,
           unitId: plan.unitId,
-          totalAmount: plan.price.total,
+          totalAmount: plan.total,
+          extrasAmount: plan.extras,
           subtotalAmount: plan.price.subtotal,
           serviceAmount: plan.price.service,
           taxAmount: plan.price.tax,
@@ -302,12 +324,20 @@ export async function applyStayChange(
           checkOut: plan.checkOut,
           unitId: plan.unitId,
           unitCode: plan.unitCode,
-          total: plan.price.total,
+          total: plan.total,
           difference: plan.difference,
+          lateCheckoutCancelled: plan.lateCheckoutCancelled,
           refundOutstanding: plan.refundOutstandingAfter,
         },
         occurredAt: now,
       });
+
+      if (plan.lateCheckoutCancelled) {
+        await tx
+          .update(schema.lateCheckoutRequests)
+          .set({ status: "cancelled", decidedBy: input.actor.id, decidedAt: now, decisionNote: "Departure date changed", updatedAt: now })
+          .where(and(eq(schema.lateCheckoutRequests.reservationId, r.id), inArray(schema.lateCheckoutRequests.status, ["requested", "approved"])));
+      }
 
       const [guest] = await tx.select({ email: schema.guests.email }).from(schema.guests).where(eq(schema.guests.id, r.guestId));
       if (guest?.email && (plan.checkIn !== r.checkIn || plan.checkOut !== r.checkOut || plan.difference !== 0)) {

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
 import { cancelReservation } from "@/domain/booking";
+import { cancelLateCheckout, decideLateCheckout, requestLateCheckout } from "@/domain/late-checkout";
 import { applyStayChange } from "@/domain/modify";
 import { checkIn, checkOut, markNoShow, recordManualPayment, recordRefundPayout } from "@/domain/operations";
 import { hasLocale, type Locale } from "@/i18n/config";
@@ -139,5 +140,43 @@ export async function recordPaymentAction(form: FormData) {
     });
     if (result.ok) return { ok: true };
     return { ok: false, error: result.error === "invalid_amount" ? "payment_amount" : result.error };
+  });
+}
+
+const lateError = (e: string) => (e === "not_found" ? e : `late_${e}`);
+
+/** Records a guest's request to check out late. */
+export async function requestLateCheckoutAction(form: FormData) {
+  await run(form, "reservation.modify", async ({ reservationId, staffId }) => {
+    const result = await requestLateCheckout(getDb(), {
+      reservationId,
+      time: field(form, "time").slice(0, 5),
+      note: field(form, "note") || null,
+      actor: { type: "staff", id: staffId },
+    });
+    return result.ok ? { ok: true } : { ok: false, error: lateError(result.error) };
+  });
+}
+
+/** Approves (with an optional fee) or declines a pending late check-out. */
+export async function decideLateCheckoutAction(form: FormData) {
+  await run(form, "reservation.modify", async ({ reservationId, staffId }) => {
+    const approve = field(form, "decision") === "approve";
+    const result = await decideLateCheckout(getDb(), {
+      reservationId,
+      approve,
+      fee: approve ? Number(field(form, "fee").replace(/[^\d]/g, "") || "0") : 0,
+      note: field(form, "note") || null,
+      actor: { type: "staff", id: staffId },
+    });
+    return result.ok ? { ok: true } : { ok: false, error: lateError(result.error) };
+  });
+}
+
+/** Withdraws a late check-out request or approval. */
+export async function cancelLateCheckoutAction(form: FormData) {
+  await run(form, "reservation.modify", async ({ reservationId, staffId }) => {
+    const result = await cancelLateCheckout(getDb(), { reservationId, actor: { type: "staff", id: staffId } });
+    return result.ok ? { ok: true } : { ok: false, error: lateError(result.error) };
   });
 }

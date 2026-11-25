@@ -357,7 +357,15 @@
       "hold_expired": "The hold has expired. Create a new booking.",
       "nothing_due": "Nothing is due.",
       "invalid_method": "Unknown payment method.",
-      "payment_amount": "This amount is not valid for this booking."
+      "payment_amount": "This amount is not valid for this booking.",
+      "late_not_allowed": "Late check-out is only for confirmed bookings or guests in house.",
+      "late_after_departure": "The departure date has passed.",
+      "late_invalid_time": "Invalid time: it must be after the standard check-out time.",
+      "late_already_requested": "There is already an open late check-out request.",
+      "late_not_pending": "No request is waiting for a decision.",
+      "late_stale": "The departure date changed; this request no longer applies.",
+      "late_conflict": "Cannot approve: it conflicts with the next guest in this villa.",
+      "late_invalid_fee": "Invalid fee."
     },
     "activityTitle": "Activity",
     "noActivity": "No activity yet.",
@@ -375,7 +383,11 @@
       "reservation.modified": "Stay dates changed",
       "reservation.moved": "Moved to another villa",
       "payment.received_manual": "Payment received at the front desk",
-      "payment.overpaid": "Overpaid: refund owed"
+      "payment.overpaid": "Overpaid: refund owed",
+      "late_checkout.requested": "Late check-out requested",
+      "late_checkout.approved": "Late check-out approved",
+      "late_checkout.declined": "Late check-out declined",
+      "late_checkout.cancelled": "Late check-out cancelled"
     },
     "actorGuest": "Guest",
     "actorSystem": "System",
@@ -399,7 +411,8 @@
       "card": "Card (EDC)",
       "other": "Other"
     },
-    "collectHoldHintFull": "Payment in full is due: {amount}. The booking is confirmed at once and open payment links are closed."
+    "collectHoldHintFull": "Payment in full is due: {amount}. The booking is confirmed at once and open payment links are closed.",
+    "extras": "Extra charges"
   },
   "opsCalendar": {
     "title": "Calendar",
@@ -464,7 +477,10 @@
       "already_resolved": "This maintenance is already finished."
     },
     "empty": "This property has no villas yet.",
-    "turnover": "Same-day turnover"
+    "turnover": "Same-day turnover",
+    "lateCheckout": "Late check-out {time}",
+    "lateRequested": "Late check-out {time} requested (not decided)",
+    "lateConflict": "Conflicts with the arrival: limit {time}"
   },
   "stayChange": {
     "title": "Change dates or villa",
@@ -511,7 +527,8 @@
       "dates_unavailable": "This villa is taken on some of those dates.",
       "unit_blocked": "This villa is under maintenance on some of those dates.",
       "price_changed": "The price changed since the preview. Check the new price, then confirm again."
-    }
+    },
+    "lateCheckoutCancelled": "The late check-out request for the old departure date will be cancelled, with its fee."
   },
   "newBooking": {
     "title": "New booking",
@@ -562,5 +579,30 @@
       "invalid_amount_full": "Arrival is close: the amount must be paid in full, {amount}."
     },
     "modeReceivedHintFull": "The booking is confirmed at once. Arrival is close, so payment in full is due: {amount}."
+  },
+  "lateCheckout": {
+    "title": "Late check-out",
+    "standard": "Standard check-out {time} · villa turnover {minutes} minutes.",
+    "nextArrival": "Next guest in this villa: {code} ({guest}), arriving {time}",
+    "etaGuest": "guest's estimate",
+    "etaStandard": "standard check-in time",
+    "latest": "Latest check-out: {time}.",
+    "noArrival": "No guest arrives in this villa on {date}.",
+    "time": "Requested check-out time",
+    "note": "Note (optional)",
+    "request": "Record request",
+    "requested": "Requested until {time}",
+    "approved": "Approved until {time}",
+    "fee": "Fee (IDR, optional)",
+    "feeCharged": "fee {amount}",
+    "decisionNote": "Decision note (optional)",
+    "approve": "Approve",
+    "decline": "Decline",
+    "cancel": "Cancel late check-out",
+    "conflict": "Conflict: past {time}, the latest that leaves time to prepare the villa for the next guest.",
+    "conflictApproved": "Warning: since the approval, a guest arrives earlier. The limit is now {time}.",
+    "moveHint": "To approve, move the next guest to another villa from their reservation page.",
+    "openNext": "Open {code}",
+    "stale": "This request was for the old departure date ({date}) and no longer applies."
   }
 }

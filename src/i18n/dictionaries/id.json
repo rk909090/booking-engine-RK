@@ -357,7 +357,15 @@
       "hold_expired": "Waktu tahan vila sudah habis. Buat reservasi baru.",
       "nothing_due": "Tidak ada tagihan yang perlu dibayar.",
       "invalid_method": "Metode pembayaran tidak dikenal.",
-      "payment_amount": "Jumlah pembayaran tidak valid untuk reservasi ini."
+      "payment_amount": "Jumlah pembayaran tidak valid untuk reservasi ini.",
+      "late_not_allowed": "Late check-out hanya untuk reservasi terkonfirmasi atau tamu yang sedang menginap.",
+      "late_after_departure": "Tanggal check-out sudah lewat.",
+      "late_invalid_time": "Jam tidak valid: harus setelah jam check-out standar.",
+      "late_already_requested": "Sudah ada permintaan late check-out yang aktif.",
+      "late_not_pending": "Tidak ada permintaan yang menunggu keputusan.",
+      "late_stale": "Tanggal check-out sudah berubah; permintaan ini tidak berlaku lagi.",
+      "late_conflict": "Tidak bisa disetujui: bentrok dengan tamu berikutnya di vila ini.",
+      "late_invalid_fee": "Biaya tidak valid."
     },
     "activityTitle": "Aktivitas",
     "noActivity": "Belum ada aktivitas.",
@@ -375,7 +383,11 @@
       "reservation.modified": "Tanggal menginap diubah",
       "reservation.moved": "Dipindah ke vila lain",
       "payment.received_manual": "Pembayaran diterima di meja depan",
-      "payment.overpaid": "Kelebihan bayar: refund terutang"
+      "payment.overpaid": "Kelebihan bayar: refund terutang",
+      "late_checkout.requested": "Late check-out diminta",
+      "late_checkout.approved": "Late check-out disetujui",
+      "late_checkout.declined": "Late check-out ditolak",
+      "late_checkout.cancelled": "Late check-out dibatalkan"
     },
     "actorGuest": "Tamu",
     "actorSystem": "Sistem",
@@ -399,7 +411,8 @@
       "card": "Kartu (EDC)",
       "other": "Lainnya"
     },
-    "collectHoldHintFull": "Harus lunas {amount}. Booking langsung terkonfirmasi dan tautan pembayaran yang masih terbuka ditutup."
+    "collectHoldHintFull": "Harus lunas {amount}. Booking langsung terkonfirmasi dan tautan pembayaran yang masih terbuka ditutup.",
+    "extras": "Biaya tambahan"
   },
   "opsCalendar": {
     "title": "Kalender",
@@ -464,7 +477,10 @@
       "already_resolved": "Perawatan ini sudah selesai."
     },
     "empty": "Belum ada vila di properti ini.",
-    "turnover": "Pergantian tamu hari ini"
+    "turnover": "Pergantian tamu hari ini",
+    "lateCheckout": "Late check-out {time}",
+    "lateRequested": "Minta late check-out {time} (belum diputuskan)",
+    "lateConflict": "Bentrok dengan kedatangan: batas {time}"
   },
   "stayChange": {
     "title": "Ubah tanggal atau vila",
@@ -511,7 +527,8 @@
       "dates_unavailable": "Vila ini sudah dipakai pada sebagian tanggal tersebut.",
       "unit_blocked": "Vila ini sedang dalam perawatan pada sebagian tanggal tersebut.",
       "price_changed": "Harga berubah sejak pratinjau. Periksa harga baru, lalu konfirmasi lagi."
-    }
+    },
+    "lateCheckoutCancelled": "Permintaan late check-out untuk tanggal check-out lama akan dibatalkan, beserta biayanya."
   },
   "newBooking": {
     "title": "Reservasi baru",
@@ -562,5 +579,30 @@
       "invalid_amount_full": "Kedatangan sudah dekat: jumlah harus lunas, {amount}."
     },
     "modeReceivedHintFull": "Booking langsung terkonfirmasi. Kedatangan sudah dekat, jadi harus lunas: {amount}."
+  },
+  "lateCheckout": {
+    "title": "Late check-out",
+    "standard": "Check-out standar {time} · waktu siapkan vila {minutes} menit.",
+    "nextArrival": "Tamu berikutnya di vila ini: {code} ({guest}), tiba {time}",
+    "etaGuest": "perkiraan tamu",
+    "etaStandard": "jam check-in standar",
+    "latest": "Paling lambat check-out: {time}.",
+    "noArrival": "Tidak ada tamu yang tiba di vila ini pada {date}.",
+    "time": "Jam check-out yang diminta",
+    "note": "Catatan (opsional)",
+    "request": "Catat permintaan",
+    "requested": "Diminta sampai {time}",
+    "approved": "Disetujui sampai {time}",
+    "fee": "Biaya (Rp, opsional)",
+    "feeCharged": "biaya {amount}",
+    "decisionNote": "Catatan keputusan (opsional)",
+    "approve": "Setujui",
+    "decline": "Tolak",
+    "cancel": "Batalkan late check-out",
+    "conflict": "Bentrok: melewati batas {time} untuk menyiapkan vila bagi tamu berikutnya.",
+    "conflictApproved": "Perhatian: sejak disetujui, ada tamu yang tiba lebih awal. Batas sekarang {time}.",
+    "moveHint": "Untuk menyetujui, pindahkan tamu berikutnya ke vila lain dari halaman reservasinya.",
+    "openNext": "Buka {code}",
+    "stale": "Permintaan ini untuk tanggal check-out lama ({date}) dan tidak berlaku lagi."
   }
 }

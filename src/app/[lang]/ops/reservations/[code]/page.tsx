@@ -5,8 +5,10 @@ import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import { OpsNav, OpsShell, StatusBadge, NoAccess } from "@/components/ops/ops-shell";
 import { CopyField } from "@/components/ops/copy-field";
+import { LateCheckout } from "@/components/ops/late-checkout";
 import { StayChange } from "@/components/ops/stay-change";
 import { ErrorNote, SuccessNote } from "@/components/ui";
+import { lateCheckoutStatus } from "@/domain/late-checkout";
 import { changeability, previewStayChange } from "@/domain/modify";
 import { loadStayFacts, stayActions, type ActionState } from "@/domain/operations";
 import { balanceDue } from "@/domain/pricing";
@@ -69,11 +71,11 @@ async function Detail({
     );
   }
   const { reservation: r, guest, unit, property } = data;
-  const facts = await loadStayFacts(getDb(), r, property.timezone, new Date());
+  const now = new Date();
+  const facts = await loadStayFacts(getDb(), r, property.timezone, now);
   const actions = stayActions(facts);
   const balance = balanceDue(r);
   const fmt = timeFmt(lang, property.timezone);
-  const now = new Date();
   const holdLive = r.status === "hold" && r.holdExpiresAt !== null && r.holdExpiresAt > now;
   const openLink = holdLive ? data.payments.find((p) => p.status === "pending" && p.checkoutUrl && (!p.expiresAt || p.expiresAt > now)) : undefined;
   // Money the desk can take now: at least the deposit on a hold, or toward the balance.
@@ -104,9 +106,11 @@ async function Detail({
           unitId: /^[0-9a-f-]{36}$/i.test(requestedUnit) && (canMove || requestedUnit === r.unitId) ? requestedUnit : r.unitId,
         }
       : null;
-  const [preview, units] = await Promise.all([
+  const stayActive = r.status === "confirmed" || r.status === "in_house";
+  const [preview, units, late] = await Promise.all([
     request ? previewStayChange(getDb(), { reservationId: r.id, ...request }) : null,
     changeAllowed && canModify ? sameTypeUnits(r.unitTypeId) : [],
+    stayActive ? lateCheckoutStatus(getDb(), r.id, now) : null,
   ]);
   // Errors from confirming a change are shown in the change card itself.
   const errorText =
@@ -175,6 +179,7 @@ async function Detail({
               <Line label={t.subtotal} value={formatMoney(r.subtotalAmount, lang)} />
               {r.serviceAmount ? <Line label={t.service} value={formatMoney(r.serviceAmount, lang)} /> : null}
               {r.taxAmount ? <Line label={t.tax} value={formatMoney(r.taxAmount, lang)} /> : null}
+              {r.extrasAmount ? <Line label={t.extras} value={formatMoney(r.extrasAmount, lang)} /> : null}
               <Line label={t.total} value={formatMoney(r.totalAmount, lang)} strong />
               <Line label={t.paid} value={formatMoney(r.amountPaid, lang)} />
               {balance > 0 && r.status !== "cancelled" && r.status !== "no_show" && r.status !== "expired" ? (
@@ -323,6 +328,12 @@ async function Detail({
                 preview={preview}
                 priceChanged={errorCode === "price_changed"}
               />
+            </Card>
+          ) : null}
+
+          {late && (canModify || late.request) ? (
+            <Card title={dict.lateCheckout.title}>
+              <LateCheckout lang={lang} dict={dict} code={r.code} checkOut={r.checkOut} status={late} canEdit={canModify} />
             </Card>
           ) : null}
 

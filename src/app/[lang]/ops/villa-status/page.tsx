@@ -155,6 +155,16 @@ async function Board({
                     {format(t.inHouse, { guest: u.inHouse.guestName, date: formatDate(u.inHouse.checkOut, lang) })}
                   </Link>
                   {u.departingToday ? <span className="ml-2 rounded bg-sand px-1.5 py-0.5 text-xs">{t.departing}</span> : null}
+                  {u.lateCheckout ? (
+                    <span className="mt-1 block text-xs">
+                      <span className={u.lateCheckout.approved ? "font-medium text-terracotta-deep" : "text-stone"}>
+                        {format(u.lateCheckout.approved ? t.lateCheckout : t.lateRequested, { time: u.lateCheckout.time })}
+                      </span>
+                      {u.lateCheckout.conflict ? (
+                        <span className="ml-2 font-medium text-danger">{format(t.lateConflict, { time: u.lateCheckout.latestAllowed ?? "" })}</span>
+                      ) : null}
+                    </span>
+                  ) : null}
                 </li>
               ) : null}
               {u.blockToday ? (

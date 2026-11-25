@@ -8,6 +8,7 @@ import {
   foreignKey,
   integer,
   index,
+  uniqueIndex,
   jsonb,
   pgEnum,
   pgTable,
@@ -91,11 +92,14 @@ export const properties = pgTable("properties", {
   balanceDueDays: smallint("balance_due_days").notNull().default(14),
   /** How long a unit is held while the guest pays. */
   holdMinutes: smallint("hold_minutes").notNull().default(15),
+  /** Time needed to clean and inspect a villa between guests; limits late check-outs. Sample default: 2 hours. */
+  turnoverMinutes: smallint("turnover_minutes").notNull().default(120),
   cancellationTiers: jsonb("cancellation_tiers").$type<CancellationTier[]>().notNull().default(SAMPLE_CANCELLATION_TIERS),
   content: jsonb("content").$type<PropertyContent>().notNull().default({}),
   ...timestamps,
 }, (t) => [
   check("properties_tax_rate_range", sql`${t.taxRateBp} BETWEEN 0 AND 10000`),
+  check("properties_turnover_minutes_range", sql`${t.turnoverMinutes} BETWEEN 0 AND 720`),
   check("properties_service_rate_range", sql`${t.serviceRateBp} BETWEEN 0 AND 10000`),
   check("properties_deposit_rate_range", sql`${t.depositRateBp} BETWEEN 0 AND 10000`),
   check("properties_balance_due_days_non_negative", sql`${t.balanceDueDays} >= 0`),
@@ -229,6 +233,8 @@ export const reservations = pgTable(
     /** Amount due at booking (deposit, or the full total when paying in full). */
     depositAmount: bigint("deposit_amount", { mode: "number" }).notNull().default(0),
     amountPaid: bigint("amount_paid", { mode: "number" }).notNull().default(0),
+    /** Charges on top of the nights (for example a late check-out fee), included in total_amount. */
+    extrasAmount: bigint("extras_amount", { mode: "number" }).notNull().default(0),
     balanceDueDate: date("balance_due_date", { mode: "string" }),
     /** Refund owed after cancellation; paying it out is tracked on payments. */
     refundAmount: bigint("refund_amount", { mode: "number" }),
@@ -428,5 +434,40 @@ export const unitBlocks = pgTable(
   (t) => [
     check("unit_blocks_dates_ordered", sql`${t.endDate} > ${t.startDate}`),
     index("unit_blocks_unit_idx").on(t.unitId, t.startDate),
+  ],
+);
+
+export const lateCheckoutStatus = pgEnum("late_checkout_status", ["requested", "approved", "declined", "cancelled"]);
+
+/**
+ * A guest asking to leave later than the property's check-out time on their
+ * departure date. Approval is refused while it would leave too little time to
+ * prepare the villa for the next arrival.
+ */
+export const lateCheckoutRequests = pgTable(
+  "late_checkout_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reservationId: uuid("reservation_id")
+      .notNull()
+      .references(() => reservations.id, { onDelete: "cascade" }),
+    /** The departure date the request is for. */
+    forDate: date("for_date", { mode: "string" }).notNull(),
+    requestedTime: time("requested_time").notNull(),
+    status: lateCheckoutStatus("status").notNull().default("requested"),
+    fee: bigint("fee", { mode: "number" }).notNull().default(0),
+    note: text("note"),
+    decisionNote: text("decision_note"),
+    requestedBy: text("requested_by"),
+    decidedBy: text("decided_by"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    check("late_checkout_fee_non_negative", sql`${t.fee} >= 0`),
+    // At most one open (requested or approved) request per booking.
+    uniqueIndex("late_checkout_one_active_idx")
+      .on(t.reservationId)
+      .where(sql`${t.status} IN ('requested', 'approved')`),
   ],
 );

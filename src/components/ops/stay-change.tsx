@@ -128,7 +128,7 @@ export function StayChange({ lang, dict, reservation: r, units, today, canMove, 
               strong
             />
             <Row label={t.oldTotal} value={formatMoney(preview.plan.previousTotal, lang)} />
-            <Row label={t.newTotal} value={formatMoney(preview.plan.price.total, lang)} strong />
+            <Row label={t.newTotal} value={formatMoney(preview.plan.total, lang)} strong />
             <Row
               label={t.difference}
               value={`${preview.plan.difference > 0 ? "+" : preview.plan.difference < 0 ? "−" : ""}${formatMoney(Math.abs(preview.plan.difference), lang)}`}
@@ -158,6 +158,7 @@ export function StayChange({ lang, dict, reservation: r, units, today, canMove, 
             </ul>
           </details>
           <p className="text-xs text-stone">{t.keptPrice}</p>
+          {preview.plan.lateCheckoutCancelled ? <p className="text-xs text-danger">{t.lateCheckoutCancelled}</p> : null}
           <p className="text-xs text-stone">{t.guestNotice}</p>
           <form action={changeStayAction} className="flex gap-2">
             <input type="hidden" name="lang" value={lang} />
@@ -165,7 +166,7 @@ export function StayChange({ lang, dict, reservation: r, units, today, canMove, 
             <input type="hidden" name="newIn" value={preview.plan.checkIn} />
             <input type="hidden" name="newOut" value={preview.plan.checkOut} />
             <input type="hidden" name="unit" value={preview.plan.unitId} />
-            <input type="hidden" name="expectedTotal" value={String(preview.plan.price.total)} />
+            <input type="hidden" name="expectedTotal" value={String(preview.plan.total)} />
             <button type="submit" className="flex-1 rounded-lg bg-lagoon px-3 py-2 text-sm font-medium text-ivory hover:bg-lagoon-deep">
               {t.confirm}
             </button>

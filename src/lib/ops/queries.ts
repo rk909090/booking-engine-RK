@@ -5,6 +5,7 @@ import * as schema from "@/db/schema";
 import { isIsoDate, todayIn } from "@/domain/dates";
 import { unitIsFree } from "@/domain/booking";
 import { readiness } from "@/domain/housekeeping";
+import { assessLateCheckout } from "@/domain/late-checkout";
 import { canAccessProperty, hasGlobalScope, type Actor } from "@/lib/authz/permissions";
 
 /*
@@ -38,7 +39,14 @@ function scope(actor: Actor): SQL | undefined {
 
 export async function visibleProperties(actor: Actor) {
   const rows = await getDb()
-    .select({ id: schema.properties.id, slug: schema.properties.slug, name: schema.properties.name, timezone: schema.properties.timezone })
+    .select({
+      id: schema.properties.id,
+      slug: schema.properties.slug,
+      name: schema.properties.name,
+      timezone: schema.properties.timezone,
+      checkInTime: schema.properties.checkInTime,
+      turnoverMinutes: schema.properties.turnoverMinutes,
+    })
     .from(schema.properties)
     .orderBy(asc(schema.properties.name));
   return rows.filter((p) => canAccessProperty(actor, p.id));
@@ -243,7 +251,7 @@ export async function villaStatus(actor: Actor, propertySlug: string | undefined
   if (!property) return { properties, property: null, today: "", units: [] };
   const today = todayIn(property.timezone, now);
 
-  const [units, stays, blocks, lastEvents] = await Promise.all([
+  const [units, stays, blocks, lastEvents, lateCheckouts] = await Promise.all([
     db
       .select({
         id: schema.units.id,
@@ -261,6 +269,7 @@ export async function villaStatus(actor: Actor, propertySlug: string | undefined
       .orderBy(asc(schema.units.code)),
     db
       .select({
+        id: schema.reservations.id,
         unitId: schema.reservations.unitId,
         code: schema.reservations.code,
         status: schema.reservations.status,
@@ -297,6 +306,17 @@ export async function villaStatus(actor: Actor, propertySlug: string | undefined
       .innerJoin(schema.units, eq(schema.units.id, schema.housekeepingEvents.unitId))
       .where(eq(schema.units.propertyId, property.id))
       .orderBy(schema.housekeepingEvents.unitId, desc(schema.housekeepingEvents.occurredAt)),
+    db
+      .select({ reservationId: schema.lateCheckoutRequests.reservationId, time: schema.lateCheckoutRequests.requestedTime, status: schema.lateCheckoutRequests.status })
+      .from(schema.lateCheckoutRequests)
+      .innerJoin(schema.reservations, eq(schema.reservations.id, schema.lateCheckoutRequests.reservationId))
+      .where(
+        and(
+          eq(schema.reservations.propertyId, property.id),
+          eq(schema.lateCheckoutRequests.forDate, today),
+          inArray(schema.lateCheckoutRequests.status, ["requested", "approved"]),
+        ),
+      ),
   ]);
 
   const staffNames = new Map(
@@ -317,7 +337,21 @@ export async function villaStatus(actor: Actor, propertySlug: string | undefined
       departingToday: inHouse?.checkOut === today,
     });
     const last = lastEvents.find((e) => e.unitId === u.id) ?? null;
+    // A guest leaving late today, and whether that still leaves time to prepare for the arrival.
+    const late = inHouse?.checkOut === today ? (lateCheckouts.find((l) => l.reservationId === inHouse.id) ?? null) : null;
+    const lateCheckout = late
+      ? {
+          time: late.time.slice(0, 5),
+          approved: late.status === "approved",
+          ...assessLateCheckout({
+            requestedTime: late.time.slice(0, 5),
+            arrivalTime: arrival ? (arrival.eta ?? property.checkInTime).slice(0, 5) : null,
+            turnoverMinutes: property.turnoverMinutes,
+          }),
+        }
+      : null;
     return {
+      lateCheckout,
       ...u,
       state,
       readiness: r.readiness,

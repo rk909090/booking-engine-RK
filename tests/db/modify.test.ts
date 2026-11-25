@@ -71,7 +71,7 @@ async function reload(id: string) {
 async function change(id: string, checkInDate: string, checkOutDate: string, unitId: string, now: Date) {
   const preview = await previewStayChange(db, { reservationId: id, checkIn: checkInDate, checkOut: checkOutDate, unitId, now });
   if (!preview.ok) return preview;
-  return applyStayChange(db, { reservationId: id, checkIn: checkInDate, checkOut: checkOutDate, unitId, expectedTotal: preview.plan.price.total, actor: staff, now });
+  return applyStayChange(db, { reservationId: id, checkIn: checkInDate, checkOut: checkOutDate, unitId, expectedTotal: preview.plan.total, actor: staff, now });
 }
 
 describe("changing dates", () => {
@@ -151,7 +151,7 @@ describe("changing dates", () => {
     const preview = await previewStayChange(db, { reservationId: r.id, checkIn: "2027-02-10", checkOut: "2027-02-13", unitId: unitIds[0], now });
     if (!preview.ok) throw new Error();
     await db.update(schema.unitTypes).set({ baseRate: 8_000_000 }).where(eq(schema.unitTypes.id, typeId));
-    const applied = await applyStayChange(db, { reservationId: r.id, checkIn: "2027-02-10", checkOut: "2027-02-13", unitId: unitIds[0], expectedTotal: preview.plan.price.total, actor: staff, now });
+    const applied = await applyStayChange(db, { reservationId: r.id, checkIn: "2027-02-10", checkOut: "2027-02-13", unitId: unitIds[0], expectedTotal: preview.plan.total, actor: staff, now });
     expect(applied).toEqual({ ok: false, error: "price_changed" });
     expect((await reload(r.id)).checkOut).toBe("2027-02-12");
   });
