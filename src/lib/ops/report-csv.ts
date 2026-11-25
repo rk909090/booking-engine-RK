@@ -80,3 +80,48 @@ export function reportCsv(report: Report, section: CsvSection): string {
     ...current.lost.noShows.rows.map((r) => [r.code, unit(r.unitId)?.propertyName ?? "", unit(r.unitId)?.code ?? "", "no_show", r.checkIn, r.checkIn, current.lost.valueOf(r), current.lost.keptOf(r)]),
   ]);
 }
+
+type PaceSeries = Array<{ key: string } & Perf>;
+
+/** The pace table: per stay month, on the books now, a week ago, at the same point last year, and last year's final result. */
+export function paceCsv(pace: { current: { series: PaceSeries }; weekAgo: { series: PaceSeries }; stly: { series: PaceSeries }; lyFinal: { series: PaceSeries } }): string {
+  const lyKey = (key: string) => `${Number(key.slice(0, 4)) - 1}${key.slice(4)}`;
+  const find = (series: PaceSeries, key: string) => series.find((s) => s.key === key);
+  const rows: Array<Array<string | number>> = [
+    [
+      "stay_month",
+      "available_nights",
+      "otb_nights",
+      "otb_occupancy_pct",
+      "otb_room_revenue",
+      "otb_adr",
+      "pickup_nights_7d",
+      "pickup_revenue_7d",
+      "stly_nights",
+      "stly_room_revenue",
+      "ly_final_nights",
+      "ly_final_room_revenue",
+    ],
+  ];
+  for (const s of pace.current.series) {
+    const week = find(pace.weekAgo.series, s.key);
+    const stly = find(pace.stly.series, lyKey(s.key));
+    const final = find(pace.lyFinal.series, lyKey(s.key));
+    const r = ratios(s);
+    rows.push([
+      s.key,
+      s.available,
+      s.sold,
+      pct(r.occupancy),
+      s.revenue,
+      r.adr,
+      s.sold - (week?.sold ?? 0),
+      s.revenue - (week?.revenue ?? 0),
+      stly?.sold ?? 0,
+      stly?.revenue ?? 0,
+      final?.sold ?? 0,
+      final?.revenue ?? 0,
+    ]);
+  }
+  return csv(rows);
+}

@@ -87,11 +87,23 @@ export function ratios(p: Perf) {
 }
 
 /** Room performance for [from, to] (both nights included), per villa and per day or month. */
-export function performance(input: { from: string; to: string; units: ReportUnit[]; blocks: ReportBlock[]; reservations: ReportReservation[] }) {
+export function performance(input: {
+  from: string;
+  to: string;
+  units: ReportUnit[];
+  blocks: ReportBlock[];
+  reservations: ReportReservation[];
+  /** Which bookings count as sold (default: confirmed, in house, checked out). */
+  counts?: (r: ReportReservation) => boolean;
+  /** Group by day or month (default: by day up to 62 nights). */
+  bucket?: "day" | "month";
+}) {
   const { from, to } = input;
   const inRange = (d: string) => d >= from && d <= to;
   const nights = diffDays(from, to) + 1;
-  const bucketOf = nights <= 62 ? (d: string) => d : (d: string) => d.slice(0, 7);
+  const byDay = input.bucket ? input.bucket === "day" : nights <= 62;
+  const bucketOf = byDay ? (d: string) => d : (d: string) => d.slice(0, 7);
+  const counts = input.counts ?? ((r: ReportReservation) => (SOLD_STATUSES as readonly string[]).includes(r.status));
   const byUnit = new Map<string, Perf>();
   const series = new Map<string, Perf>();
   const unit = (id: string) => byUnit.get(id) ?? byUnit.set(id, emptyPerf()).get(id)!;
@@ -113,7 +125,7 @@ export function performance(input: { from: string; to: string; units: ReportUnit
   }
 
   for (const r of input.reservations) {
-    if (!(SOLD_STATUSES as readonly string[]).includes(r.status)) continue;
+    if (!counts(r)) continue;
     for (const n of netNights(r)) {
       if (!inRange(n.date)) continue;
       unit(r.unitId).sold++;
@@ -136,7 +148,7 @@ export function performance(input: { from: string; to: string; units: ReportUnit
     totals.revenue += p.revenue;
     totals.extras += p.extras;
   }
-  return { totals, byUnit, series: [...series.entries()].map(([key, p]) => ({ key, ...p })), bucket: nights <= 62 ? ("day" as const) : ("month" as const) };
+  return { totals, byUnit, series: [...series.entries()].map(([key, p]) => ({ key, ...p })), bucket: byDay ? ("day" as const) : ("month" as const) };
 }
 
 /** Adds up per-villa figures by property or villa type. */
@@ -152,6 +164,28 @@ export function rollup(byUnit: Map<string, Perf>, units: ReportUnit[], key: "pro
     acc.extras += p.extras;
   }
   return out;
+}
+
+/*
+ * Pace: what is on the books for future stay dates as of a given day, compared
+ * with the same point last year (STLY: as of the same date a year earlier, for
+ * stay dates a year earlier), and the net pickup over the last days. A booking
+ * was on the books on a day if it had been made by then, was ever confirmed
+ * (unpaid holds never count), and had not been cancelled yet. Bookings whose
+ * dates were changed later are counted on their current dates and price.
+ */
+
+/** Whether a booking was on the books at the end of `asOf` (a property date). */
+export function onBooksAsOf(r: ReportReservation, asOf: string): boolean {
+  if (r.createdDate > asOf) return false;
+  if (r.status === "hold" || r.status === "expired") return false;
+  if (r.status === "cancelled") return !r.cancelledFromHold && r.cancelledDate !== null && r.cancelledDate > asOf;
+  return true;
+}
+
+/** On-the-books nights and revenue per stay month for [from, to], as of a day. */
+export function onTheBooks(input: { asOf: string; from: string; to: string; units: ReportUnit[]; blocks: ReportBlock[]; reservations: ReportReservation[] }) {
+  return performance({ ...input, bucket: "month", counts: (r) => onBooksAsOf(r, input.asOf) });
 }
 
 const roomValue = (r: ReportReservation) => r.subtotalAmount - r.discountAmount;

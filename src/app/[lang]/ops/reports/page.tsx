@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import { BarChart } from "@/components/ops/bar-chart";
 import { NoAccess, OpsNav, OpsShell } from "@/components/ops/ops-shell";
+import { ReportTabs } from "@/components/ops/report-tabs";
 import { addDays } from "@/domain/dates";
 import { ratios, rollup, type Perf } from "@/domain/reports";
 import { hasLocale, type Locale } from "@/i18n/config";
@@ -91,7 +92,8 @@ async function Report({ lang, dict, searchParams }: { lang: Locale; dict: Dictio
     <>
       <OpsNav lang={lang} dict={dict} staff={staff} current="reports" />
       <h1 className="font-display text-3xl text-lagoon">{t.title}</h1>
-      <p className="mt-1 max-w-3xl text-sm text-stone">{t.intro}</p>
+      <ReportTabs lang={lang} dict={dict} current="period" property={report.property?.slug ?? null} />
+      <p className="mt-3 max-w-3xl text-sm text-stone">{t.intro}</p>
 
       <form method="get" className="mt-5 grid gap-3 rounded-xl border border-line bg-white/70 p-4 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_auto] lg:items-end">
         <label className="space-y-1 text-xs text-stone">
