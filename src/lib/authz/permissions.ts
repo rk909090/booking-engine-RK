@@ -18,6 +18,7 @@ export const actions = [
   "reservation.create",
   "reservation.modify",
   "reservation.move",
+  "reservation.discount",
   "reservation.check_in",
   "reservation.check_out",
   "reservation.no_show",
@@ -50,6 +51,8 @@ const matrix: Record<Action, readonly Role[]> = {
   "reservation.create": R.operators,
   "reservation.modify": R.operators,
   "reservation.move": R.operators,
+  /** Each role's ceiling is a property setting (see domain/discount.ts). */
+  "reservation.discount": R.operators,
   "reservation.check_in": R.operators,
   "reservation.check_out": R.operators,
   "reservation.no_show": R.operators,

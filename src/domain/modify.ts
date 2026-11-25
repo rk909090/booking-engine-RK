@@ -96,7 +96,7 @@ export function changeability(status: Reservation["status"]): {
 }
 
 /** Refunds already paid out for a booking. */
-async function refundsPaid(db: Executor, reservationId: string): Promise<number> {
+export async function refundsPaid(db: Executor, reservationId: string): Promise<number> {
   const [row] = await db
     .select({ sum: sql<number>`coalesce(sum(${schema.payments.amount}), 0)::bigint` })
     .from(schema.payments)
@@ -199,7 +199,8 @@ async function evaluate(db: Executor, r: Reservation, timezone: string, req: Sta
     };
   }
 
-  const price = repriceStay(loaded.rules, r.priceSnapshot ?? null, checkIn, checkOut);
+  // A discount given as a share follows the new nights; a fixed amount stays (capped at the new nights' price).
+  const price = repriceStay(loaded.rules, r.priceSnapshot ?? null, checkIn, checkOut, r.discount ?? null);
   // A late check-out belongs to the old departure date.
   const [late] =
     checkOut !== r.checkOut
@@ -312,6 +313,7 @@ export async function applyStayChange(
           totalAmount: plan.total,
           extrasAmount: plan.extras,
           subtotalAmount: plan.price.subtotal,
+          discountAmount: plan.price.discount ?? 0,
           serviceAmount: plan.price.service,
           taxAmount: plan.price.tax,
           priceSnapshot: plan.price,

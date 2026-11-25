@@ -5,9 +5,11 @@ import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import { OpsNav, OpsShell, StatusBadge, NoAccess } from "@/components/ops/ops-shell";
 import { CopyField } from "@/components/ops/copy-field";
+import { DiscountCard } from "@/components/ops/discount-card";
 import { TimeRequest, type TimeRequestView } from "@/components/ops/time-request";
 import { StayChange } from "@/components/ops/stay-change";
 import { ErrorNote, SuccessNote } from "@/components/ui";
+import { discountLimitBp } from "@/domain/discount";
 import { earlyCheckinStatus } from "@/domain/early-checkin";
 import { lateCheckoutStatus } from "@/domain/late-checkout";
 import { changeability, previewStayChange } from "@/domain/modify";
@@ -212,6 +214,9 @@ async function Detail({
           <Card title={t.money}>
             <dl className="space-y-1 text-sm">
               <Line label={t.subtotal} value={formatMoney(r.subtotalAmount, lang)} />
+              {r.discountAmount ? (
+                <Line label={r.discount?.reason ? `${t.discountLine} (${r.discount.reason})` : t.discountLine} value={`−${formatMoney(r.discountAmount, lang)}`} />
+              ) : null}
               {r.serviceAmount ? <Line label={t.service} value={formatMoney(r.serviceAmount, lang)} /> : null}
               {r.taxAmount ? <Line label={t.tax} value={formatMoney(r.taxAmount, lang)} /> : null}
               {r.extrasAmount ? <Line label={t.extras} value={formatMoney(r.extrasAmount, lang)} /> : null}
@@ -362,6 +367,19 @@ async function Detail({
                 request={request}
                 preview={preview}
                 priceChanged={errorCode === "price_changed"}
+              />
+            </Card>
+          ) : null}
+
+          {stayActive && can(staff.actor, "reservation.discount", r.propertyId).allowed ? (
+            <Card title={t.discountTitle}>
+              <DiscountCard
+                lang={lang}
+                dict={dict}
+                code={r.code}
+                amount={r.discountAmount}
+                terms={r.discount ?? null}
+                limitBp={discountLimitBp(property, staff.actor.role)}
               />
             </Card>
           ) : null}

@@ -24,6 +24,7 @@ import { authUsers } from "./auth-schema";
 import {
   SAMPLE_CANCELLATION_TIERS,
   type CancellationTier,
+  type DiscountTerms,
   type PolicySnapshot,
   type PriceSnapshot,
   type PropertyContent,
@@ -94,12 +95,16 @@ export const properties = pgTable("properties", {
   holdMinutes: smallint("hold_minutes").notNull().default(15),
   /** Time needed to clean and inspect a villa between guests; limits late check-outs. Sample default: 2 hours. */
   turnoverMinutes: smallint("turnover_minutes").notNull().default(120),
+  /** Largest discount on the nights' price each role may give, in basis points (1000 = 10%). */
+  discountLimitFrontOfficeBp: integer("discount_limit_front_office_bp").notNull().default(1000),
+  discountLimitManagerBp: integer("discount_limit_manager_bp").notNull().default(5000),
   cancellationTiers: jsonb("cancellation_tiers").$type<CancellationTier[]>().notNull().default(SAMPLE_CANCELLATION_TIERS),
   content: jsonb("content").$type<PropertyContent>().notNull().default({}),
   ...timestamps,
 }, (t) => [
   check("properties_tax_rate_range", sql`${t.taxRateBp} BETWEEN 0 AND 10000`),
   check("properties_turnover_minutes_range", sql`${t.turnoverMinutes} BETWEEN 0 AND 720`),
+  check("properties_discount_limits_range", sql`${t.discountLimitFrontOfficeBp} BETWEEN 0 AND 10000 AND ${t.discountLimitManagerBp} BETWEEN 0 AND 10000`),
   check("properties_service_rate_range", sql`${t.serviceRateBp} BETWEEN 0 AND 10000`),
   check("properties_deposit_rate_range", sql`${t.depositRateBp} BETWEEN 0 AND 10000`),
   check("properties_balance_due_days_non_negative", sql`${t.balanceDueDays} >= 0`),
@@ -235,6 +240,10 @@ export const reservations = pgTable(
     amountPaid: bigint("amount_paid", { mode: "number" }).notNull().default(0),
     /** Charges on top of the nights (for example a late check-out fee), included in total_amount. */
     extrasAmount: bigint("extras_amount", { mode: "number" }).notNull().default(0),
+    /** Discount on the nights' price (before service and tax); total_amount is after it. */
+    discountAmount: bigint("discount_amount", { mode: "number" }).notNull().default(0),
+    /** How the discount was given, so it can be re-applied when the dates change. */
+    discount: jsonb("discount").$type<DiscountTerms>(),
     balanceDueDate: date("balance_due_date", { mode: "string" }),
     /** Refund owed after cancellation; paying it out is tracked on payments. */
     refundAmount: bigint("refund_amount", { mode: "number" }),
@@ -254,6 +263,7 @@ export const reservations = pgTable(
     check("reservations_children_non_negative", sql`${t.children} >= 0`),
     check("reservations_total_non_negative", sql`${t.totalAmount} >= 0`),
     check("reservations_amount_paid_non_negative", sql`${t.amountPaid} >= 0`),
+    check("reservations_discount_non_negative", sql`${t.discountAmount} >= 0`),
     check(
       "reservations_hold_has_expiry",
       sql`${t.status} <> 'hold' OR ${t.holdExpiresAt} IS NOT NULL`,

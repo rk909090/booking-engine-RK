@@ -239,7 +239,8 @@
     "cancelConfirm": "I want to cancel this booking.",
     "cancelButton": "Cancel booking",
     "cancelDone": "Booking cancelled.",
-    "saveLink": "Bookmark this page to see your booking again."
+    "saveLink": "Bookmark this page to see your booking again.",
+    "discount": "Discount"
   },
   "footer": {
     "tagline": "Private villas in Bali, looked after by a local team.",
@@ -373,7 +374,11 @@
       "early_not_pending": "No request is waiting for a decision.",
       "early_stale": "The arrival date changed; this request no longer applies.",
       "early_conflict": "Cannot approve: the previous guest has not left this villa yet.",
-      "early_invalid_fee": "Invalid fee."
+      "early_invalid_fee": "Invalid fee.",
+      "discount_not_allowed": "Discounts are only for confirmed bookings or guests in house.",
+      "discount_invalid_discount": "Invalid discount: enter a discount between 0 and 100%.",
+      "discount_reason_required": "Write the reason for the discount.",
+      "discount_over_limit": "The discount is over your role's limit."
     },
     "activityTitle": "Activity",
     "noActivity": "No activity yet.",
@@ -399,7 +404,9 @@
       "early_checkin.requested": "Early check-in requested",
       "early_checkin.approved": "Early check-in approved",
       "early_checkin.declined": "Early check-in declined",
-      "early_checkin.cancelled": "Early check-in cancelled"
+      "early_checkin.cancelled": "Early check-in cancelled",
+      "reservation.discounted": "Discount given",
+      "reservation.discount_removed": "Discount removed"
     },
     "actorGuest": "Guest",
     "actorSystem": "System",
@@ -424,7 +431,16 @@
       "other": "Other"
     },
     "collectHoldHintFull": "Payment in full is due: {amount}. The booking is confirmed at once and open payment links are closed.",
-    "extras": "Extra charges"
+    "extras": "Extra charges",
+    "discountLine": "Discount",
+    "discountTitle": "Discount",
+    "discountCurrent": "{amount} · {how} · reason: {reason}",
+    "discountPercentOf": "{percent}% of the nights' price",
+    "discountFixed": "fixed amount",
+    "discountNone": "No discount yet.",
+    "discountLimit": "Your limit: {limit}% of the nights' price. Service and tax are charged on the price after the discount.",
+    "discountApply": "Save discount",
+    "discountRemove": "Remove discount"
   },
   "opsCalendar": {
     "title": "Calendar",
@@ -592,9 +608,20 @@
       "invalid_amount": "The amount must be between {min} and {max}.",
       "payment": "The payment link could not be created and the villa was released. Try again.",
       "role": "Your role cannot create bookings.",
-      "invalid_amount_full": "Arrival is close: the amount must be paid in full, {amount}."
+      "invalid_amount_full": "Arrival is close: the amount must be paid in full, {amount}.",
+      "invalid_discount": "Invalid discount: enter the discount and its reason.",
+      "over_limit": "The discount is over your limit ({limit}% of the nights' price)."
     },
-    "modeReceivedHintFull": "The booking is confirmed at once. Arrival is close, so payment in full is due: {amount}."
+    "modeReceivedHintFull": "The booking is confirmed at once. Arrival is close, so payment in full is due: {amount}.",
+    "discountTitle": "Discount (optional)",
+    "discountKind": "Type",
+    "discountNone": "No discount",
+    "discountPercent": "Percent (%)",
+    "discountAmount": "Amount (IDR)",
+    "discountValue": "Discount",
+    "discountReason": "Reason for the discount",
+    "discountLimit": "Your limit: {limit}% of the nights' price.",
+    "afterDiscount": "After discount: total {total}, due now {dueNow}."
   },
   "lateCheckout": {
     "title": "Late check-out",

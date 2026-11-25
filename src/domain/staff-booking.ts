@@ -4,7 +4,9 @@ import * as schema from "@/db/schema";
 import { createHold, loadUnitTypes, type HoldError, type HoldInput } from "./booking";
 import { todayIn } from "./dates";
 import { recordManualPayment, type ManualPaymentError, type PaymentMethod } from "./operations";
-import { quoteStay } from "./pricing";
+import { discountLimitBp, withinLimit } from "./discount";
+import { quoteStay, validDiscount } from "./pricing";
+import type { Discount, DiscountTerms } from "./types";
 
 type AnyDb = PgDatabase<PgQueryResultHKT, typeof schema>;
 
@@ -22,17 +24,22 @@ export type StaffSource = (typeof STAFF_SOURCES)[number];
 /** Hold times staff can choose for a payment link. */
 export const LINK_HOLD_HOURS = [1, 24, 48] as const;
 
-export type StaffBookingInput = Omit<HoldInput, "source" | "holdMinutes" | "candidateUnitIds" | "actorId"> & {
+export type StaffBookingInput = Omit<HoldInput, "source" | "holdMinutes" | "candidateUnitIds" | "actorId" | "discount"> & {
   source: StaffSource;
   /** A specific villa, or any free villa of the type. */
   unitId?: string | null;
   actorId: string;
+  /** The staff member's role, which sets their discount ceiling. */
+  role: string;
+  discount?: (Discount & { reason: string }) | null;
   payment: { kind: "received"; amount: number; method: PaymentMethod; reference?: string | null } | { kind: "link"; holdHours: number };
 };
 
 export type StaffBookingError =
   | HoldError
   | { kind: "invalid_amount"; dueNow: number; total: number }
+  | { kind: "invalid_discount" }
+  | { kind: "over_limit"; limitBp: number }
   | { kind: "payment"; error: ManualPaymentError };
 
 export type StaffBookingResult =
@@ -43,19 +50,31 @@ export async function createStaffBooking(db: AnyDb, input: StaffBookingInput): P
   const now = input.now ?? new Date();
   if (!(STAFF_SOURCES as readonly string[]).includes(input.source)) return { ok: false, error: { kind: "invalid_guest" } };
   const { payment } = input;
+  if (payment.kind === "link" && !(LINK_HOLD_HOURS as readonly number[]).includes(payment.holdHours)) {
+    return { ok: false, error: { kind: "invalid_guest" } };
+  }
 
+  let discount: DiscountTerms | null = null;
+  if (input.discount) {
+    const { reason, ...terms } = input.discount;
+    if (!validDiscount(terms) || !reason.trim()) return { ok: false, error: { kind: "invalid_discount" } };
+    discount = { ...terms, reason: reason.trim().slice(0, 300), givenBy: input.actorId, givenAt: now.toISOString() };
+  }
+
+  // Check the price, the discount ceiling and the amount before holding anything.
+  const loaded = (await loadUnitTypes(db, [input.unitTypeId])).get(input.unitTypeId);
+  if (!loaded) return { ok: false, error: { kind: "unknown_unit_type" } };
+  const quote = quoteStay(loaded.rules, { checkIn: input.checkIn, checkOut: input.checkOut, today: todayIn(loaded.property.timezone, now) }, discount);
+  if (!quote.ok) return { ok: false, error: { kind: "quote", error: quote.error } };
+  if (discount) {
+    const limitBp = discountLimitBp(loaded.property, input.role);
+    if (!withinLimit(quote.quote.discount ?? 0, quote.quote.subtotal, limitBp)) return { ok: false, error: { kind: "over_limit", limitBp } };
+  }
   if (payment.kind === "received") {
-    // Check the amount against the price before holding anything.
-    const loaded = (await loadUnitTypes(db, [input.unitTypeId])).get(input.unitTypeId);
-    if (!loaded) return { ok: false, error: { kind: "unknown_unit_type" } };
-    const quote = quoteStay(loaded.rules, { checkIn: input.checkIn, checkOut: input.checkOut, today: todayIn(loaded.property.timezone, now) });
-    if (!quote.ok) return { ok: false, error: { kind: "quote", error: quote.error } };
     const { dueNow, total } = quote.quote;
     if (!Number.isSafeInteger(payment.amount) || payment.amount < dueNow || payment.amount > total) {
       return { ok: false, error: { kind: "invalid_amount", dueNow, total } };
     }
-  } else if (!(LINK_HOLD_HOURS as readonly number[]).includes(payment.holdHours)) {
-    return { ok: false, error: { kind: "invalid_guest" } };
   }
 
   if (input.unitId) {
@@ -72,6 +91,7 @@ export async function createStaffBooking(db: AnyDb, input: StaffBookingInput): P
     candidateUnitIds: input.unitId ? [input.unitId] : undefined,
     holdMinutes: payment.kind === "link" ? payment.holdHours * 60 : undefined,
     actorId: input.actorId,
+    discount,
   });
   if (!held.ok) return held;
   if (payment.kind === "link") return { ok: true, reservation: held.reservation, confirmed: false };

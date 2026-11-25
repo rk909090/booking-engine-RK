@@ -50,6 +50,7 @@ function input(overrides: Partial<StaffBookingInput>): StaffBookingInput {
     locale: "id",
     source: "walk_in",
     actorId: "fo-1",
+    role: "front_office",
     now: at("2027-02-10"),
     payment: { kind: "received", amount: 2 * RATE, method: "cash" },
     ...overrides,

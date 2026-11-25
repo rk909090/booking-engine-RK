@@ -143,6 +143,7 @@ async function BookingDetails({
         <Item label={t.dates} value={formatDateRange(r.checkIn, r.checkOut, lang)} />
         <Item label={t.guests} value={format(dict.search.guests, { count: r.adults + r.children })} />
         <Item label={dict.home.statusLabel} value={t.status[r.status]} />
+        {r.discountAmount ? <Item label={t.discount} value={`−${formatMoney(r.discountAmount, lang)}`} /> : null}
         <Item label={t.total} value={formatMoney(r.totalAmount, lang)} />
         <Item label={t.paid} value={formatMoney(r.amountPaid, lang)} />
         {r.status === "confirmed" && balance > 0 && r.balanceDueDate ? (

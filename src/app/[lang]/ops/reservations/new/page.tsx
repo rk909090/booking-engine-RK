@@ -12,6 +12,7 @@ import { formatDateRange, formatMoney } from "@/i18n/formatters";
 import { getDictionary, type Dictionary } from "@/i18n/get-dictionary";
 import { requireStaff } from "@/lib/auth/current-staff";
 import { can } from "@/lib/authz/permissions";
+import { discountLimitBp } from "@/domain/discount";
 import { freeUnitsOfType, visibleProperties } from "@/lib/ops/queries";
 import { StaffBookingForm } from "./booking-form";
 
@@ -200,7 +201,16 @@ async function NewBooking({
             dict={{ newBooking: t, methods: dict.resDetail.methods, sources: dict.resList.sources }}
             stay={{ unitTypeId: chosen.unitType.id, checkIn, checkOut, adults, children }}
             units={units}
-            quote={{ total: chosen.quote.quote.total, dueNow: chosen.quote.quote.dueNow }}
+            quote={{
+              subtotal: chosen.quote.quote.subtotal,
+              total: chosen.quote.quote.total,
+              dueNow: chosen.quote.quote.dueNow,
+              serviceRateBp: chosen.quote.quote.serviceRateBp,
+              taxRateBp: chosen.quote.quote.taxRateBp,
+              depositRateBp: chosen.property.depositRateBp,
+              payInFull: chosen.quote.quote.payInFull,
+            }}
+            limitBp={can(staff.actor, "reservation.discount", property.id).allowed ? discountLimitBp(property, staff.actor.role) : 0}
           />
         </section>
       ) : null}

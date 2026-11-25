@@ -32,10 +32,19 @@ export type PropertyContent = {
   location?: LocalizedText;
 };
 
+/** A discount on the nights' price: a share in basis points, or a fixed rupiah amount. */
+export type Discount = { kind: "percent"; bp: number } | { kind: "amount"; amount: number };
+
+/** A discount as given to a booking: kept so it can be re-applied when the dates change. */
+export type DiscountTerms = Discount & { reason: string; givenBy: string | null; givenAt: string };
+
 /** Price breakdown frozen onto a reservation when it is created. */
 export type PriceSnapshot = {
   nights: Array<{ date: string; rate: number; season: string | null }>;
+  /** The nights' price before any discount. */
   subtotal: number;
+  /** Discount on the nights' price; service and tax are charged on what remains. */
+  discount?: number;
   service: number;
   tax: number;
   total: number;

@@ -1,5 +1,5 @@
 import { addDays, diffDays, eachNight, isIsoDate } from "./dates";
-import type { CancellationTier, PriceSnapshot } from "./types";
+import type { CancellationTier, Discount, PriceSnapshot } from "./types";
 
 /*
  * Pure pricing rules. No database access: everything needed is passed in,
@@ -70,6 +70,28 @@ function seasonFor(date: string, seasons: Season[]): Season | undefined {
   return seasons.find((s) => s.startDate <= date && date < s.endDate);
 }
 
+/** Rupiah a discount takes off the nights' subtotal (never more than the subtotal). */
+export function discountAmountFor(subtotal: number, discount: Discount | null | undefined): number {
+  if (!discount) return 0;
+  const raw = discount.kind === "percent" ? applyBp(subtotal, discount.bp) : discount.amount;
+  return Math.max(0, Math.min(subtotal, Math.round(raw)));
+}
+
+/** Whether a discount is well formed: 0–100% in basis points, or a whole, non-negative rupiah amount. */
+export function validDiscount(discount: Discount): boolean {
+  return discount.kind === "percent"
+    ? Number.isInteger(discount.bp) && discount.bp > 0 && discount.bp <= 10_000
+    : Number.isSafeInteger(discount.amount) && discount.amount > 0;
+}
+
+/** Service on the discounted nights; tax on that plus service. */
+function charges(subtotal: number, discount: number, serviceRateBp: number, taxRateBp: number) {
+  const net = subtotal - discount;
+  const service = applyBp(net, serviceRateBp);
+  const tax = applyBp(net + service, taxRateBp);
+  return { service, tax, total: net + service + tax };
+}
+
 /** Today's price for one night. */
 export function nightlyRate(rules: PricingRules, date: string): PriceSnapshot["nights"][number] {
   const season = seasonFor(date, rules.seasons);
@@ -86,15 +108,20 @@ export function minStayFor(rules: PricingRules, checkIn: string): number {
  * keep the rate agreed at booking; only added nights use today's rates.
  * Service and tax use the rates saved with the booking.
  */
-export function repriceStay(rules: PricingRules, previous: PriceSnapshot | null, checkIn: string, checkOut: string): PriceSnapshot {
+export function repriceStay(
+  rules: PricingRules,
+  previous: PriceSnapshot | null,
+  checkIn: string,
+  checkOut: string,
+  discount: Discount | null = null,
+): PriceSnapshot {
   const kept = new Map((previous?.nights ?? []).map((n) => [n.date, n]));
   const nights = eachNight(checkIn, checkOut).map((date) => kept.get(date) ?? nightlyRate(rules, date));
   const serviceRateBp = previous?.serviceRateBp ?? rules.serviceRateBp;
   const taxRateBp = previous?.taxRateBp ?? rules.taxRateBp;
   const subtotal = nights.reduce((sum, n) => sum + n.rate, 0);
-  const service = applyBp(subtotal, serviceRateBp);
-  const tax = applyBp(subtotal + service, taxRateBp);
-  return { nights, subtotal, service, tax, total: subtotal + service + tax, serviceRateBp, taxRateBp };
+  const off = discountAmountFor(subtotal, discount);
+  return { nights, subtotal, discount: off, ...charges(subtotal, off, serviceRateBp, taxRateBp), serviceRateBp, taxRateBp };
 }
 
 /**
@@ -102,7 +129,7 @@ export function repriceStay(rules: PricingRules, previous: PriceSnapshot | null,
  * night (or the villa type when no season applies), which is how most villa
  * operators phrase it: "minimum 5 nights for arrivals in high season".
  */
-export function quoteStay(rules: PricingRules, stay: StayRequest): QuoteResult {
+export function quoteStay(rules: PricingRules, stay: StayRequest, discount: Discount | null = null): QuoteResult {
   const { checkIn, checkOut, today } = stay;
   if (!isIsoDate(checkIn) || !isIsoDate(checkOut) || !isIsoDate(today) || checkOut <= checkIn) {
     return { ok: false, error: { kind: "invalid_dates" } };
@@ -118,10 +145,9 @@ export function quoteStay(rules: PricingRules, stay: StayRequest): QuoteResult {
 
   const nights = dates.map((date) => nightlyRate(rules, date));
   const subtotal = nights.reduce((sum, n) => sum + n.rate, 0);
-  // Service charge on the room rate; tax on room rate plus service.
-  const service = applyBp(subtotal, rules.serviceRateBp);
-  const tax = applyBp(subtotal + service, rules.taxRateBp);
-  const total = subtotal + service + tax;
+  // Service charge on the (discounted) room rate; tax on room rate plus service.
+  const off = discountAmountFor(subtotal, discount);
+  const { service, tax, total } = charges(subtotal, off, rules.serviceRateBp, rules.taxRateBp);
 
   const daysUntilArrival = diffDays(today, checkIn);
   const payInFull = rules.depositRateBp >= 10_000 || daysUntilArrival <= rules.balanceDueDays;
@@ -133,6 +159,7 @@ export function quoteStay(rules: PricingRules, stay: StayRequest): QuoteResult {
       nights,
       nightsCount: nights.length,
       subtotal,
+      discount: off,
       service,
       tax,
       total,

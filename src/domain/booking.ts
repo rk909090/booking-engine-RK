@@ -6,6 +6,7 @@ import * as schema from "@/db/schema";
 import type { Locale } from "@/i18n/config";
 import { todayIn } from "./dates";
 import { cancellationOutcome, quoteStay, type PricingRules, type Quote, type QuoteError } from "./pricing";
+import type { DiscountTerms } from "./types";
 
 type AnyDb = PgDatabase<PgQueryResultHKT, typeof schema>;
 type Tx = Parameters<Parameters<AnyDb["transaction"]>[0]>[0];
@@ -186,6 +187,8 @@ export type HoldInput = {
   holdMinutes?: number;
   /** Staff member who created the booking, for the audit log. */
   actorId?: string;
+  /** Staff bookings only: a discount on the nights' price (limits are checked by the caller). */
+  discount?: DiscountTerms | null;
 };
 
 export type HoldError =
@@ -230,11 +233,12 @@ export async function createHold(db: AnyDb, input: HoldInput): Promise<HoldResul
     if (input.adults + input.children > type.maxGuests) {
       return { ok: false, error: { kind: "too_many_guests", maxGuests: type.maxGuests } } as const;
     }
-    const priced = quoteStay(rules, {
-      checkIn: input.checkIn,
-      checkOut: input.checkOut,
-      today: todayIn(property.timezone, now),
-    });
+    const discount = input.source === "website" ? null : (input.discount ?? null);
+    const priced = quoteStay(
+      rules,
+      { checkIn: input.checkIn, checkOut: input.checkOut, today: todayIn(property.timezone, now) },
+      discount,
+    );
     if (!priced.ok) return { ok: false, error: { kind: "quote", error: priced.error } } as const;
     const quote = priced.quote;
 
@@ -310,6 +314,8 @@ export async function createHold(db: AnyDb, input: HoldInput): Promise<HoldResul
               children: input.children,
               totalAmount: quote.total,
               subtotalAmount: quote.subtotal,
+              discountAmount: quote.discount ?? 0,
+              discount: discount && (quote.discount ?? 0) > 0 ? discount : null,
               serviceAmount: quote.service,
               taxAmount: quote.tax,
               depositAmount: quote.dueNow,
@@ -322,6 +328,7 @@ export async function createHold(db: AnyDb, input: HoldInput): Promise<HoldResul
               priceSnapshot: {
                 nights: quote.nights,
                 subtotal: quote.subtotal,
+                discount: quote.discount ?? 0,
                 service: quote.service,
                 tax: quote.tax,
                 total: quote.total,

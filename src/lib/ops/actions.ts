@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
 import { cancelReservation } from "@/domain/booking";
+import { setDiscount } from "@/domain/discount";
 import { cancelEarlyCheckin, decideEarlyCheckin, requestEarlyCheckin } from "@/domain/early-checkin";
 import { cancelLateCheckout, decideLateCheckout, requestLateCheckout } from "@/domain/late-checkout";
 import { applyStayChange } from "@/domain/modify";
@@ -13,6 +14,7 @@ import { hasLocale, type Locale } from "@/i18n/config";
 import { requireStaff } from "@/lib/auth/current-staff";
 import { can, type Action, type Actor } from "@/lib/authz/permissions";
 import { closeCheckouts, openCheckouts } from "@/lib/payments/checkouts";
+import { parseDiscountInput } from "./discount-input";
 
 /*
  * Staff actions on a reservation. Each one re-reads the session and checks
@@ -225,5 +227,21 @@ export async function cancelEarlyCheckinAction(form: FormData) {
   await run(form, "reservation.modify", async ({ reservationId, staffId }) => {
     const result = await cancelEarlyCheckin(getDb(), { reservationId, actor: { type: "staff", id: staffId } });
     return result.ok ? { ok: true } : { ok: false, error: earlyError(result.error) };
+  });
+}
+
+/** Gives, changes or (with remove=1) removes the discount of a booking, within the staff member's ceiling. */
+export async function setDiscountAction(form: FormData) {
+  await run(form, "reservation.discount", async ({ reservationId, staffId, actor }) => {
+    const discount = form.get("remove") === "1" ? null : parseDiscountInput(field(form, "discountKind"), field(form, "discountValue"));
+    if (discount === null && form.get("remove") !== "1") return { ok: false, error: "discount_invalid_discount" };
+    const result = await setDiscount(getDb(), {
+      reservationId,
+      discount,
+      reason: field(form, "discountReason") || null,
+      role: actor.role,
+      actor: { type: "staff", id: staffId },
+    });
+    return result.ok ? { ok: true } : { ok: false, error: result.error === "not_found" ? "not_found" : `discount_${result.error}` };
   });
 }

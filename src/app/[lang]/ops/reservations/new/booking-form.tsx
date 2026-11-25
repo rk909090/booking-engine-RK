@@ -7,14 +7,30 @@ import { format } from "@/i18n/format";
 import { formatMoney } from "@/i18n/formatters";
 import type { Dictionary } from "@/i18n/get-dictionary";
 import { createStaffBookingAction, type StaffBookingFormState } from "@/lib/ops/booking-actions";
+import { parseDiscountInput } from "@/lib/ops/discount-input";
 
 type Props = {
   lang: Locale;
   dict: Pick<Dictionary, "newBooking"> & { methods: Dictionary["resDetail"]["methods"]; sources: Dictionary["resList"]["sources"] };
   stay: { unitTypeId: string; checkIn: string; checkOut: string; adults: number; children: number };
   units: Array<{ id: string; code: string }>;
-  quote: { total: number; dueNow: number };
+  /** The undiscounted price, with what is needed to recompute it after a discount (same rules as the server). */
+  quote: { subtotal: number; total: number; dueNow: number; serviceRateBp: number; taxRateBp: number; depositRateBp: number; payInFull: boolean };
+  /** This staff member's discount ceiling in basis points. */
+  limitBp: number;
 };
+
+const bp = (amount: number, rate: number) => Math.round((amount * rate) / 10_000);
+
+/** Mirrors domain/pricing: discount on the nights, then service, then tax; deposit on the total. */
+function priced(quote: Props["quote"], kind: string, value: string) {
+  const d = parseDiscountInput(kind, value);
+  const off = !d ? 0 : Math.max(0, Math.min(quote.subtotal, d.kind === "percent" ? bp(quote.subtotal, d.bp || 0) : d.amount));
+  const net = quote.subtotal - off;
+  const service = bp(net, quote.serviceRateBp);
+  const total = net + service + bp(net + service, quote.taxRateBp);
+  return { off, total, dueNow: quote.payInFull ? total : bp(total, quote.depositRateBp) };
+}
 
 const box = "w-full rounded-lg border border-line bg-white px-3 py-2.5 text-ink outline-none focus:border-lagoon focus:ring-2 focus:ring-lagoon/20";
 
@@ -30,6 +46,7 @@ function Fields({
   stay,
   units,
   quote,
+  limitBp,
   state,
   action,
   pending,
@@ -38,13 +55,19 @@ function Fields({
   const v = state.values ?? {};
   const [mode, setMode] = useState(v.mode === "link" ? "link" : "received");
   const money = (n: number) => formatMoney(n, lang);
-  const full = quote.dueNow === quote.total;
-  const range = state.amountRange ?? { min: quote.dueNow, max: quote.total };
+  const [discountKind, setDiscountKind] = useState(v.discountKind || "");
+  const [discountValue, setDiscountValue] = useState(v.discountValue || "");
+  const now = priced(quote, discountKind, discountValue);
+  // Restored after an error only if staff typed it; otherwise it keeps following the price.
+  const [amount, setAmount] = useState(v.amountTouched ? v.amount : "");
+  const full = now.dueNow === now.total;
+  const range = state.amountRange ?? { min: now.dueNow, max: now.total };
+  const limit = (limitBp / 100).toLocaleString(lang === "id" ? "id-ID" : "en-GB");
   const errorText = !state.error
     ? null
     : state.error === "invalid_amount" && range.min === range.max
       ? format(t.errors.invalid_amount_full, { amount: money(range.max) })
-      : format(t.errors[state.error], { min: money(range.min), max: money(range.max) });
+      : format(t.errors[state.error], { min: money(range.min), max: money(range.max), limit: ((state.limitBp ?? limitBp) / 100).toString() });
 
   return (
     <form action={action} className="space-y-4">
@@ -91,6 +114,32 @@ function Fields({
         <textarea name="requests" rows={2} maxLength={2000} defaultValue={v.requests} className={box} />
       </label>
 
+      {limitBp > 0 ? (
+        <fieldset className="space-y-3 rounded-xl border border-line p-4">
+          <legend className="px-1 text-sm font-medium text-ink">{t.discountTitle}</legend>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="space-y-1.5 text-sm font-medium text-ink">
+              <span className="block">{t.discountKind}</span>
+              <select name="discountKind" value={discountKind} onChange={(e) => setDiscountKind(e.target.value)} className={box}>
+                <option value="">{t.discountNone}</option>
+                <option value="percent">{t.discountPercent}</option>
+                <option value="amount">{t.discountAmount}</option>
+              </select>
+            </label>
+            {discountKind ? (
+              <>
+                <Field label={t.discountValue} name="discountValue" inputMode="decimal" required value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} />
+                <Field label={t.discountReason} name="discountReason" required maxLength={300} defaultValue={v.discountReason} autoComplete="off" />
+              </>
+            ) : null}
+          </div>
+          <p className="text-xs text-stone">
+            {format(t.discountLimit, { limit })}
+            {now.off > 0 ? ` ${format(t.afterDiscount, { total: money(now.total), dueNow: money(now.dueNow) })}` : ""}
+          </p>
+        </fieldset>
+      ) : null}
+
       <fieldset className="space-y-3 rounded-xl border border-line p-4">
         <legend className="px-1 text-sm font-medium text-ink">{t.paymentTitle}</legend>
         <label className="flex items-start gap-2 text-sm text-ink">
@@ -98,13 +147,15 @@ function Fields({
           <span>
             {t.modeReceived}
             <span className="block text-xs text-stone">
-              {full ? format(t.modeReceivedHintFull, { amount: money(quote.total) }) : format(t.modeReceivedHint, { min: money(quote.dueNow), max: money(quote.total) })}
+              {full ? format(t.modeReceivedHintFull, { amount: money(now.total) }) : format(t.modeReceivedHint, { min: money(now.dueNow), max: money(now.total) })}
             </span>
           </span>
         </label>
         {mode === "received" ? (
           <div className="grid gap-3 pl-6 sm:grid-cols-3">
-            <Field label={t.amount} name="amount" inputMode="numeric" required defaultValue={v.amount || String(quote.dueNow)} />
+            {/* Follows the price (and discount) until staff type their own amount. */}
+            <Field label={t.amount} name="amount" inputMode="numeric" required value={amount || String(now.dueNow)} onChange={(e) => setAmount(e.target.value)} />
+            <input type="hidden" name="amountTouched" value={amount ? "1" : ""} />
             <label className="space-y-1.5 text-sm font-medium text-ink">
               <span className="block">{t.method}</span>
               <select name="method" defaultValue={v.method || "bank_transfer"} className={box}>
@@ -122,7 +173,7 @@ function Fields({
           <input type="radio" name="mode" value="link" checked={mode === "link"} onChange={() => setMode("link")} className="mt-1 accent-lagoon" />
           <span>
             {t.modeLink}
-            <span className="block text-xs text-stone">{format(t.modeLinkHint, { amount: money(quote.dueNow) })}</span>
+            <span className="block text-xs text-stone">{format(t.modeLinkHint, { amount: money(now.dueNow) })}</span>
           </span>
         </label>
         {mode === "link" ? (

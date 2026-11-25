@@ -13,6 +13,7 @@ import { requireStaff } from "@/lib/auth/current-staff";
 import { can } from "@/lib/authz/permissions";
 import { appUrl, bookingAccessToken } from "@/lib/booking/access";
 import { getPaymentProvider } from "@/lib/payments/provider";
+import { parseDiscountInput } from "./discount-input";
 
 export type StaffBookingFormError =
   | "invalid_guest"
@@ -22,16 +23,20 @@ export type StaffBookingFormError =
   | "quote"
   | "invalid_amount"
   | "payment"
-  | "role";
+  | "role"
+  | "invalid_discount"
+  | "over_limit";
 
 /** Kept in memory only (never in the URL) so the form can be shown again after an error. */
 export type StaffBookingFormState = {
   error?: StaffBookingFormError;
   amountRange?: { min: number; max: number };
+  /** The staff member's discount ceiling, when the discount was over it. */
+  limitBp?: number;
   values?: Record<string, string>;
 };
 
-const KEPT_FIELDS = ["fullName", "email", "phone", "country", "arrival", "requests", "source", "unitId", "mode", "amount", "method", "reference", "holdHours"];
+const KEPT_FIELDS = ["fullName", "email", "phone", "country", "arrival", "requests", "source", "unitId", "mode", "amount", "method", "reference", "holdHours", "amountTouched", "discountKind", "discountValue", "discountReason"];
 
 function text(form: FormData, key: string): string {
   const value = form.get(key);
@@ -81,6 +86,11 @@ export async function createStaffBookingAction(_prev: StaffBookingFormState, for
     locale: lang,
     source: (STAFF_SOURCES as readonly string[]).includes(source) ? (source as StaffSource) : "direct",
     actorId: staff.staffId,
+    role: staff.actor.role,
+    discount: (() => {
+      const d = parseDiscountInput(text(form, "discountKind"), text(form, "discountValue"));
+      return d ? { ...d, reason: text(form, "discountReason") } : null;
+    })(),
     payment:
       mode === "link"
         ? { kind: "link", holdHours: (LINK_HOLD_HOURS as readonly number[]).includes(holdHours) ? holdHours : 24 }
@@ -96,6 +106,7 @@ export async function createStaffBookingAction(_prev: StaffBookingFormState, for
     const e = result.error;
     if (e.kind === "invalid_amount") return fail("invalid_amount", { amountRange: { min: e.dueNow, max: e.total } });
     if (e.kind === "payment") return fail("payment");
+    if (e.kind === "over_limit") return fail("over_limit", { limitBp: e.limitBp });
     return fail(e.kind);
   }
 

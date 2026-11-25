@@ -48,6 +48,8 @@ export async function visibleProperties(actor: Actor) {
       checkInTime: schema.properties.checkInTime,
       checkOutTime: schema.properties.checkOutTime,
       turnoverMinutes: schema.properties.turnoverMinutes,
+      discountLimitFrontOfficeBp: schema.properties.discountLimitFrontOfficeBp,
+      discountLimitManagerBp: schema.properties.discountLimitManagerBp,
     })
     .from(schema.properties)
     .orderBy(asc(schema.properties.name));

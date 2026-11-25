@@ -239,7 +239,8 @@
     "cancelConfirm": "Saya ingin membatalkan pesanan ini.",
     "cancelButton": "Batalkan pesanan",
     "cancelDone": "Pesanan dibatalkan.",
-    "saveLink": "Simpan tautan halaman ini untuk melihat pesanan Anda lagi."
+    "saveLink": "Simpan tautan halaman ini untuk melihat pesanan Anda lagi.",
+    "discount": "Diskon"
   },
   "footer": {
     "tagline": "Vila privat di Bali, dirawat oleh tim lokal.",
@@ -373,7 +374,11 @@
       "early_not_pending": "Tidak ada permintaan yang menunggu keputusan.",
       "early_stale": "Tanggal check-in sudah berubah; permintaan ini tidak berlaku lagi.",
       "early_conflict": "Tidak bisa disetujui: tamu sebelumnya belum pulang dari vila ini.",
-      "early_invalid_fee": "Biaya tidak valid."
+      "early_invalid_fee": "Biaya tidak valid.",
+      "discount_not_allowed": "Diskon hanya untuk reservasi terkonfirmasi atau tamu yang sedang menginap.",
+      "discount_invalid_discount": "Diskon tidak valid: isi besar diskon antara 0 dan 100%.",
+      "discount_reason_required": "Tulis alasan diskon.",
+      "discount_over_limit": "Diskon melebihi batas peran Anda."
     },
     "activityTitle": "Aktivitas",
     "noActivity": "Belum ada aktivitas.",
@@ -399,7 +404,9 @@
       "early_checkin.requested": "Early check-in diminta",
       "early_checkin.approved": "Early check-in disetujui",
       "early_checkin.declined": "Early check-in ditolak",
-      "early_checkin.cancelled": "Early check-in dibatalkan"
+      "early_checkin.cancelled": "Early check-in dibatalkan",
+      "reservation.discounted": "Diskon diberikan",
+      "reservation.discount_removed": "Diskon dihapus"
     },
     "actorGuest": "Tamu",
     "actorSystem": "Sistem",
@@ -424,7 +431,16 @@
       "other": "Lainnya"
     },
     "collectHoldHintFull": "Harus lunas {amount}. Booking langsung terkonfirmasi dan tautan pembayaran yang masih terbuka ditutup.",
-    "extras": "Biaya tambahan"
+    "extras": "Biaya tambahan",
+    "discountLine": "Diskon",
+    "discountTitle": "Diskon",
+    "discountCurrent": "{amount} · {how} · alasan: {reason}",
+    "discountPercentOf": "{percent}% dari harga malam",
+    "discountFixed": "nominal tetap",
+    "discountNone": "Belum ada diskon.",
+    "discountLimit": "Batas Anda: {limit}% dari harga malam. Service dan pajak dihitung dari harga setelah diskon.",
+    "discountApply": "Simpan diskon",
+    "discountRemove": "Hapus diskon"
   },
   "opsCalendar": {
     "title": "Kalender",
@@ -592,9 +608,20 @@
       "invalid_amount": "Jumlah harus antara {min} dan {max}.",
       "payment": "Tautan pembayaran gagal dibuat dan vila sudah dilepas. Coba lagi.",
       "role": "Peran Anda tidak dapat membuat reservasi.",
-      "invalid_amount_full": "Kedatangan sudah dekat: jumlah harus lunas, {amount}."
+      "invalid_amount_full": "Kedatangan sudah dekat: jumlah harus lunas, {amount}.",
+      "invalid_discount": "Diskon tidak valid: isi besar diskon dan alasannya.",
+      "over_limit": "Diskon melebihi batas Anda ({limit}% dari harga malam)."
     },
-    "modeReceivedHintFull": "Booking langsung terkonfirmasi. Kedatangan sudah dekat, jadi harus lunas: {amount}."
+    "modeReceivedHintFull": "Booking langsung terkonfirmasi. Kedatangan sudah dekat, jadi harus lunas: {amount}.",
+    "discountTitle": "Diskon (opsional)",
+    "discountKind": "Jenis",
+    "discountNone": "Tanpa diskon",
+    "discountPercent": "Persen (%)",
+    "discountAmount": "Nominal (Rp)",
+    "discountValue": "Besar diskon",
+    "discountReason": "Alasan diskon",
+    "discountLimit": "Batas Anda: {limit}% dari harga malam.",
+    "afterDiscount": "Setelah diskon: total {total}, bayar sekarang {dueNow}."
   },
   "lateCheckout": {
     "title": "Late check-out",
