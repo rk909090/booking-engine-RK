@@ -29,6 +29,20 @@
       "when": 1795591649458,
       "tag": "0003_revoke_public_api_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795593762235,
+      "tag": "0004_booking_core",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795593764484,
+      "tag": "0005_rate_season_overlap_guard",
+      "breakpoints": true
     }
   ]
 }

@@ -12,4 +12,6 @@ export const brand = {
   /** Bali runs on WITA (UTC+8). */
   timezone: "Asia/Makassar",
   currency: "IDR",
+  /** Prefix of guest-facing booking codes, e.g. ATR-7K3Q9MXD. */
+  bookingPrefix: "ATR",
 } as const;
