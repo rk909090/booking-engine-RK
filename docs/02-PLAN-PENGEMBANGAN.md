@@ -56,11 +56,12 @@ Jadi "10x" bukan berarti tampilan yang lebih cantik. Artinya:
 |---|---|---|
 | Framework | **Next.js (App Router) + TypeScript** | Sama dengan demo. SSR/SEO untuk situs publik, satu codebase untuk publik dan ops |
 | UI | Tailwind + komponen sendiri (design tokens) + Storybook | Menggantikan `/internal/components` |
-| Database | **PostgreSQL** | `daterange` + `EXCLUDE USING gist` untuk mencegah dua reservasi di unit yang sama pada malam yang sama |
+| Hosting | **Hostinger Cloud Professional** (diputuskan), app Node.js di `be.attarahospitality.com` selama development | Akun Hostinger sudah ada. SSL aktif |
+| Database | **PostgreSQL di Supabase** (diputuskan), project `booking-engine-rk`, region Singapura | Postgres penuh, jadi `daterange` + `EXCLUDE USING gist` tetap bisa dipakai untuk mencegah dua reservasi di unit yang sama pada malam yang sama |
 | ORM | Drizzle (atau Prisma) | Migrasi bertipe |
-| Auth | Better Auth / Auth.js + **2FA** untuk staf; magic link untuk tamu | Demo tidak punya login |
-| Job & jadwal | Antrean job (mis. Inngest/BullMQ) | Hold kedaluwarsa, pengingat, sinkronisasi iCal, laporan terjadwal |
-| Realtime | SSE/WebSocket untuk papan hari ini dan housekeeping | Menghilangkan state usang (B1, B2) |
+| Auth | **Supabase Auth** (sudah termasuk di Supabase) atau Better Auth. Keduanya dengan **2FA** untuk staf dan magic link untuk tamu | Demo tidak punya login. Pilihan final di Fase 0 |
+| Job & jadwal | Antrean berbasis Postgres (`pg-boss`) atau `pg_cron` Supabase, dipicu cron Hostinger bila perlu | Tidak butuh Redis terpisah. Untuk hold kedaluwarsa, pengingat, sinkronisasi iCal, laporan terjadwal |
+| Realtime | **Supabase Realtime** untuk papan hari ini dan housekeeping | Menghilangkan state usang (B1, B2) |
 | Pembayaran | **Xendit** (diputuskan): QRIS, virtual account, e-wallet, dan kartu | Satu gateway untuk tamu domestik dan internasional. Rincian ada di bagian 3a |
 | Notifikasi | Email (Resend/SES) + **WhatsApp Business Cloud API** | WhatsApp adalah kanal utama di Indonesia |
 | File | Penyimpanan S3-compatible | Foto vila, foto housekeeping, dokumen ID tamu (terenkripsi) |
@@ -257,7 +258,8 @@ Channel manager, owner portal dan statement, harga dinamis (saran), jadwal sif, 
 
 1. ~~**Model bisnis:** satu brand atau SaaS multi-tenant?~~ **Diputuskan: satu brand dulu** (lihat bagian 3).
 2. ~~**Gateway pembayaran:** Xendit, Midtrans, atau Stripe?~~ **Diputuskan: Xendit**, dimulai dengan halaman pembayaran yang di-host Xendit (lihat bagian 3a).
-3. **Hosting:** VPS/cloud mana? (Vercel + Neon/Supabase, VPS sendiri, dll.)
+3. ~~**Hosting & database:** di mana?~~ **Diputuskan:** Hostinger Cloud (`be.attarahospitality.com` untuk development) + Supabase (Singapura). Repo di `github.com/rk909090/booking-engine-RK`.
+   - Perlu dicek saat deploy pertama: cara Hostinger menjalankan app Node.js (build, start command, versi Node) dan apakah koneksi dari Hostinger ke Supabase sebaiknya lewat connection pooler.
 4. **Lingkup MVP:** apakah Fase 1 (booking + bayar) cukup untuk peluncuran pertama, atau PMS (Fase 2) harus ikut?
 5. **Bahasa & mata uang:** cukup ID/EN dan IDR, atau perlu bahasa/mata uang tambahan sejak awal?
 6. **Klien pertama / data nyata:** apakah sudah ada properti nyata untuk uji coba, atau kita mulai dengan data contoh?
