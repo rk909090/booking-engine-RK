@@ -367,3 +367,66 @@ export const notificationOutbox = pgTable(
     index("notification_outbox_pending_idx").on(t.status, t.createdAt),
   ],
 );
+
+export const housekeepingState = pgEnum("housekeeping_state", ["dirty", "inspect", "ready"]);
+
+/**
+ * Recorded cleaning state of each unit. A unit without a row is treated as
+ * ready (newly added units). Occupancy and maintenance are not stored here:
+ * they come from reservations and unit_blocks.
+ */
+export const unitStatus = pgTable("unit_status", {
+  unitId: uuid("unit_id")
+    .primaryKey()
+    .references(() => units.id, { onDelete: "cascade" }),
+  state: housekeepingState("state").notNull().default("ready"),
+  note: text("note"),
+  updatedBy: text("updated_by"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Every change of a unit's cleaning state: who, when, from what to what. */
+export const housekeepingEvents = pgTable(
+  "housekeeping_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    unitId: uuid("unit_id")
+      .notNull()
+      .references(() => units.id, { onDelete: "cascade" }),
+    fromState: housekeepingState("from_state"),
+    toState: housekeepingState("to_state").notNull(),
+    actorType: text("actor_type").notNull(),
+    actorId: text("actor_id"),
+    note: text("note"),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("housekeeping_events_unit_idx").on(t.unitId, t.occurredAt)],
+);
+
+export const blockStatus = pgEnum("block_status", ["open", "resolved"]);
+
+/**
+ * A unit taken out of sale for [start_date, end_date), e.g. repairs.
+ * While open it hides the unit from availability and blocks new holds.
+ */
+export const unitBlocks = pgTable(
+  "unit_blocks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    unitId: uuid("unit_id")
+      .notNull()
+      .references(() => units.id, { onDelete: "cascade" }),
+    startDate: date("start_date", { mode: "string" }).notNull(),
+    endDate: date("end_date", { mode: "string" }).notNull(),
+    reason: text("reason").notNull(),
+    status: blockStatus("status").notNull().default("open"),
+    createdBy: text("created_by"),
+    resolvedBy: text("resolved_by"),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    check("unit_blocks_dates_ordered", sql`${t.endDate} > ${t.startDate}`),
+    index("unit_blocks_unit_idx").on(t.unitId, t.startDate),
+  ],
+);

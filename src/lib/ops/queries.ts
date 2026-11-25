@@ -2,7 +2,8 @@ import "server-only";
 import { and, asc, count, desc, eq, gte, ilike, inArray, lte, or, sql, type SQL } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
-import { isIsoDate } from "@/domain/dates";
+import { isIsoDate, todayIn } from "@/domain/dates";
+import { readiness } from "@/domain/housekeeping";
 import { canAccessProperty, hasGlobalScope, type Actor } from "@/lib/authz/permissions";
 
 /*
@@ -167,7 +168,7 @@ export async function calendarData(actor: Actor, propertySlug: string | undefine
   const db = getDb();
   const properties = await visibleProperties(actor);
   const property = properties.find((p) => p.slug === propertySlug) ?? properties[0];
-  if (!property) return { properties, property: null, units: [], stays: [] };
+  if (!property) return { properties, property: null, units: [], stays: [], blocks: [] };
 
   const [units, stays] = await Promise.all([
     db
@@ -198,7 +199,24 @@ export async function calendarData(actor: Actor, propertySlug: string | undefine
         ),
       ),
   ]);
-  return { properties, property, units, stays };
+  const blocks = await db
+    .select({
+      id: schema.unitBlocks.id,
+      unitId: schema.unitBlocks.unitId,
+      startDate: schema.unitBlocks.startDate,
+      endDate: schema.unitBlocks.endDate,
+      reason: schema.unitBlocks.reason,
+    })
+    .from(schema.unitBlocks)
+    .innerJoin(schema.units, eq(schema.units.id, schema.unitBlocks.unitId))
+    .where(
+      and(
+        eq(schema.units.propertyId, property.id),
+        eq(schema.unitBlocks.status, "open"),
+        sql`daterange(${schema.unitBlocks.startDate}, ${schema.unitBlocks.endDate}, '[)') && daterange(${from}::date, ${to}::date, '[)')`,
+      ),
+    );
+  return { properties, property, units, stays, blocks };
 }
 
 /** Today's figures for the staff home page, within the actor's scope. */
@@ -214,4 +232,104 @@ export async function todayCounts(actor: Actor, today: string) {
     .from(schema.reservations)
     .where(scope(actor));
   return row;
+}
+
+/** Every unit of one property with what it needs today, most urgent first. */
+export async function villaStatus(actor: Actor, propertySlug: string | undefined, now: Date) {
+  const db = getDb();
+  const properties = await visibleProperties(actor);
+  const property = properties.find((p) => p.slug === propertySlug) ?? properties[0];
+  if (!property) return { properties, property: null, today: "", units: [] };
+  const today = todayIn(property.timezone, now);
+
+  const [units, stays, blocks, lastEvents] = await Promise.all([
+    db
+      .select({
+        id: schema.units.id,
+        code: schema.units.code,
+        name: schema.units.name,
+        typeName: schema.unitTypes.name,
+        state: schema.unitStatus.state,
+        stateNote: schema.unitStatus.note,
+        stateAt: schema.unitStatus.updatedAt,
+      })
+      .from(schema.units)
+      .innerJoin(schema.unitTypes, eq(schema.unitTypes.id, schema.units.unitTypeId))
+      .leftJoin(schema.unitStatus, eq(schema.unitStatus.unitId, schema.units.id))
+      .where(and(eq(schema.units.propertyId, property.id), eq(schema.units.isActive, true)))
+      .orderBy(asc(schema.units.code)),
+    db
+      .select({
+        unitId: schema.reservations.unitId,
+        code: schema.reservations.code,
+        status: schema.reservations.status,
+        checkIn: schema.reservations.checkIn,
+        checkOut: schema.reservations.checkOut,
+        eta: schema.reservations.estimatedArrival,
+        guestName: schema.guests.fullName,
+      })
+      .from(schema.reservations)
+      .innerJoin(schema.guests, eq(schema.guests.id, schema.reservations.guestId))
+      .where(
+        and(
+          eq(schema.reservations.propertyId, property.id),
+          or(
+            eq(schema.reservations.status, "in_house"),
+            and(eq(schema.reservations.status, "confirmed"), eq(schema.reservations.checkIn, today)),
+          ),
+        ),
+      ),
+    db
+      .select()
+      .from(schema.unitBlocks)
+      .innerJoin(schema.units, eq(schema.units.id, schema.unitBlocks.unitId))
+      .where(and(eq(schema.units.propertyId, property.id), eq(schema.unitBlocks.status, "open"), gte(schema.unitBlocks.endDate, today)))
+      .orderBy(asc(schema.unitBlocks.startDate)),
+    db
+      .selectDistinctOn([schema.housekeepingEvents.unitId], {
+        unitId: schema.housekeepingEvents.unitId,
+        toState: schema.housekeepingEvents.toState,
+        actorId: schema.housekeepingEvents.actorId,
+        occurredAt: schema.housekeepingEvents.occurredAt,
+      })
+      .from(schema.housekeepingEvents)
+      .innerJoin(schema.units, eq(schema.units.id, schema.housekeepingEvents.unitId))
+      .where(eq(schema.units.propertyId, property.id))
+      .orderBy(schema.housekeepingEvents.unitId, desc(schema.housekeepingEvents.occurredAt)),
+  ]);
+
+  const staffNames = new Map(
+    (await db.select({ id: schema.staffMembers.id, name: schema.staffMembers.fullName }).from(schema.staffMembers)).map((s) => [s.id, s.name]),
+  );
+
+  const rows = units.map((u) => {
+    const inHouse = stays.find((s) => s.unitId === u.id && s.status === "in_house") ?? null;
+    const arrival = stays.find((s) => s.unitId === u.id && s.status === "confirmed" && s.checkIn === today) ?? null;
+    const unitBlocks = blocks.filter((b) => b.unit_blocks.unitId === u.id).map((b) => b.unit_blocks);
+    const blockToday = unitBlocks.find((b) => b.startDate <= today && today < b.endDate) ?? null;
+    const state = u.state ?? "ready";
+    const r = readiness({
+      state,
+      occupied: Boolean(inHouse),
+      blockedToday: Boolean(blockToday),
+      arrivalToday: Boolean(arrival),
+      departingToday: inHouse?.checkOut === today,
+    });
+    const last = lastEvents.find((e) => e.unitId === u.id) ?? null;
+    return {
+      ...u,
+      state,
+      readiness: r.readiness,
+      priority: r.priority,
+      needsAttention: r.needsAttention,
+      inHouse,
+      departingToday: inHouse?.checkOut === today,
+      arrival,
+      blockToday,
+      upcomingBlocks: unitBlocks.filter((b) => b !== blockToday),
+      lastChange: last ? { ...last, actorName: last.actorId ? (staffNames.get(last.actorId) ?? null) : null } : null,
+    };
+  });
+  rows.sort((a, b) => a.priority - b.priority || (a.arrival?.eta ?? "99").localeCompare(b.arrival?.eta ?? "99") || a.code.localeCompare(b.code));
+  return { properties, property, today, units: rows };
 }

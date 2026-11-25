@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { OpsNav, OpsShell } from "@/components/ops/ops-shell";
+import { OpsNav, OpsShell, NoAccess } from "@/components/ops/ops-shell";
 import { addDays, diffDays, isIsoDate, todayIn } from "@/domain/dates";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { format } from "@/i18n/format";
 import { formatDate } from "@/i18n/formatters";
 import { getDictionary, type Dictionary } from "@/i18n/get-dictionary";
 import { requireStaff } from "@/lib/auth/current-staff";
-import { authorize } from "@/lib/authz/permissions";
+import { can } from "@/lib/authz/permissions";
 import { calendarData, visibleProperties } from "@/lib/ops/queries";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/ops/calendar">): Promise<Metadata> {
@@ -52,7 +52,7 @@ async function TapeChart({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const staff = await requireStaff(lang);
-  authorize(staff.actor, "calendar.view");
+  if (!can(staff.actor, "calendar.view").allowed) return <NoAccess lang={lang} dict={dict} staff={staff} />;
   const sp = await searchParams;
   const t = dict.opsCalendar;
   const span = one(sp.days) === "30" ? 30 : 14;
@@ -142,6 +142,24 @@ async function TapeChart({
                   style={{ gridRow, gridColumn: i + 2 }}
                 />
               )),
+              ...data.blocks
+                .filter((b) => b.unitId === u.id)
+                .map((b) => {
+                  const start = Math.max(0, diffDays(from, b.startDate));
+                  const end = Math.min(span, diffDays(from, b.endDate));
+                  if (end <= start) return null;
+                  return (
+                    <div
+                      key={b.id}
+                      title={`${t.block}: ${b.reason}`}
+                      className="z-0 mx-0.5 my-1.5 truncate rounded-md border border-danger/30 bg-[repeating-linear-gradient(45deg,#f6e3e1,#f6e3e1_6px,#fbf1ef_6px,#fbf1ef_12px)] px-2 py-1 text-[11px] leading-tight text-danger"
+                      style={{ gridRow, gridColumn: `${start + 2} / ${end + 2}` }}
+                    >
+                      <span className="font-medium">{t.block}</span>
+                      <span className="block opacity-80">{b.reason}</span>
+                    </div>
+                  );
+                }),
               ...data.stays
                 .filter((s) => s.unitId === u.id)
                 .map((s) => {

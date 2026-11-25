@@ -249,7 +249,8 @@
     "home": "Home",
     "reservations": "Reservations",
     "calendar": "Calendar",
-    "menu": "Operations menu"
+    "menu": "Operations menu",
+    "villaStatus": "Villa status"
   },
   "resList": {
     "title": "Reservations",
@@ -349,7 +350,9 @@
       "not_found": "Reservation not found.",
       "balance_outstanding": "There is an unpaid balance. Confirm it was settled.",
       "invalid_amount": "The amount is invalid or more than the refund owed.",
-      "in_house": "The guest has checked in and is staying."
+      "in_house": "The guest has checked in and is staying.",
+      "unit_not_ready": "The villa is not ready: finish cleaning and inspection first.",
+      "unit_blocked": "The villa is under maintenance and cannot be occupied."
     },
     "activityTitle": "Activity",
     "noActivity": "No activity yet.",
@@ -379,12 +382,59 @@
     "next": "Next",
     "unit": "Unit",
     "hold": "Held",
-    "legend": "Legend"
+    "legend": "Legend",
+    "block": "Maintenance"
   },
   "opsHome": {
     "arrivals": "Arriving today",
     "departures": "Departing today",
     "inHouse": "In house",
     "refundsDue": "Refunds not yet paid"
+  },
+  "villaStatus": {
+    "title": "Villa status",
+    "intro": "Every villa today, most urgent first: arrivals whose villa is not ready, maintenance, then cleaning.",
+    "summary": "{attention} villas need attention · {ready} ready · {occupied} occupied",
+    "readiness": {
+      "maintenance": "Maintenance",
+      "occupied": "Occupied",
+      "dirty": "Needs cleaning",
+      "inspect": "Needs inspection",
+      "ready": "Ready"
+    },
+    "urgent": "Urgent",
+    "arrival": "Arriving today: {guest}",
+    "eta": "expected {time}",
+    "noEta": "arrival time not given",
+    "inHouse": "Staying: {guest} until {date}",
+    "departing": "Departing today",
+    "lastChange": "Last: {state} by {who}, {time}",
+    "someone": "staff",
+    "markCleaned": "Record as cleaned",
+    "markInspected": "Record inspection passed",
+    "failInspection": "Failed, clean again",
+    "markDirty": "Mark as needing cleaning",
+    "note": "Note (optional)",
+    "blockToday": "Out of order until {date}: {reason}",
+    "upcomingBlock": "Maintenance planned {from} – {to}: {reason}",
+    "resolve": "Maintenance finished",
+    "blockTitle": "Schedule maintenance",
+    "blockFrom": "From",
+    "blockTo": "Until (date the villa is usable again)",
+    "blockReason": "Reason",
+    "blockSubmit": "Block villa",
+    "done": "Saved.",
+    "errors": {
+      "not_found": "Villa not found.",
+      "role": "Your role cannot do this.",
+      "invalid_transition": "That step is out of order: clean first, then inspect.",
+      "occupied": "A guest is staying in this villa.",
+      "invalid_dates": "Invalid dates. Give a reason; the start cannot be in the past.",
+      "conflicts_with_bookings": "Bookings use those dates ({codes}). Move or cancel them first.",
+      "overlaps_block": "Maintenance is already planned for those dates.",
+      "already_resolved": "This maintenance is already finished."
+    },
+    "empty": "This property has no villas yet.",
+    "turnover": "Same-day turnover"
   }
 }

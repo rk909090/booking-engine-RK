@@ -3,7 +3,7 @@ import { lang as rootLang } from "next/root-params";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
-import { OpsNav, OpsShell, StatusBadge } from "@/components/ops/ops-shell";
+import { OpsNav, OpsShell, StatusBadge, NoAccess } from "@/components/ops/ops-shell";
 import { ErrorNote, SuccessNote } from "@/components/ui";
 import { loadStayFacts, stayActions, type ActionState } from "@/domain/operations";
 import { getDb } from "@/db/client";
@@ -12,7 +12,7 @@ import { format } from "@/i18n/format";
 import { formatDate, formatDateRange, formatMoney } from "@/i18n/formatters";
 import { getDictionary, type Dictionary } from "@/i18n/get-dictionary";
 import { requireStaff } from "@/lib/auth/current-staff";
-import { authorize, can, type Action } from "@/lib/authz/permissions";
+import { can, type Action } from "@/lib/authz/permissions";
 import { cancelAction, checkInAction, checkOutAction, noShowAction, refundAction } from "@/lib/ops/actions";
 import { getReservationForStaff } from "@/lib/ops/queries";
 
@@ -52,7 +52,7 @@ async function Detail({
   searchParams: Props["searchParams"];
 }) {
   const staff = await requireStaff(lang);
-  authorize(staff.actor, "reservation.view");
+  if (!can(staff.actor, "reservation.view").allowed) return <NoAccess lang={lang} dict={dict} staff={staff} />;
   const [{ code }, sp] = await Promise.all([params, searchParams]);
   const t = dict.resDetail;
   const data = await getReservationForStaff(staff.actor, code);

@@ -23,11 +23,12 @@ export function OpsShell({ lang, dict, children }: { lang: Locale; dict: Diction
   );
 }
 
-type NavKey = "home" | "reservations" | "calendar";
+type NavKey = "home" | "reservations" | "calendar" | "villaStatus";
 const items: Array<{ key: NavKey; href: string; action: Action }> = [
   { key: "home", href: "", action: "dashboard.view" },
   { key: "reservations", href: "/reservations", action: "reservation.view" },
   { key: "calendar", href: "/calendar", action: "calendar.view" },
+  { key: "villaStatus", href: "/villa-status", action: "villa_status.view" },
 ];
 
 /** Navigation for the signed-in staff member; items follow their role. */
@@ -76,4 +77,16 @@ export function StatusBadge({ status, label }: { status: string; label: string }
           ? "bg-danger/10 text-danger"
           : "bg-lagoon-soft text-lagoon";
   return <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${tone}`}>{label}</span>;
+}
+
+/** Shown instead of a page the signed-in role may not open. */
+export function NoAccess({ lang, dict, staff }: { lang: Locale; dict: Dictionary; staff: StaffProfile }) {
+  return (
+    <>
+      <OpsNav lang={lang} dict={dict} staff={staff} current="home" />
+      <p role="alert" className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+        {dict.resDetail.roleNotAllowed}
+      </p>
+    </>
+  );
 }

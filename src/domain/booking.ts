@@ -44,6 +44,11 @@ function unitIsFree(checkIn: string, checkOut: string, now: Date) {
         r.status IN ('confirmed', 'in_house', 'checked_out')
         OR (r.status = 'hold' AND r.hold_expires_at > ${now.toISOString()}::timestamptz)
       )
+  ) AND NOT EXISTS (
+    SELECT 1 FROM ${schema.unitBlocks} b
+    WHERE b.unit_id = ${schema.units.id}
+      AND b.status = 'open'
+      AND daterange(b.start_date, b.end_date, '[)') && daterange(${checkIn}::date, ${checkOut}::date, '[)')
   )`;
 }
 
@@ -260,6 +265,14 @@ export async function createHold(db: AnyDb, input: HoldInput): Promise<HoldResul
     for (const unitId of order) {
       try {
         const reservation = await tx.transaction(async (sp) => {
+          await sp.execute(sql`SELECT 1 FROM ${schema.units} WHERE id = ${unitId} FOR UPDATE`);
+          const blocked = await sp.execute(sql`
+            SELECT 1 FROM ${schema.unitBlocks} b
+            WHERE b.unit_id = ${unitId} AND b.status = 'open'
+              AND daterange(b.start_date, b.end_date, '[)') && daterange(${input.checkIn}::date, ${input.checkOut}::date, '[)')
+            LIMIT 1`);
+          const blockedRows = Array.isArray(blocked) ? blocked : (blocked as unknown as { rows: unknown[] }).rows;
+          if (blockedRows.length > 0) throw new UnitBlockedError();
           const [row] = await sp
             .insert(schema.reservations)
             .values({
@@ -316,7 +329,7 @@ export async function createHold(db: AnyDb, input: HoldInput): Promise<HoldResul
         });
         return { ok: true, reservation, quote } as const;
       } catch (error) {
-        if (sqlState(error) === EXCLUSION_VIOLATION) continue; // taken a moment ago; try the next unit
+        if (sqlState(error) === EXCLUSION_VIOLATION || error instanceof UnitBlockedError) continue; // taken or blocked a moment ago; try the next unit
         throw error;
       }
     }
@@ -329,6 +342,7 @@ export async function createHold(db: AnyDb, input: HoldInput): Promise<HoldResul
 }
 
 class SoldOutError extends Error {}
+class UnitBlockedError extends Error {}
 
 /** Records a payment that is waiting for the guest at the provider. */
 export async function createPendingPayment(
@@ -560,6 +574,9 @@ export async function availabilityCalendar(
             r.status IN ('confirmed', 'in_house', 'checked_out')
             OR (r.status = 'hold' AND r.hold_expires_at > ${now.toISOString()}::timestamptz)
           )
+      ) AND NOT EXISTS (
+        SELECT 1 FROM ${schema.unitBlocks} b
+        WHERE b.unit_id = u.id AND b.status = 'open' AND daterange(b.start_date, b.end_date, '[)') @> d::date
       ))::int AS free
     FROM generate_series(${input.from}::date, ${input.from}::date + (${input.days}::int - 1), interval '1 day') AS d
     LEFT JOIN ${schema.units} u ON u.unit_type_id = ${input.unitTypeId} AND u.is_active

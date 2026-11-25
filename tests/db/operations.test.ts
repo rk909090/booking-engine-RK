@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import * as schema from "@/db/schema";
 import { seedSampleData } from "@/db/seed-data";
 import { cancelReservation, createHold, createPendingPayment, recordPaymentPaid } from "@/domain/booking";
+import { changeUnitState } from "@/domain/housekeeping";
 import { checkIn, checkOut, markNoShow, recordRefundPayout, stayActions, type StayFacts } from "@/domain/operations";
 import { createTestDb, type TestDb } from "./test-db";
 
@@ -28,6 +29,9 @@ beforeAll(async () => {
 afterAll(async () => close());
 
 beforeEach(async () => {
+  await db.delete(schema.housekeepingEvents);
+  await db.delete(schema.unitStatus);
+  await db.delete(schema.unitBlocks);
   await db.delete(schema.notificationOutbox);
   await db.delete(schema.payments);
   await db.delete(schema.auditEvents);
@@ -72,6 +76,8 @@ describe("stayActions", () => {
     today: "2027-02-10",
     unitOccupiedByOther: false,
     refundOutstanding: 0,
+    unitState: "ready",
+    unitBlockedToday: false,
   };
 
   it("allows check-in only during the stay and when the unit is free", () => {
@@ -80,6 +86,9 @@ describe("stayActions", () => {
     expect(stayActions({ ...base, today: "2027-02-13" }).checkIn).toEqual({ allowed: false, reason: "after_departure" });
     expect(stayActions({ ...base, unitOccupiedByOther: true }).checkIn).toEqual({ allowed: false, reason: "unit_occupied" });
     expect(stayActions({ ...base, status: "hold" }).checkIn).toEqual({ allowed: false, reason: "not_confirmed" });
+    expect(stayActions({ ...base, unitState: "dirty" }).checkIn).toEqual({ allowed: false, reason: "unit_not_ready" });
+    expect(stayActions({ ...base, unitState: "inspect" }).checkIn).toEqual({ allowed: false, reason: "unit_not_ready" });
+    expect(stayActions({ ...base, unitBlockedToday: true }).checkIn).toEqual({ allowed: false, reason: "unit_blocked" });
   });
 
   it("allows a no-show only after the arrival day, and then not a cancellation", () => {
@@ -125,6 +134,17 @@ describe("front desk operations", () => {
       error: "unit_occupied",
     });
     await checkOut(db, { reservationId: first.id, actor: staff, now: at("2027-02-10") });
+    // Turnover: the villa must be cleaned and inspected before the next guest.
+    expect(await checkIn(db, { reservationId: second.id, actor: staff, now: at("2027-02-10") })).toEqual({
+      ok: false,
+      error: "unit_not_ready",
+    });
+    await changeUnitState(db, { unitId: unitIds[0], to: "inspect", actor: staff, now: at("2027-02-10") });
+    expect(await checkIn(db, { reservationId: second.id, actor: staff, now: at("2027-02-10") })).toEqual({
+      ok: false,
+      error: "unit_not_ready",
+    });
+    await changeUnitState(db, { unitId: unitIds[0], to: "ready", actor: staff, now: at("2027-02-10") });
     expect(await checkIn(db, { reservationId: second.id, actor: staff, now: at("2027-02-10") })).toEqual({ ok: true });
   });
 

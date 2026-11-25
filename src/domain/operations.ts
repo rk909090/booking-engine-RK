@@ -3,6 +3,7 @@ import { and, eq, ne, sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
 import { addDays, todayIn } from "./dates";
+import { openBlockToday, recordState, unitState, type HkState } from "./housekeeping";
 
 type AnyDb = PgDatabase<PgQueryResultHKT, typeof schema>;
 type Tx = Parameters<Parameters<AnyDb["transaction"]>[0]>[0];
@@ -19,6 +20,8 @@ export type BlockReason =
   | "before_arrival"
   | "after_departure"
   | "unit_occupied"
+  | "unit_not_ready"
+  | "unit_blocked"
   | "not_in_house"
   | "arrival_not_passed"
   | "use_no_show"
@@ -36,6 +39,10 @@ export type StayFacts = {
   /** Another reservation is currently in house in the same unit. */
   unitOccupiedByOther: boolean;
   refundOutstanding: number;
+  /** Recorded cleaning state of the unit. */
+  unitState: HkState;
+  /** An open maintenance block covers today. */
+  unitBlockedToday: boolean;
 };
 
 const ok: ActionState = { allowed: true };
@@ -55,7 +62,11 @@ export function stayActions(f: StayFacts) {
             ? no("after_departure")
             : f.unitOccupiedByOther
               ? no("unit_occupied")
-              : ok,
+              : f.unitBlockedToday
+                ? no("unit_blocked")
+                : f.unitState !== "ready"
+                  ? no("unit_not_ready")
+                  : ok,
     checkOut: f.status === "in_house" ? ok : no(final ? "final_status" : "not_in_house"),
     noShow:
       f.status !== "confirmed" ? notConfirmed : f.today <= f.checkIn ? no("arrival_not_passed") : ok,
@@ -115,13 +126,16 @@ export async function loadStayFacts(db: AnyDb | Tx, r: typeof schema.reservation
       ),
     )
     .limit(1);
+  const today = todayIn(timezone, now);
   return {
     status: r.status,
     checkIn: r.checkIn,
     checkOut: r.checkOut,
-    today: todayIn(timezone, now),
+    today,
     unitOccupiedByOther: Boolean(other),
     refundOutstanding: await refundOutstanding(db, r.id, r.refundAmount),
+    unitState: await unitState(db, r.unitId),
+    unitBlockedToday: Boolean(await openBlockToday(db, r.unitId, today)),
   } satisfies StayFacts;
 }
 
@@ -177,6 +191,8 @@ export async function checkOut(
       .update(schema.reservations)
       .set({ status: "checked_out", checkOut: newCheckOut, updatedAt: now })
       .where(eq(schema.reservations.id, row.r.id));
+    // The villa needs cleaning before the next guest.
+    await recordState(tx, row.r.unitId, await unitState(tx, row.r.unitId), "dirty", input.actor, `Check-out ${row.r.code}`, now);
     await audit(
       tx,
       row.r,

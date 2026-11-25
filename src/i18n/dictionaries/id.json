@@ -249,7 +249,8 @@
     "home": "Beranda",
     "reservations": "Reservasi",
     "calendar": "Kalender",
-    "menu": "Menu operasional"
+    "menu": "Menu operasional",
+    "villaStatus": "Status vila"
   },
   "resList": {
     "title": "Reservasi",
@@ -349,7 +350,9 @@
       "not_found": "Reservasi tidak ditemukan.",
       "balance_outstanding": "Masih ada sisa tagihan. Konfirmasi bahwa sudah diselesaikan.",
       "invalid_amount": "Jumlah tidak valid atau melebihi refund yang terutang.",
-      "in_house": "Tamu sudah check-in dan sedang menginap."
+      "in_house": "Tamu sudah check-in dan sedang menginap.",
+      "unit_not_ready": "Vila belum siap: selesaikan pembersihan dan inspeksi dulu.",
+      "unit_blocked": "Vila sedang dalam perawatan dan tidak bisa ditempati."
     },
     "activityTitle": "Aktivitas",
     "noActivity": "Belum ada aktivitas.",
@@ -379,12 +382,59 @@
     "next": "Berikutnya",
     "unit": "Unit",
     "hold": "Ditahan",
-    "legend": "Keterangan"
+    "legend": "Keterangan",
+    "block": "Perawatan"
   },
   "opsHome": {
     "arrivals": "Tiba hari ini",
     "departures": "Berangkat hari ini",
     "inHouse": "Sedang menginap",
     "refundsDue": "Refund belum dibayar"
+  },
+  "villaStatus": {
+    "title": "Status vila",
+    "intro": "Setiap vila hari ini, yang paling mendesak di atas: kedatangan yang vilanya belum siap, perawatan, lalu pembersihan.",
+    "summary": "{attention} vila perlu perhatian · {ready} siap · {occupied} terisi",
+    "readiness": {
+      "maintenance": "Perawatan",
+      "occupied": "Terisi",
+      "dirty": "Perlu dibersihkan",
+      "inspect": "Perlu inspeksi",
+      "ready": "Siap"
+    },
+    "urgent": "Mendesak",
+    "arrival": "Tiba hari ini: {guest}",
+    "eta": "perkiraan {time}",
+    "noEta": "jam tiba belum diketahui",
+    "inHouse": "Menginap: {guest} sampai {date}",
+    "departing": "Berangkat hari ini",
+    "lastChange": "Terakhir: {state} oleh {who}, {time}",
+    "someone": "staf",
+    "markCleaned": "Catat sudah dibersihkan",
+    "markInspected": "Catat lolos inspeksi",
+    "failInspection": "Tidak lolos, bersihkan lagi",
+    "markDirty": "Tandai perlu dibersihkan",
+    "note": "Catatan (opsional)",
+    "blockToday": "Tidak bisa dipakai sampai {date}: {reason}",
+    "upcomingBlock": "Perawatan terjadwal {from} – {to}: {reason}",
+    "resolve": "Perawatan selesai",
+    "blockTitle": "Jadwalkan perawatan",
+    "blockFrom": "Mulai",
+    "blockTo": "Selesai (tanggal vila bisa dipakai lagi)",
+    "blockReason": "Alasan",
+    "blockSubmit": "Blokir vila",
+    "done": "Tersimpan.",
+    "errors": {
+      "not_found": "Vila tidak ditemukan.",
+      "role": "Peran Anda tidak dapat melakukan ini.",
+      "invalid_transition": "Langkah ini tidak sesuai urutan: bersihkan, lalu inspeksi.",
+      "occupied": "Vila sedang ditempati tamu.",
+      "invalid_dates": "Tanggal tidak valid. Isi alasan, dan tanggal mulai tidak boleh di masa lalu.",
+      "conflicts_with_bookings": "Ada pesanan pada tanggal itu ({codes}). Pindahkan atau batalkan dulu.",
+      "overlaps_block": "Sudah ada perawatan pada tanggal yang sama.",
+      "already_resolved": "Perawatan ini sudah selesai."
+    },
+    "empty": "Belum ada vila di properti ini.",
+    "turnover": "Pergantian tamu hari ini"
   }
 }

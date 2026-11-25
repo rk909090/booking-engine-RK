@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { OpsNav, OpsShell, StatusBadge } from "@/components/ops/ops-shell";
+import { OpsNav, OpsShell, StatusBadge, NoAccess } from "@/components/ops/ops-shell";
 import * as schema from "@/db/schema";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { format } from "@/i18n/format";
 import { formatDateRange, formatMoney } from "@/i18n/formatters";
 import { getDictionary, type Dictionary } from "@/i18n/get-dictionary";
 import { requireStaff } from "@/lib/auth/current-staff";
-import { authorize } from "@/lib/authz/permissions";
+import { can } from "@/lib/authz/permissions";
 import { listReservations } from "@/lib/ops/queries";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/ops/reservations">): Promise<Metadata> {
@@ -47,7 +47,7 @@ async function ReservationList({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const staff = await requireStaff(lang);
-  authorize(staff.actor, "reservation.view");
+  if (!can(staff.actor, "reservation.view").allowed) return <NoAccess lang={lang} dict={dict} staff={staff} />;
   const sp = await searchParams;
   const t = dict.resList;
   const data = await listReservations(staff.actor, {
