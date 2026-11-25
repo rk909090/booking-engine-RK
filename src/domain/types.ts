@@ -30,6 +30,8 @@ export type PropertyContent = {
   tagline?: LocalizedText;
   description?: LocalizedText;
   location?: LocalizedText;
+  /** House rules guests agree to at pre-check-in; a general default is used until set. */
+  houseRules?: { id: string[]; en: string[] };
 };
 
 /** A discount on the nights' price: a share in basis points, or a fixed rupiah amount. */

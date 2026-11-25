@@ -6,12 +6,15 @@ import { Suspense, type ReactNode } from "react";
 import { OpsNav, OpsShell, StatusBadge, NoAccess } from "@/components/ops/ops-shell";
 import { CopyField } from "@/components/ops/copy-field";
 import { DiscountCard } from "@/components/ops/discount-card";
+import { PreCheckinGuests } from "@/components/ops/pre-checkin-card";
 import { TimeRequest, type TimeRequestView } from "@/components/ops/time-request";
 import { StayChange } from "@/components/ops/stay-change";
 import { ErrorNote, SuccessNote } from "@/components/ui";
 import { discountLimitBp } from "@/domain/discount";
 import { earlyCheckinStatus } from "@/domain/early-checkin";
 import { guaranteeDue } from "@/domain/guarantee";
+import { eraseExpiredDocuments, preCheckinView } from "@/domain/pre-checkin";
+import { diffDays } from "@/domain/dates";
 import { lateCheckoutStatus } from "@/domain/late-checkout";
 import { changeability, previewStayChange } from "@/domain/modify";
 import { loadStayFacts, stayActions, type ActionState } from "@/domain/operations";
@@ -105,6 +108,11 @@ async function Detail({
   const canCollect = can(staff.actor, "payment.record", r.propertyId).allowed;
   const canGuarantee = can(staff.actor, "reservation.guarantee", r.propertyId).allowed;
   const depositDue = guaranteeDue(r, facts.today);
+  // Document numbers past their retention are erased before the page shows anything.
+  await eraseExpiredDocuments(getDb(), facts.today);
+  const pre = await preCheckinView(getDb(), r.id);
+  const regionName = new Intl.DisplayNames([lang === "id" ? "id-ID" : "en-GB"], { type: "region" });
+  const ageAt = (birth: string, on: string) => Math.floor(diffDays(birth, on) / 365.25);
   const errorCode = typeof sp.error === "string" ? sp.error : null;
 
   // Change of dates / villa: the GET form puts the request in the URL.
@@ -233,6 +241,51 @@ async function Detail({
               <Item label={t.email} value={guest.email ?? t.none} />
               <Item label={t.phone} value={guest.phone ?? t.none} />
             </Grid>
+          </Card>
+
+          <Card title={dict.preCheckinStaff.title}>
+            {pre ? (
+              <div className="space-y-3 text-sm">
+                <p className="text-xs text-stone">{format(dict.preCheckinStaff.submitted, { time: fmt.format(pre.submittedAt) })}</p>
+                <Grid>
+                  <Item label={t.arrival} value={r.estimatedArrival?.slice(0, 5) ?? t.none} />
+                  <Item
+                    label={dict.preCheckinStaff.flight}
+                    value={
+                      pre.flightNumber
+                        ? `${pre.flightNumber}${pre.landingDate ? ` · ${formatDate(pre.landingDate, lang)}` : ""}${pre.landingTime ? ` ${pre.landingTime.slice(0, 5)}` : ""}`
+                        : t.none
+                    }
+                  />
+                </Grid>
+                {pre.transferRequested ? (
+                  <p className="rounded-lg border border-terracotta/40 bg-sand px-3 py-2 text-ink">
+                    <span className="font-medium">{dict.preCheckinStaff.transfer}</span>
+                    {pre.transferNote ? ` · ${pre.transferNote}` : ""}
+                  </p>
+                ) : null}
+                {pre.requests ? (
+                  <p className="rounded-lg bg-sand px-3 py-2 text-ink">
+                    <span className="font-medium">{t.requests}:</span> {pre.requests}
+                  </p>
+                ) : null}
+                <PreCheckinGuests
+                  lang={lang}
+                  code={r.code}
+                  canReveal={can(staff.actor, "reservation.check_in", r.propertyId).allowed}
+                  t={dict.preCheckinStaff}
+                  guests={pre.guests.map((g) => ({
+                    ...g,
+                    nationalityName: regionName.of(g.nationality) ?? g.nationality,
+                    birthDate: formatDate(g.birthDate, lang),
+                    age: ageAt(g.birthDate, r.checkIn),
+                  }))}
+                />
+                <p className="text-xs text-stone">{format(dict.preCheckinStaff.rulesAccepted, { time: fmt.format(pre.houseRulesAcceptedAt) })}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-stone">{dict.preCheckinStaff.none}</p>
+            )}
           </Card>
 
           <Card title={t.money}>

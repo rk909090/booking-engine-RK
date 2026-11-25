@@ -11,6 +11,9 @@ import * as schema from "@/db/schema";
 import { todayIn } from "@/domain/dates";
 import { guaranteeDue } from "@/domain/guarantee";
 import { guestLateCheckout } from "@/domain/late-checkout";
+import { preCheckinOpen, preCheckinView } from "@/domain/pre-checkin";
+import { PreCheckinForm } from "@/components/site/pre-checkin-form";
+import { countryOptions } from "@/lib/countries";
 import { refundOutstanding } from "@/domain/operations";
 import { balanceDue, cancellationOutcome } from "@/domain/pricing";
 import { hasLocale, type Locale } from "@/i18n/config";
@@ -76,6 +79,9 @@ async function BookingDetails({
       typeName: schema.unitTypes.name,
       propertyName: schema.properties.name,
       timezone: schema.properties.timezone,
+      checkInTime: schema.properties.checkInTime,
+      checkOutTime: schema.properties.checkOutTime,
+      propertyContent: schema.properties.content,
     })
     .from(schema.reservations)
     .innerJoin(schema.unitTypes, eq(schema.unitTypes.id, schema.reservations.unitTypeId))
@@ -88,6 +94,13 @@ async function BookingDetails({
   const balance = balanceDue(r);
   const depositDue = guaranteeDue(r, todayIn(row.timezone));
   const late = r.status === "confirmed" || r.status === "in_house" ? await guestLateCheckout(getDb(), r.id) : null;
+  const today = todayIn(row.timezone);
+  const preOpen = preCheckinOpen(r, today);
+  const pre = r.status === "confirmed" || r.status === "in_house" ? await preCheckinView(getDb(), r.id) : null;
+  const editingPre = preOpen && (!pre || sp.edit === "precheckin");
+  const houseRules = row.propertyContent.houseRules?.[lang]?.length
+    ? row.propertyContent.houseRules[lang]
+    : Object.values(dict.preCheckin.defaultRules).map((rule) => format(rule, { checkIn: row.checkInTime.slice(0, 5), checkOut: row.checkOutTime.slice(0, 5) }));
   const lateMessage = typeof sp.late === "string" ? (t.lateMessages as Record<string, string>)[sp.late] : undefined;
   const policyOutcome =
     r.status === "confirmed"
@@ -165,6 +178,55 @@ async function BookingDetails({
           <div className="sm:col-span-2 text-ink">{format(t.balanceOutstanding, { amount: formatMoney(balance, lang) })}</div>
         ) : null}
       </dl>
+
+      {preOpen || pre ? (
+        <section className="rounded-2xl border border-line p-5" aria-labelledby="pre-title">
+          <h2 id="pre-title" className="font-display text-xl text-lagoon">
+            {dict.preCheckin.title}
+          </h2>
+          {sp.precheckin === "saved" || sp.precheckin === "updated" ? <SuccessNote>{dict.preCheckin.saved}</SuccessNote> : null}
+          {editingPre ? (
+            <div className="mt-3 space-y-3">
+              <p className="text-sm text-stone">{dict.preCheckin.intro}</p>
+              <PreCheckinForm
+                lang={lang}
+                code={r.code}
+                token={token ?? ""}
+                adults={r.adults}
+                checkIn={r.checkIn}
+                today={today}
+                countries={countryOptions(lang)}
+                houseRules={houseRules}
+                t={dict.preCheckin}
+                saved={
+                  pre
+                    ? {
+                        arrivalTime: r.estimatedArrival?.slice(0, 5) ?? "",
+                        flightNumber: pre.flightNumber ?? "",
+                        landingDate: pre.landingDate ?? "",
+                        landingTime: pre.landingTime?.slice(0, 5) ?? "",
+                        transferRequested: pre.transferRequested,
+                        transferNote: pre.transferNote ?? "",
+                        requests: pre.requests ?? "",
+                        guests: pre.guests,
+                      }
+                    : null
+                }
+              />
+            </div>
+          ) : pre ? (
+            <div className="mt-2 space-y-2 text-sm text-ink">
+              <p>{format(dict.preCheckin.done, { guests: pre.guests.map((g) => g.fullName).join(", ") })}</p>
+              {pre.transferRequested ? <p className="text-stone">{dict.preCheckin.transferAsked}</p> : null}
+              {preOpen ? (
+                <Link href={`/${lang}/booking/${r.code}?t=${token}&edit=precheckin#pre-title`} className="inline-block text-lagoon underline-offset-4 hover:underline">
+                  {dict.preCheckin.edit}
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       {late ? (
         <section className="rounded-2xl border border-line p-5" aria-labelledby="late-title">

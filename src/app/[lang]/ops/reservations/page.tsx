@@ -180,6 +180,7 @@ async function ReservationList({
                     <StatusBadge status={r.status} label={dict.booking.status[r.status]} />
                     {r.refundOutstanding > 0 ? <span className="mt-1 block text-xs text-danger">{t.refundDue}</span> : null}
                     {r.requestPending ? <span className="mt-1 block text-xs text-terracotta-deep">{t.requestPending}</span> : null}
+                    {r.preCheckinDone && (r.status === "confirmed" || r.status === "in_house") ? <span className="mt-1 block text-xs text-lagoon">{t.preCheckinDone}</span> : null}
                     {deposit ? (
                       <span className={`mt-1 block text-xs ${deposit.overdue ? "text-danger" : "text-terracotta-deep"}`}>
                         {deposit.overdue ? t.depositOverdue : t.depositOpen}

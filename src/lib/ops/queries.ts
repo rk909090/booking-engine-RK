@@ -118,6 +118,7 @@ export async function listReservations(actor: Actor, filters: ReservationFilters
       depositAmount: schema.reservations.depositAmount,
       guarantee: schema.reservations.guarantee,
       requestPending,
+      preCheckinDone: sql<boolean>`EXISTS (SELECT 1 FROM ${schema.preCheckins} pc WHERE pc.reservation_id = ${schema.reservations.id})`,
       refundAmount: schema.reservations.refundAmount,
       refundPaid,
       guestName: schema.guests.fullName,

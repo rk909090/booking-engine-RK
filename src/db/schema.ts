@@ -520,3 +520,53 @@ export const earlyCheckinRequests = pgTable(
       .where(sql`${t.status} IN ('requested', 'approved')`),
   ],
 );
+
+/**
+ * Online pre-check-in filled in by the guest from their booking page before
+ * arrival (domain/pre-checkin.ts). One per booking; the guest can update it
+ * until the arrival day.
+ */
+export const preCheckins = pgTable("pre_checkins", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  reservationId: uuid("reservation_id")
+    .notNull()
+    .unique()
+    .references(() => reservations.id, { onDelete: "cascade" }),
+  flightNumber: text("flight_number"),
+  landingDate: date("landing_date", { mode: "string" }),
+  landingTime: time("landing_time"),
+  transferRequested: boolean("transfer_requested").notNull().default(false),
+  transferNote: text("transfer_note"),
+  requests: text("requests"),
+  houseRulesAcceptedAt: timestamp("house_rules_accepted_at", { withTimezone: true }).notNull(),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull(),
+  ...timestamps,
+});
+
+/**
+ * The adult guests named in a pre-check-in. Identity document numbers are
+ * encrypted (lib/crypto/guest-data.ts) and erased 30 days after check-out;
+ * the last four characters are kept beside them for display until then.
+ */
+export const preCheckinGuests = pgTable(
+  "pre_checkin_guests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    preCheckinId: uuid("pre_checkin_id")
+      .notNull()
+      .references(() => preCheckins.id, { onDelete: "cascade" }),
+    position: smallint("position").notNull(),
+    fullName: text("full_name").notNull(),
+    nationality: char("nationality", { length: 2 }).notNull(),
+    birthDate: date("birth_date", { mode: "string" }).notNull(),
+    documentType: text("document_type"),
+    documentNumberEnc: text("document_number_enc"),
+    documentLast4: text("document_last4"),
+    documentErasedAt: timestamp("document_erased_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    check("pre_checkin_guests_document_type", sql`${t.documentType} IS NULL OR ${t.documentType} IN ('passport', 'id_card')`),
+    uniqueIndex("pre_checkin_guests_position_idx").on(t.preCheckinId, t.position),
+  ],
+);

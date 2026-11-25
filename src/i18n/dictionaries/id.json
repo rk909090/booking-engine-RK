@@ -312,7 +312,8 @@
     },
     "depositOpen": "Deposit belum dibayar",
     "depositOverdue": "Deposit lewat tenggat",
-    "requestPending": "Permintaan menunggu"
+    "requestPending": "Permintaan menunggu",
+    "preCheckinDone": "Pre-check-in ✓"
   },
   "resDetail": {
     "back": "Semua reservasi",
@@ -440,7 +441,10 @@
       "reservation.discounted": "Diskon diberikan",
       "reservation.discount_removed": "Diskon dihapus",
       "reservation.guaranteed": "Dikonfirmasi tanpa deposit",
-      "reservation.pay_by_changed": "Tenggat deposit diubah"
+      "reservation.pay_by_changed": "Tenggat deposit diubah",
+      "pre_checkin.submitted": "Pre-check-in diisi tamu",
+      "pre_checkin.updated": "Pre-check-in diubah tamu",
+      "pre_checkin.documents_viewed": "Nomor dokumen tamu ditampilkan"
     },
     "actorGuest": "Tamu",
     "actorSystem": "Sistem",
@@ -828,5 +832,77 @@
     "vsStly": "Pendapatan vs tahun lalu",
     "lyFinal": "Hasil akhir tahun lalu",
     "paceLimit": "Catatan: booking yang tanggalnya diubah dihitung pada tanggal dan harga saat ini; malam tersedia memakai status vila saat ini."
+  },
+  "preCheckin": {
+    "title": "Pre-check-in online",
+    "intro": "Isi sebelum tiba agar check-in lebih cepat. Bisa diubah sampai hari kedatangan.",
+    "arrivalTitle": "Kedatangan",
+    "arrival": "Perkiraan jam tiba di vila",
+    "flight": "Nomor penerbangan (opsional)",
+    "landingDate": "Tanggal mendarat",
+    "landingTime": "Jam mendarat",
+    "transfer": "Saya ingin dijemput dari bandara",
+    "transferHint": "Tim kami akan menghubungi Anda untuk konfirmasi dan biayanya.",
+    "transferNote": "Catatan untuk penjemputan (opsional, mis. jumlah koper)",
+    "guestsTitle": "Data tamu dewasa ({count})",
+    "guestsHint": "Sesuai paspor atau KTP. Tamu warga negara asing wajib kami laporkan ke imigrasi.",
+    "guestN": "Tamu {n}",
+    "fields": {
+      "fullName": "Nama lengkap (sesuai dokumen)",
+      "nationality": "Kewarganegaraan",
+      "birthDate": "Tanggal lahir",
+      "documentType": "Jenis dokumen",
+      "documentNumber": "Nomor dokumen"
+    },
+    "choose": "Pilih",
+    "passport": "Paspor",
+    "idCard": "KTP / kartu identitas",
+    "docSaved": "Tersimpan (•••• {last4}). Kosongkan untuk tetap memakai nomor ini.",
+    "privacy": "Nomor dokumen disimpan terenkripsi, hanya dapat dilihat oleh petugas front office, dan dihapus otomatis 30 hari setelah check-out (atau segera bila pesanan dibatalkan). Dokumen asli tetap kami periksa saat check-in.",
+    "requests": "Permintaan & preferensi (opsional)",
+    "requestsHint": "Misalnya: tempat tidur bayi, alergi makanan, merayakan ulang tahun",
+    "rulesTitle": "Aturan vila",
+    "rulesAccept": "Saya telah membaca dan menyetujui aturan vila.",
+    "defaultRules": {
+      "times": "Check-in mulai pukul {checkIn}, check-out paling lambat pukul {checkOut}.",
+      "guests": "Jumlah tamu yang menginap sesuai dengan pesanan.",
+      "smoking": "Tidak merokok di dalam ruangan.",
+      "quiet": "Mohon jaga ketenangan setelah pukul 22.00.",
+      "damage": "Kerusakan atau kehilangan barang vila dapat dikenakan biaya."
+    },
+    "submit": "Kirim pre-check-in",
+    "update": "Simpan perubahan",
+    "working": "Menyimpan...",
+    "saved": "Terima kasih, pre-check-in Anda sudah tersimpan.",
+    "done": "Pre-check-in sudah diisi untuk: {guests}.",
+    "transferAsked": "Anda meminta penjemputan dari bandara; tim kami akan menghubungi Anda.",
+    "edit": "Ubah pre-check-in",
+    "errors": {
+      "guest": "Tamu {n}: periksa {field}.",
+      "guest_count": "Isi data untuk {count} tamu dewasa.",
+      "closed": "Pre-check-in sudah ditutup untuk pesanan ini.",
+      "rules_required": "Setujui aturan vila untuk melanjutkan.",
+      "arrival_time": "Jam tiba tidak valid.",
+      "flight": "Periksa nomor penerbangan dan tanggal/jam mendarat (paling cepat 2 hari sebelum check-in).",
+      "not_found": "Pesanan tidak ditemukan.",
+      "rate_limited": "Terlalu banyak percobaan. Coba lagi beberapa menit lagi."
+    }
+  },
+  "preCheckinStaff": {
+    "title": "Pre-check-in",
+    "none": "Tamu belum mengisi pre-check-in online. Tamu bisa mengisinya dari halaman booking sampai hari kedatangan.",
+    "submitted": "Diisi tamu {time}",
+    "flight": "Penerbangan",
+    "transfer": "Minta dijemput dari bandara",
+    "age": "{age} tahun ({date})",
+    "passport": "Paspor",
+    "idCard": "KTP",
+    "erased": "nomor sudah dihapus (masa simpan habis)",
+    "unreadable": "tidak dapat dibaca",
+    "reveal": "Tampilkan nomor dokumen",
+    "revealing": "Membuka...",
+    "revealHint": "Setiap kali ditampilkan, tercatat di log aktivitas.",
+    "roleNotAllowed": "Peran Anda tidak dapat melihat nomor dokumen.",
+    "rulesAccepted": "Aturan vila disetujui {time}"
   }
 }

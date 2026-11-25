@@ -8,6 +8,9 @@ import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
 import { cancelReservation, createHold, createPendingPayment, findGuestReservation, recordPaymentPaid } from "@/domain/booking";
 import { cancelLateCheckoutAsGuest, requestLateCheckoutAsGuest } from "@/domain/late-checkout";
+import { savePreCheckin, type PreCheckinError } from "@/domain/pre-checkin";
+import { sealGuestData } from "@/lib/crypto/guest-data";
+import { isCountryCode } from "@/lib/countries";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { closeCheckouts, openCheckouts } from "@/lib/payments/checkouts";
 import { getPaymentProvider, simulatorEnabled } from "@/lib/payments/provider";
@@ -201,4 +204,52 @@ export async function cancelLateCheckoutFromPortal(form: FormData) {
   if (!id) redirect(bookingPath(lang, code));
   const result = await cancelLateCheckoutAsGuest(getDb(), { reservationId: id });
   redirect(bookingPath(lang, code, `&late=${result.ok ? "withdrawn" : result.error}`));
+}
+
+export type PreCheckinFormState = {
+  error?: PreCheckinError;
+  /** Submitted values to show again after an error; document numbers are never sent back. */
+  values?: Record<string, string>;
+};
+
+/** Saves the guest's online pre-check-in from their booking page. */
+export async function savePreCheckinFromPortal(_prev: PreCheckinFormState, form: FormData): Promise<PreCheckinFormState> {
+  const lang = localeOf(form);
+  const { code, id } = await guestReservation(form);
+  if (!id) redirect(bookingPath(lang, code));
+  if (!allowRequest(`precheckin:${clientIp(await headers())}`, 20, 10 * 60_000)) return { error: { kind: "rate_limited" } };
+
+  const count = Math.min(20, Math.max(0, Number(text(form, "guestCount")) || 0));
+  const guests = Array.from({ length: count }, (_, i) => ({
+    fullName: text(form, `g${i}_name`).slice(0, 200),
+    nationality: text(form, `g${i}_nationality`).toUpperCase().slice(0, 2),
+    birthDate: text(form, `g${i}_birth`),
+    documentType: text(form, `g${i}_docType`),
+    documentNumber: text(form, `g${i}_docNumber`).slice(0, 40),
+  }));
+  const values: Record<string, string> = {};
+  for (const [key, value] of form.entries()) {
+    if (typeof value === "string" && !key.startsWith("$") && !/_docNumber$/.test(key) && key !== "t") values[key] = value.slice(0, 1000);
+  }
+  const badCountry = guests.findIndex((g) => !isCountryCode(g.nationality));
+  if (badCountry >= 0) return { error: { kind: "guest", index: badCountry, field: "nationality" }, values };
+
+  const result = await savePreCheckin(
+    getDb(),
+    {
+      reservationId: id,
+      arrivalTime: text(form, "arrival"),
+      flightNumber: text(form, "flight").slice(0, 20),
+      landingDate: text(form, "landingDate"),
+      landingTime: text(form, "landingTime"),
+      transferRequested: form.get("transfer") === "on",
+      transferNote: text(form, "transferNote"),
+      requests: text(form, "requests"),
+      acceptRules: form.get("rules") === "on",
+      guests,
+    },
+    sealGuestData,
+  );
+  if (!result.ok) return { error: result.error, values };
+  redirect(bookingPath(lang, code, `&precheckin=${result.updated ? "updated" : "saved"}`));
 }

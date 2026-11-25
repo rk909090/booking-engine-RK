@@ -312,7 +312,8 @@
     },
     "depositOpen": "Deposit unpaid",
     "depositOverdue": "Deposit overdue",
-    "requestPending": "Request waiting"
+    "requestPending": "Request waiting",
+    "preCheckinDone": "Pre-check-in ✓"
   },
   "resDetail": {
     "back": "All reservations",
@@ -440,7 +441,10 @@
       "reservation.discounted": "Discount given",
       "reservation.discount_removed": "Discount removed",
       "reservation.guaranteed": "Confirmed without deposit",
-      "reservation.pay_by_changed": "Deposit due date changed"
+      "reservation.pay_by_changed": "Deposit due date changed",
+      "pre_checkin.submitted": "Pre-check-in filled in by the guest",
+      "pre_checkin.updated": "Pre-check-in changed by the guest",
+      "pre_checkin.documents_viewed": "Guest document numbers shown"
     },
     "actorGuest": "Guest",
     "actorSystem": "System",
@@ -828,5 +832,77 @@
     "vsStly": "Revenue vs last year",
     "lyFinal": "Last year final",
     "paceLimit": "Note: bookings whose dates changed are counted on their current dates and price; available nights use the current villa status."
+  },
+  "preCheckin": {
+    "title": "Online pre-check-in",
+    "intro": "Fill this in before you arrive for a quicker check-in. You can change it until your arrival day.",
+    "arrivalTitle": "Arrival",
+    "arrival": "Expected arrival time at the villa",
+    "flight": "Flight number (optional)",
+    "landingDate": "Landing date",
+    "landingTime": "Landing time",
+    "transfer": "I would like an airport pick-up",
+    "transferHint": "Our team will contact you to confirm it and its price.",
+    "transferNote": "Note for the pick-up (optional, e.g. number of bags)",
+    "guestsTitle": "Adult guests ({count})",
+    "guestsHint": "As shown in the passport or ID card. We are required to report foreign guests to immigration.",
+    "guestN": "Guest {n}",
+    "fields": {
+      "fullName": "Full name (as on the document)",
+      "nationality": "Nationality",
+      "birthDate": "Date of birth",
+      "documentType": "Document type",
+      "documentNumber": "Document number"
+    },
+    "choose": "Choose",
+    "passport": "Passport",
+    "idCard": "National ID card",
+    "docSaved": "Saved (•••• {last4}). Leave empty to keep this number.",
+    "privacy": "Document numbers are stored encrypted, visible only to front office staff, and erased automatically 30 days after check-out (or right away if the booking is cancelled). We still check the original document at check-in.",
+    "requests": "Requests & preferences (optional)",
+    "requestsHint": "For example: baby cot, food allergies, celebrating a birthday",
+    "rulesTitle": "House rules",
+    "rulesAccept": "I have read and agree to the house rules.",
+    "defaultRules": {
+      "times": "Check-in from {checkIn}, check-out by {checkOut}.",
+      "guests": "The number of guests staying matches the booking.",
+      "smoking": "No smoking indoors.",
+      "quiet": "Please keep noise down after 10 pm.",
+      "damage": "Damage to or loss of villa items may be charged."
+    },
+    "submit": "Send pre-check-in",
+    "update": "Save changes",
+    "working": "Saving...",
+    "saved": "Thank you, your pre-check-in is saved.",
+    "done": "Pre-check-in completed for: {guests}.",
+    "transferAsked": "You asked for an airport pick-up; our team will contact you.",
+    "edit": "Change pre-check-in",
+    "errors": {
+      "guest": "Guest {n}: please check the {field}.",
+      "guest_count": "Please fill in {count} adult guests.",
+      "closed": "Pre-check-in is closed for this booking.",
+      "rules_required": "Please agree to the house rules to continue.",
+      "arrival_time": "The arrival time is not valid.",
+      "flight": "Please check the flight number and landing date/time (at most 2 days before check-in).",
+      "not_found": "Booking not found.",
+      "rate_limited": "Too many attempts. Please try again in a few minutes."
+    }
+  },
+  "preCheckinStaff": {
+    "title": "Pre-check-in",
+    "none": "The guest has not done the online pre-check-in. They can do it from their booking page until the arrival day.",
+    "submitted": "Filled in by the guest {time}",
+    "flight": "Flight",
+    "transfer": "Airport pick-up requested",
+    "age": "{age} years ({date})",
+    "passport": "Passport",
+    "idCard": "ID card",
+    "erased": "number erased (retention ended)",
+    "unreadable": "cannot be read",
+    "reveal": "Show document numbers",
+    "revealing": "Opening...",
+    "revealHint": "Each time they are shown, it is recorded in the activity log.",
+    "roleNotAllowed": "Your role cannot see document numbers.",
+    "rulesAccepted": "House rules accepted {time}"
   }
 }
