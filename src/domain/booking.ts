@@ -543,3 +543,32 @@ export async function findGuestReservation(db: AnyDb, code: string, email: strin
     .limit(1);
   return row ?? null;
 }
+
+/** Free units of a villa type for each night in [from, from + days). */
+export async function availabilityCalendar(
+  db: AnyDb,
+  input: { unitTypeId: string; from: string; days: number; now?: Date },
+): Promise<Array<{ date: string; free: number }>> {
+  const now = input.now ?? new Date();
+  const result = await db.execute<{ date: string; free: number }>(sql`
+    SELECT to_char(d, 'YYYY-MM-DD') AS date,
+      count(u.id) FILTER (WHERE NOT EXISTS (
+        SELECT 1 FROM ${schema.reservations} r
+        WHERE r.unit_id = u.id
+          AND daterange(r.check_in, r.check_out, '[)') @> d::date
+          AND (
+            r.status IN ('confirmed', 'in_house', 'checked_out')
+            OR (r.status = 'hold' AND r.hold_expires_at > ${now.toISOString()}::timestamptz)
+          )
+      ))::int AS free
+    FROM generate_series(${input.from}::date, ${input.from}::date + (${input.days}::int - 1), interval '1 day') AS d
+    LEFT JOIN ${schema.units} u ON u.unit_type_id = ${input.unitTypeId} AND u.is_active
+    GROUP BY d
+    ORDER BY d
+  `);
+  // postgres-js returns the rows as an array; PGlite wraps them in { rows }.
+  type Row = { date: string; free: number | string };
+  const raw = result as unknown;
+  const rows = (Array.isArray(raw) ? raw : (raw as { rows: Row[] }).rows) as Row[];
+  return rows.map((r) => ({ date: r.date, free: Number(r.free) }));
+}

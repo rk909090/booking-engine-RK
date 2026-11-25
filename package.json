@@ -16,7 +16,8 @@
     "db:seed": "tsx --env-file-if-exists=.env.local scripts/seed.ts",
     "db:check": "tsx --env-file-if-exists=.env.local scripts/db-check.ts",
     "db:bootstrap-sql": "tsx scripts/bootstrap-sql.ts",
-    "staff:invite": "tsx --env-file-if-exists=.env.local scripts/staff-invite.ts"
+    "staff:invite": "tsx --env-file-if-exists=.env.local scripts/staff-invite.ts",
+    "db:sample-content": "tsx --env-file-if-exists=.env.local scripts/sample-content.ts"
   },
   "dependencies": {
     "better-auth": "^1.7.28",

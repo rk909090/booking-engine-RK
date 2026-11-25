@@ -221,6 +221,11 @@ Repo, CI/CD, lingkungan staging, design system dan token, skema DB inti + migras
 Inventaris (cabang, tipe, unit), tarif dasar + musim + min-stay, pencarian dan kalender ketersediaan, halaman vila, checkout dengan hold 15 menit, pembayaran Xendit (deposit/penuh, webhook, hold kedaluwarsa otomatis), email + WA konfirmasi, portal tamu (lihat/batal), situs publik ID/EN, SEO dasar.
 **Selesai bila:** tamu bisa memesan dan membayar di staging dengan uang uji, uji konkurensi membuktikan tidak ada double-booking, dan pembatalan menghitung refund sesuai kebijakan.
 
+**Status (25 Nov 2026), bagian pertama Fase 1 selesai:**
+- Sudah dibangun dan diuji: tarif musiman + minimal menginap, pajak/service (0% sampai tarif resmi diisi), deposit 30% atau bayar penuh, hold 15 menit dengan percobaan ulang ke unit berikutnya, pencatatan pembayaran yang aman terhadap notifikasi ganda, pembatalan + perhitungan refund, pencarian, halaman vila dengan kalender ketersediaan, checkout, pembayaran simulasi, dan portal tamu (cari pesanan, lihat, batalkan). 68 tes otomatis lulus, dan alur tamu sudah diuji end-to-end di browser terhadap Supabase.
+- Belum: Xendit sungguhan (kode sudah ada tetapi belum diuji karena belum ada kunci uji), email/WhatsApp konfirmasi (pesan sudah diantrekan di `notification_outbox` tetapi belum dikirim), pembayaran refund otomatis (refund baru dicatat), job pembersih hold kedaluwarsa (tidak wajib untuk kebenaran data), SEO JSON-LD/sitemap, dan foto vila asli.
+- Temuan penting: koneksi transaction pooler Supabase (port 6543) membuat sebagian query macet di Next.js. Aplikasi harus memakai session pooler (port 5432).
+
 ### Fase 2: PMS Operasional (menyamai lalu melampaui demo)
 Dasbor per peran, papan Hari Ini realtime, reservasi manual, **ubah tanggal/pindah/upgrade**, check-in/out dengan folio, kalender drag-and-drop, Status Vila, PWA housekeeping, tiket maintenance, permintaan → tugas, log audit.
 **Selesai bila:** skenario demo (Kenji check-out → bersih → inspeksi → Sofia check-in) berjalan tanpa bug B1–B6, dan konflik late check-out terdeteksi otomatis.

@@ -1,0 +1,173 @@
+"use server";
+
+import { and, eq } from "drizzle-orm";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { brand } from "@/config/brand";
+import { getDb } from "@/db/client";
+import * as schema from "@/db/schema";
+import { cancelReservation, createHold, createPendingPayment, findGuestReservation, recordPaymentPaid } from "@/domain/booking";
+import { hasLocale, type Locale } from "@/i18n/config";
+import { getPaymentProvider, simulatorEnabled } from "@/lib/payments/provider";
+import { appUrl, bookingAccessToken, verifyBookingAccessToken } from "./access";
+import { allowRequest, clientIp } from "./rate-limit";
+
+export type StartBookingError =
+  | "sold_out"
+  | "too_many_guests"
+  | "invalid_guest"
+  | "unknown_unit_type"
+  | "quote"
+  | "agree"
+  | "payment"
+  | "rate_limited";
+
+export type StartBookingState = { error?: StartBookingError };
+
+function text(form: FormData, key: string): string {
+  const value = form.get(key);
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function localeOf(form: FormData): Locale {
+  const lang = text(form, "lang");
+  return hasLocale(lang) ? lang : "en";
+}
+
+function bookingPath(lang: Locale, code: string, extra = "") {
+  return `/${lang}/booking/${code}?t=${bookingAccessToken(code)}${extra}`;
+}
+
+/** Holds a villa, opens the payment and sends the guest to the payment page. */
+export async function startBooking(_prev: StartBookingState, form: FormData): Promise<StartBookingState> {
+  const lang = localeOf(form);
+  if (!allowRequest(`book:${clientIp(await headers())}`, 10, 10 * 60_000)) return { error: "rate_limited" };
+  if (form.get("agree") !== "on") return { error: "agree" };
+
+  const db = getDb();
+  const held = await createHold(db, {
+    unitTypeId: text(form, "unitTypeId"),
+    checkIn: text(form, "checkIn"),
+    checkOut: text(form, "checkOut"),
+    adults: Number(text(form, "adults")),
+    children: Number(text(form, "children") || "0"),
+    guest: {
+      fullName: text(form, "fullName"),
+      email: text(form, "email"),
+      phone: text(form, "phone") || null,
+      countryCode: text(form, "country").slice(0, 2) || null,
+    },
+    estimatedArrival: /^\d{2}:\d{2}$/.test(text(form, "arrival")) ? text(form, "arrival") : null,
+    specialRequests: text(form, "requests").slice(0, 2000) || null,
+    locale: lang,
+    source: "website",
+  });
+  if (!held.ok) return { error: held.error.kind };
+
+  const { reservation, quote } = held;
+  const returnUrl = new URL(bookingPath(lang, reservation.code), appUrl()).toString();
+  let checkoutUrl: string;
+  try {
+    const provider = getPaymentProvider();
+    const session = await provider.createCheckout(
+      {
+        amount: reservation.depositAmount,
+        currency: reservation.currency,
+        description: `${brand.name} · ${reservation.code}`,
+        customer: { name: text(form, "fullName"), email: text(form, "email"), phone: text(form, "phone") || null },
+        successUrl: returnUrl,
+        failureUrl: returnUrl,
+        expiresAt: reservation.holdExpiresAt ?? new Date(Date.now() + 15 * 60_000),
+        locale: lang,
+      },
+      appUrl(),
+    );
+    await createPendingPayment(db, {
+      reservationId: reservation.id,
+      provider: provider.name,
+      providerRef: session.providerRef,
+      purpose: quote.payInFull ? "full" : "deposit",
+      amount: reservation.depositAmount,
+      checkoutUrl: session.checkoutUrl,
+      expiresAt: session.expiresAt,
+    });
+    checkoutUrl = session.checkoutUrl;
+  } catch (error) {
+    console.error("[booking] payment start failed", reservation.code, error);
+    // Release the villa straight away rather than blocking it for the hold time.
+    await db
+      .update(schema.reservations)
+      .set({ status: "expired", updatedAt: new Date() })
+      .where(and(eq(schema.reservations.id, reservation.id), eq(schema.reservations.status, "hold")));
+    return { error: "payment" };
+  }
+  redirect(checkoutUrl);
+}
+
+async function findPendingSimulatedPayment(ref: string) {
+  const [row] = await getDb()
+    .select({ payment: schema.payments, code: schema.reservations.code })
+    .from(schema.payments)
+    .innerJoin(schema.reservations, eq(schema.reservations.id, schema.payments.reservationId))
+    .where(and(eq(schema.payments.provider, "simulated"), eq(schema.payments.providerRef, ref)))
+    .limit(1);
+  return row ?? null;
+}
+
+/** Simulator only: behaves like a successful provider notification. */
+export async function approveSimulatedPayment(form: FormData) {
+  const lang = localeOf(form);
+  if (!simulatorEnabled()) redirect(`/${lang}`);
+  const row = await findPendingSimulatedPayment(text(form, "ref"));
+  if (!row) redirect(`/${lang}/booking`);
+  if (row.payment.status === "pending") {
+    await recordPaymentPaid(getDb(), {
+      provider: "simulated",
+      providerRef: row.payment.providerRef,
+      amount: row.payment.amount,
+      paidAt: new Date(),
+      raw: { simulated: true },
+    });
+  }
+  redirect(bookingPath(lang, row.code));
+}
+
+/**
+ * Simulator only: a declined card. Like a real payment page, the same link
+ * stays usable for another attempt until the hold expires.
+ */
+export async function declineSimulatedPayment(form: FormData) {
+  const lang = localeOf(form);
+  if (!simulatorEnabled()) redirect(`/${lang}`);
+  const row = await findPendingSimulatedPayment(text(form, "ref"));
+  if (!row) redirect(`/${lang}/booking`);
+  redirect(bookingPath(lang, row.code, "&declined=1"));
+}
+
+export type LookupState = { notFound?: boolean; rateLimited?: boolean };
+
+/** Guest portal sign-in: code plus email, never shown in the URL. */
+export async function lookupBooking(_prev: LookupState, form: FormData): Promise<LookupState> {
+  const lang = localeOf(form);
+  if (!allowRequest(`lookup:${clientIp(await headers())}`, 20, 10 * 60_000)) return { rateLimited: true };
+  const found = await findGuestReservation(getDb(), text(form, "code"), text(form, "email"));
+  if (!found) return { notFound: true };
+  redirect(bookingPath(lang, found.reservation.code));
+}
+
+/** Guest cancels from their booking page, authorised by the signed link. */
+export async function cancelBookingAsGuest(form: FormData) {
+  const lang = localeOf(form);
+  const code = text(form, "code");
+  const token = text(form, "t");
+  if (!verifyBookingAccessToken(code, token) || form.get("confirm") !== "on") redirect(bookingPath(lang, code));
+  const [reservation] = await getDb()
+    .select({ id: schema.reservations.id })
+    .from(schema.reservations)
+    .where(eq(schema.reservations.code, code))
+    .limit(1);
+  if (reservation) {
+    await cancelReservation(getDb(), { reservationId: reservation.id, actor: { type: "guest" }, reason: "Cancelled by guest" });
+  }
+  redirect(bookingPath(lang, code));
+}

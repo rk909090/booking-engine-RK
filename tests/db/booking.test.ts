@@ -7,6 +7,7 @@ import {
   createHold,
   createPendingPayment,
   expireHolds,
+  availabilityCalendar,
   findGuestReservation,
   recordPaymentPaid,
   searchAvailability,
@@ -322,5 +323,20 @@ describe("findGuestReservation", () => {
     const { reservation: r } = await hold();
     expect((await findGuestReservation(db, r.code.toLowerCase(), "ANA@example.com"))?.reservation.id).toBe(r.id);
     expect(await findGuestReservation(db, r.code, "someone@example.com")).toBeNull();
+  });
+});
+
+describe("availabilityCalendar", () => {
+  it("counts free units per night, ignoring expired holds", async () => {
+    await hold({ checkIn: "2027-02-10", checkOut: "2027-02-12" });
+    await hold({ checkIn: "2027-02-11", checkOut: "2027-02-12", now: minutes(-30) }); // lapsed hold
+    const days = await availabilityCalendar(db, { unitTypeId: riverPavilion.id, from: "2027-02-09", days: 5, now: NOW });
+    expect(days).toEqual([
+      { date: "2027-02-09", free: 3 },
+      { date: "2027-02-10", free: 2 },
+      { date: "2027-02-11", free: 2 },
+      { date: "2027-02-12", free: 3 },
+      { date: "2027-02-13", free: 3 },
+    ]);
   });
 });
