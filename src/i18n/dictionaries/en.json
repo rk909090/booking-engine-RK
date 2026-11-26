@@ -80,7 +80,13 @@
     "units": "{count} units",
     "noProperties": "No properties have been assigned to you yet.",
     "signOut": "Sign out",
-    "security": "Account security"
+    "security": "Account security",
+    "picker": {
+      "label": "Property",
+      "search": "Search properties",
+      "closed": "Closed",
+      "noMatch": "No property matches."
+    }
   },
   "security": {
     "title": "Two-step verification",
@@ -343,7 +349,9 @@
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "language": "Bahasa Indonesia",
-    "account": "Account"
+    "account": "Account",
+    "accountMenu": "Account menu",
+    "languageTitle": "Language"
   },
   "resList": {
     "title": "Reservations",
@@ -2041,7 +2049,10 @@
     "forwardTitle": "Occupancy, next 14 nights",
     "forwardTable": "Occupancy by night",
     "forwardColumn": "Occupancy",
-    "reportsLink": "Open reports"
+    "reportsLink": "Open reports",
+    "prepareTitle": "Villas to prepare for today's arrivals",
+    "prepareEmpty": "Every villa with a guest arriving today is ready.",
+    "prepareLink": "Open villa status"
   },
   "panel": {
     "close": "Close",
@@ -2613,6 +2624,11 @@
         "turnOff": "Stop requiring 2FA",
         "turnOn": "Require 2FA for everyone"
       }
-    }
+    },
+    "groups": {
+      "property": "Property",
+      "group": "Whole group"
+    },
+    "section": "Section"
   }
 }

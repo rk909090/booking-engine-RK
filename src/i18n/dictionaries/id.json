@@ -80,7 +80,13 @@
     "units": "{count} unit",
     "noProperties": "Belum ada properti yang ditugaskan ke Anda.",
     "signOut": "Keluar",
-    "security": "Keamanan akun"
+    "security": "Keamanan akun",
+    "picker": {
+      "label": "Properti",
+      "search": "Cari properti",
+      "closed": "Tertutup",
+      "noMatch": "Tidak ada properti yang cocok."
+    }
   },
   "security": {
     "title": "Verifikasi dua langkah",
@@ -343,7 +349,9 @@
     "openMenu": "Buka menu",
     "closeMenu": "Tutup menu",
     "language": "English",
-    "account": "Akun"
+    "account": "Akun",
+    "accountMenu": "Menu akun",
+    "languageTitle": "Bahasa"
   },
   "resList": {
     "title": "Reservasi",
@@ -2041,7 +2049,10 @@
     "forwardTitle": "Okupansi 14 malam ke depan",
     "forwardTable": "Okupansi per malam",
     "forwardColumn": "Okupansi",
-    "reportsLink": "Buka laporan"
+    "reportsLink": "Buka laporan",
+    "prepareTitle": "Vila yang perlu disiapkan untuk tamu hari ini",
+    "prepareEmpty": "Semua vila untuk tamu yang tiba hari ini sudah siap.",
+    "prepareLink": "Buka status vila"
   },
   "panel": {
     "close": "Tutup",
@@ -2613,6 +2624,11 @@
         "turnOff": "Jangan wajibkan 2FA",
         "turnOn": "Wajibkan 2FA untuk semua"
       }
-    }
+    },
+    "groups": {
+      "property": "Properti",
+      "group": "Seluruh grup"
+    },
+    "section": "Bagian"
   }
 }

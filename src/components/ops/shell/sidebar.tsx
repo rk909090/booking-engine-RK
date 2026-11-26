@@ -36,6 +36,8 @@ export async function Sidebar({ lang, dict }: { lang: Locale; dict: Dictionary }
         security: dict.ops.security,
         signOut: dict.ops.signOut,
         language: t.language,
+        accountMenu: t.accountMenu,
+        languageTitle: t.languageTitle,
       }}
     />
   );

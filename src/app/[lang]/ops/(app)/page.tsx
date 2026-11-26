@@ -18,7 +18,8 @@ import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import { BarChart } from "@/components/ops/bar-chart";
 import { GuestBadges } from "@/components/ops/guest-badges";
-import { Card, CardLink, PageHeader, Pill, primaryButton, Segmented } from "@/components/ops/ui";
+import { PropertyPicker } from "@/components/ops/property-picker";
+import { Card, CardLink, PageHeader, Pill, primaryButton } from "@/components/ops/ui";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { format } from "@/i18n/format";
 import { formatDate, formatMoney } from "@/i18n/formatters";
@@ -84,13 +85,15 @@ async function Dashboard({ lang, dict, searchParams }: { lang: Locale; dict: Dic
     <PageHeader
       eyebrow={formatDate(d.today, lang, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
       title={greeting}
-      description={`${dict.ops.roles[staff.role]} · ${d.selected?.name ?? t.allProperties}`}
+      description={`${dict.ops.roles[staff.role]} · ${d.selected?.name ?? (d.properties.length === 1 ? d.properties[0].name : t.allProperties)}`}
       actions={
         <>
           {d.properties.length > 1 ? (
-            <Segmented
-              label={dict.ops.allProperties}
-              items={[{ href: base, label: t.allProperties, active: !d.selected }, ...d.properties.map((p) => ({ href: `${base}?property=${p.slug}`, label: p.name, active: d.selected?.id === p.id }))]}
+            <PropertyPicker
+              label={dict.ops.picker.label}
+              t={dict.ops.picker}
+              all={{ href: base, label: t.allProperties, active: !d.selected }}
+              options={d.properties.map((p) => ({ href: `${base}?property=${p.slug}`, label: p.name, active: d.selected?.id === p.id, closed: !p.isActive }))}
             />
           ) : null}
           {can(staff.actor, "reservation.create").allowed ? (
@@ -145,6 +148,113 @@ async function Dashboard({ lang, dict, searchParams }: { lang: Locale; dict: Dic
     { key: "dirty", count: d.villaSummary.dirty, color: "bg-terracotta-deep" },
     { key: "maintenance", count: d.villaSummary.maintenance, color: "bg-danger" },
   ];
+
+  const attentionCard = (
+    <Card title={t.attention}>
+      {attention.length ? (
+        <ul className="-my-1 space-y-1">
+          {attention.map((a) => (
+            <li key={a.key}>
+              <Link href={a.href} className="group flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-sand/50">
+                <span className={`grid size-9 shrink-0 place-items-center rounded-lg ${a.tone === "bad" ? "bg-danger/10 text-danger" : "bg-terracotta/15 text-terracotta-deep"}`}>
+                  <a.icon className="size-[18px]" aria-hidden />
+                </span>
+                <span className="min-w-0 flex-1 text-sm text-ink">{a.label}</span>
+                <span className={`text-lg font-semibold tabular-nums ${a.tone === "bad" ? "text-danger" : "text-terracotta-deep"}`}>{a.count}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="flex items-center gap-2 text-sm text-success">
+          <CircleCheck className="size-5" aria-hidden />
+          {t.allClear}
+        </p>
+      )}
+    </Card>
+  );
+
+  const villasCard =
+    d.sees.villas && d.villaSummary.total ? (
+      
+          <Card title={t.villasTitle} action={<CardLink href={withProperty("/villa-status")}>{t.villasLink}</CardLink>}>
+            <div className="flex h-2.5 overflow-hidden rounded-full bg-sand" aria-hidden>
+              {villaBars.map((b) => (b.count ? <div key={b.key} className={b.color} style={{ width: `${(b.count / d.villaSummary.total) * 100}%` }} /> : null))}
+            </div>
+            <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              {villaBars.map((b) => (
+                <li key={b.key} className="flex items-center gap-2">
+                  <span aria-hidden className={`size-2.5 rounded-full ${b.color}`} />
+                  <span className="flex-1 text-stone">{states[b.key]}</span>
+                  <span className="font-semibold tabular-nums text-ink">{b.count}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+    ) : null;
+
+  const tasksCard = d.sees.tasks ? (
+    
+          <Card title={`${t.tasksTitle} · ${format(t.tasksOpen, { count: d.taskSummary.open })}`} action={<CardLink href={withProperty("/tasks")}>{t.tasksLink}</CardLink>}>
+            <dl className="grid grid-cols-3 gap-3 text-center">
+              <Mini label={t.tasksDueToday} value={d.taskSummary.dueToday} />
+              <Mini label={t.tasksLate} value={d.taskSummary.late} bad={d.taskSummary.late > 0} />
+              <Mini label={t.tasksUnassigned} value={d.taskSummary.unassigned} warn={d.taskSummary.unassigned > 0} />
+            </dl>
+          </Card>
+  ) : null;
+
+  // Roles without bookings (housekeeping) start from the villas to get ready.
+  const prepareCard = d.sees.villas ? (
+    <Card title={`${t.prepareTitle} · ${d.notReady.length}`} action={<CardLink href={withProperty("/villa-status")}>{t.prepareLink}</CardLink>} bodyClassName="">
+      {d.notReady.length ? (
+        <ul className="divide-y divide-line/70">
+          {d.notReady.map((u) => (
+            <li key={u.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
+              <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-lg bg-danger/10 text-danger">
+                <BedDouble className="size-[18px]" />
+              </span>
+              <span className="min-w-0 flex-1 basis-40">
+                <span className="block text-sm font-medium text-ink">{u.code}</span>
+                <span className="block text-xs text-stone">
+                  {u.typeName} · {u.propertyName}
+                </span>
+              </span>
+              <span className="flex flex-wrap items-center gap-2 pl-[52px] sm:pl-0">
+                <span className="text-xs text-stone">{u.arrival?.eta ? format(t.eta, { time: u.arrival.eta.slice(0, 5) }) : t.etaUnknown}</span>
+                <Pill tone="bad">{states[u.readiness]}</Pill>
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="flex items-center gap-2 px-5 py-6 text-sm text-success">
+          <CircleCheck className="size-5" aria-hidden />
+          {t.prepareEmpty}
+        </p>
+      )}
+    </Card>
+  ) : null;
+
+  if (!d.sees.reservations) {
+    return (
+      <>
+        {header}
+        <div className="grid items-start gap-6 xl:grid-cols-3">
+          <div className="space-y-6 xl:col-span-2">
+            {prepareCard}
+            {villasCard || tasksCard ? (
+              <div className="grid gap-6 md:grid-cols-2">
+                {villasCard}
+                {tasksCard}
+              </div>
+            ) : null}
+          </div>
+          {attentionCard}
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -207,59 +317,15 @@ async function Dashboard({ lang, dict, searchParams }: { lang: Locale; dict: Dic
         </div>
 
         <div className="space-y-6">
-          <Card title={t.attention}>
-            {attention.length ? (
-              <ul className="-my-1 space-y-1">
-                {attention.map((a) => (
-                  <li key={a.key}>
-                    <Link href={a.href} className="group flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-sand/50">
-                      <span className={`grid size-9 shrink-0 place-items-center rounded-lg ${a.tone === "bad" ? "bg-danger/10 text-danger" : "bg-terracotta/15 text-terracotta-deep"}`}>
-                        <a.icon className="size-[18px]" aria-hidden />
-                      </span>
-                      <span className="min-w-0 flex-1 text-sm text-ink">{a.label}</span>
-                      <span className={`text-lg font-semibold tabular-nums ${a.tone === "bad" ? "text-danger" : "text-terracotta-deep"}`}>{a.count}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="flex items-center gap-2 text-sm text-success">
-                <CircleCheck className="size-5" aria-hidden />
-                {t.allClear}
-              </p>
-            )}
-          </Card>
+          {attentionCard}
 
         </div>
       </div>
 
       <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {d.sees.villas && d.villaSummary.total ? (
-          <Card title={t.villasTitle} action={<CardLink href={withProperty("/villa-status")}>{t.villasLink}</CardLink>}>
-            <div className="flex h-2.5 overflow-hidden rounded-full bg-sand" aria-hidden>
-              {villaBars.map((b) => (b.count ? <div key={b.key} className={b.color} style={{ width: `${(b.count / d.villaSummary.total) * 100}%` }} /> : null))}
-            </div>
-            <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-              {villaBars.map((b) => (
-                <li key={b.key} className="flex items-center gap-2">
-                  <span aria-hidden className={`size-2.5 rounded-full ${b.color}`} />
-                  <span className="flex-1 text-stone">{states[b.key]}</span>
-                  <span className="font-semibold tabular-nums text-ink">{b.count}</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        ) : null}
+        {villasCard}
 
-        {d.sees.tasks ? (
-          <Card title={`${t.tasksTitle} · ${format(t.tasksOpen, { count: d.taskSummary.open })}`} action={<CardLink href={withProperty("/tasks")}>{t.tasksLink}</CardLink>}>
-            <dl className="grid grid-cols-3 gap-3 text-center">
-              <Mini label={t.tasksDueToday} value={d.taskSummary.dueToday} />
-              <Mini label={t.tasksLate} value={d.taskSummary.late} bad={d.taskSummary.late > 0} />
-              <Mini label={t.tasksUnassigned} value={d.taskSummary.unassigned} warn={d.taskSummary.unassigned > 0} />
-            </dl>
-          </Card>
-        ) : null}
+        {tasksCard}
         {d.counts ? (
           <BarChart
             title={t.forwardTitle}

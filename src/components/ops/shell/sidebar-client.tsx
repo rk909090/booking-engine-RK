@@ -6,6 +6,7 @@ import {
   CalendarCheck2,
   CalendarRange,
   ChartColumn,
+  ChevronsUpDown,
   ClipboardList,
   KeyRound,
   Landmark,
@@ -57,6 +58,9 @@ export type SidebarLabels = {
   security: string;
   signOut: string;
   language: string;
+  accountMenu: string;
+  /** "Language" / "Bahasa"; `language` is the other language's own name. */
+  languageTitle: string;
 };
 
 function initials(name: string) {
@@ -85,6 +89,9 @@ export function SidebarClient({
   const mobileOpen = openOn === pathname;
   const setMobileOpen = (open: boolean) => setOpenOn(open ? pathname : null);
   const [signingOut, setSigningOut] = useState(false);
+  // The account menu, like the phone menu, closes when the page changes.
+  const [accountOn, setAccountOn] = useState<string | null>(null);
+  const accountOpen = accountOn === pathname;
   const base = `/${lang}/ops`;
 
   // Escape closes the phone menu; the page behind does not scroll while it is open.
@@ -98,6 +105,21 @@ export function SidebarClient({
       document.body.style.overflow = "";
     };
   }, [mobileOpen]);
+
+  // Escape or a click elsewhere closes the account menu.
+  useEffect(() => {
+    if (!accountOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setAccountOn(null);
+    const onDown = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest("[data-account-menu]")) setAccountOn(null);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, [accountOpen]);
 
   const toggle = () => {
     const next = !collapsed;
@@ -169,31 +191,58 @@ export function SidebarClient({
       </nav>
 
       <div className="shrink-0 border-t border-white/10 p-3">
-        <div className={`flex items-center gap-3 ${compact ? "justify-center" : "px-1"}`} title={compact ? `${user.name} · ${user.role}` : undefined}>
-          <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-white/12 text-sm font-semibold text-ivory">
-            {initials(user.name)}
-          </span>
-          {compact ? null : (
-            <span className="min-w-0 leading-tight">
-              <span className="block truncate text-sm font-medium text-ivory">{user.name}</span>
-              <span className="block truncate text-xs text-ivory/60">{user.role}</span>
+        {/* Account security, language and sign-out live in a small menu on the user's name. */}
+        <div data-account-menu className="relative">
+          <button
+            type="button"
+            onClick={() => setAccountOn(accountOpen ? null : pathname)}
+            aria-expanded={accountOpen}
+            aria-haspopup="menu"
+            title={compact ? `${user.name} · ${user.role}` : labels.accountMenu}
+            className={`flex w-full items-center gap-3 rounded-lg py-1.5 text-left hover:bg-white/8 ${compact ? "justify-center px-1" : "px-1.5"} ${accountOpen ? "bg-white/8" : ""}`}
+          >
+            <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-white/12 text-sm font-semibold text-ivory">
+              {initials(user.name)}
             </span>
-          )}
-        </div>
-        <div className={`mt-3 flex gap-1 ${compact ? "flex-col items-center" : ""}`}>
-          <Link href={`${base}/security`} title={labels.security} className="flex flex-1 items-center justify-center gap-2 rounded-lg px-2 py-1.5 text-xs text-ivory/75 hover:bg-white/8 hover:text-ivory">
-            <KeyRound className="size-4" aria-hidden />
-            {compact ? <span className="sr-only">{labels.security}</span> : <span className="truncate">{labels.security}</span>}
-          </Link>
-          {/* A full load, so the page is rendered again in the other language. */}
-          <a href={otherLangHref} hrefLang={otherLang} title={labels.language} className="flex items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs text-ivory/75 hover:bg-white/8 hover:text-ivory">
-            <Languages className="size-4" aria-hidden />
-            <span className={compact ? "sr-only" : "uppercase"}>{compact ? labels.language : otherLang}</span>
-          </a>
-          <button type="button" onClick={signOut} disabled={signingOut} title={labels.signOut} className="flex items-center justify-center gap-2 rounded-lg px-2 py-1.5 text-xs text-ivory/75 hover:bg-white/8 hover:text-ivory disabled:opacity-60">
-            <LogOut className="size-4" aria-hidden />
-            <span className="sr-only">{labels.signOut}</span>
+            {compact ? (
+              <span className="sr-only">{labels.accountMenu}</span>
+            ) : (
+              <>
+                <span className="min-w-0 flex-1 leading-tight">
+                  <span className="block truncate text-sm font-medium text-ivory">{user.name}</span>
+                  <span className="block truncate text-xs text-ivory/60">{user.role}</span>
+                </span>
+                <ChevronsUpDown className="size-4 shrink-0 text-ivory/50" aria-hidden />
+              </>
+            )}
           </button>
+          {accountOpen ? (
+            <div
+              role="menu"
+              aria-label={labels.accountMenu}
+              className={`absolute z-50 w-60 rounded-xl border border-line bg-white p-1.5 text-ink shadow-2xl ${compact ? "bottom-0 left-full ml-3" : "bottom-full left-0 mb-2"}`}
+            >
+              <div className="border-b border-line/70 px-3 pb-2 pt-1.5">
+                <p className="truncate text-sm font-medium">{user.name}</p>
+                <p className="truncate text-xs text-stone">{user.role}</p>
+              </div>
+              <Link role="menuitem" href={`${base}/security`} className="mt-1 flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-sand/60">
+                <KeyRound className="size-4 text-stone" aria-hidden />
+                {labels.security}
+              </Link>
+              {/* A full load, so the page is rendered again in the other language. */}
+              <a role="menuitem" href={otherLangHref} hrefLang={otherLang} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-sand/60">
+                <Languages className="size-4 text-stone" aria-hidden />
+                <span className="flex-1">{labels.languageTitle}</span>
+                <span className="whitespace-nowrap text-xs text-stone">{labels.language}</span>
+              </a>
+              <div className="my-1 border-t border-line/70" aria-hidden />
+              <button role="menuitem" type="button" onClick={signOut} disabled={signingOut} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-danger hover:bg-danger/5 disabled:opacity-60">
+                <LogOut className="size-4" aria-hidden />
+                {labels.signOut}
+              </button>
+            </div>
+          ) : null}
         </div>
         {onPhone ? null : (
           <button

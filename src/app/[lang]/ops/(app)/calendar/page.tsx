@@ -5,7 +5,8 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { NoAccess } from "@/components/ops/ops-shell";
 import { addDays, diffDays, isIsoDate, todayIn } from "@/domain/dates";
-import { filterClass, PageHeader, secondaryButton, Segmented } from "@/components/ops/ui";
+import { filterClass, PageHeader, secondaryButton } from "@/components/ops/ui";
+import { PropertyPicker } from "@/components/ops/property-picker";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { format } from "@/i18n/format";
 import { formatDate } from "@/i18n/formatters";
@@ -99,7 +100,7 @@ async function TapeChart({
         description={t.intro}
         actions={
           data.properties.length > 1 ? (
-            <Segmented label={dict.ops.allProperties} items={data.properties.map((p) => ({ href: link({ property: p.slug }), label: p.name, active: p.slug === data.property?.slug }))} />
+            <PropertyPicker label={dict.ops.picker.label} t={dict.ops.picker} options={data.properties.map((p) => ({ href: link({ property: p.slug }), label: p.name, active: p.slug === data.property?.slug, closed: !p.isActive }))} />
           ) : null
         }
       />

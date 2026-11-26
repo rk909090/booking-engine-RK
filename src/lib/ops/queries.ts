@@ -52,6 +52,7 @@ export async function visibleProperties(actor: Actor) {
       id: schema.properties.id,
       slug: schema.properties.slug,
       name: schema.properties.name,
+      isActive: schema.properties.isActive,
       timezone: schema.properties.timezone,
       checkInTime: schema.properties.checkInTime,
       checkOutTime: schema.properties.checkOutTime,
