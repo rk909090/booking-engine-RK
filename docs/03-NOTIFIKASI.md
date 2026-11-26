@@ -35,6 +35,8 @@ Langkah ini dikerjakan pemilik akun:
 
 5. Deploy ulang (atau restart aplikasi) agar variabel terbaca.
 
+Email yang sama juga mengirim **laporan terjadwal** untuk staf (Laporan › Laporan terjadwal): harian, mingguan, dan bulanan dengan lampiran Excel, mulai 07:00 waktu properti lewat cron yang sama. Tanpa `RESEND_API_KEY` laporan menunggu dan dilewati setelah 3 hari; pratinjaunya tetap bisa dibuka di halaman itu.
+
 ## 2. WhatsApp lewat WhatsApp Cloud API (Meta)
 
 Pesan yang dimulai oleh bisnis wajib memakai **template yang sudah disetujui Meta**. Langkah:
