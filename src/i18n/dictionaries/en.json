@@ -67,8 +67,7 @@
     "units": "{count} units",
     "noProperties": "No properties have been assigned to you yet.",
     "signOut": "Sign out",
-    "security": "Account security",
-    "comingNext": "Next: reports, online pre-check-in, and housekeeping tasks."
+    "security": "Account security"
   },
   "security": {
     "title": "Two-step verification",

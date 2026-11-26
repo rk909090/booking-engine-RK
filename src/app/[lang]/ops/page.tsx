@@ -108,8 +108,6 @@ async function StaffHome({ lang, dict }: { lang: Locale; dict: Dictionary }) {
           </ul>
         )}
       </section>
-
-      <p className="rounded-lg border border-dashed border-line px-4 py-3 text-sm text-stone">{dict.ops.comingNext}</p>
     </div>
   );
 }

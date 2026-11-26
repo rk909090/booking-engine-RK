@@ -67,8 +67,7 @@
     "units": "{count} unit",
     "noProperties": "Belum ada properti yang ditugaskan ke Anda.",
     "signOut": "Keluar",
-    "security": "Keamanan akun",
-    "comingNext": "Berikutnya: laporan, pre-check-in online, dan tugas housekeeping."
+    "security": "Keamanan akun"
   },
   "security": {
     "title": "Verifikasi dua langkah",
