@@ -12,6 +12,8 @@ import { savePreCheckin, type PreCheckinError } from "@/domain/pre-checkin";
 import { RATE_PLANS, type RatePlan } from "@/domain/types";
 import { parseAddonChoice, parseCheckoutAddons } from "@/lib/addon-input";
 import { cancelAddonAsGuest, requestAddonAsGuest } from "@/domain/addons";
+import { cancelDateChangeAsGuest, requestDateChangeAsGuest } from "@/domain/date-change";
+import { cancelEarlyCheckinAsGuest, requestEarlyCheckinAsGuest } from "@/domain/early-checkin";
 import { sealGuestData } from "@/lib/crypto/guest-data";
 import { isCountryCode } from "@/lib/countries";
 import { deliverSoon } from "@/lib/notifications/deliver";
@@ -208,6 +210,42 @@ export async function requestLateCheckoutFromPortal(form: FormData) {
   if (!allowRequest(`late:${clientIp(await headers())}`, 10, 10 * 60_000)) redirect(bookingPath(lang, code, "&late=rate_limited"));
   const result = await requestLateCheckoutAsGuest(getDb(), { reservationId: id, time: text(form, "time"), note: text(form, "note") || null });
   redirect(bookingPath(lang, code, `&late=${result.ok ? "sent" : result.error}`));
+}
+
+/** The guest asks to arrive early from their booking page; staff decide. */
+export async function requestEarlyCheckinFromPortal(form: FormData) {
+  const lang = localeOf(form);
+  const { code, id } = await guestReservation(form);
+  if (!id) redirect(bookingPath(lang, code));
+  if (!allowRequest(`early:${clientIp(await headers())}`, 10, 10 * 60_000)) redirect(bookingPath(lang, code, "&early=rate_limited#early"));
+  const result = await requestEarlyCheckinAsGuest(getDb(), { reservationId: id, time: text(form, "time"), note: text(form, "note") || null });
+  redirect(bookingPath(lang, code, `&early=${result.ok ? "sent" : result.error}#early`));
+}
+
+export async function cancelEarlyCheckinFromPortal(form: FormData) {
+  const lang = localeOf(form);
+  const { code, id } = await guestReservation(form);
+  if (!id) redirect(bookingPath(lang, code));
+  const result = await cancelEarlyCheckinAsGuest(getDb(), { reservationId: id });
+  redirect(bookingPath(lang, code, `&early=${result.ok ? "withdrawn" : result.error}#early`));
+}
+
+/** The guest asks for new dates (after seeing the estimate); staff approve or decline. */
+export async function requestDateChangeFromPortal(form: FormData) {
+  const lang = localeOf(form);
+  const { code, id } = await guestReservation(form);
+  if (!id) redirect(bookingPath(lang, code));
+  if (!allowRequest(`dates:${clientIp(await headers())}`, 10, 10 * 60_000)) redirect(bookingPath(lang, code, "&dates=rate_limited#dates"));
+  const result = await requestDateChangeAsGuest(getDb(), { reservationId: id, checkIn: text(form, "checkIn"), checkOut: text(form, "checkOut"), note: text(form, "note") || null });
+  redirect(bookingPath(lang, code, `&dates=${result.ok ? "sent" : result.error}#dates`));
+}
+
+export async function cancelDateChangeFromPortal(form: FormData) {
+  const lang = localeOf(form);
+  const { code, id } = await guestReservation(form);
+  if (!id) redirect(bookingPath(lang, code));
+  const result = await cancelDateChangeAsGuest(getDb(), { reservationId: id });
+  redirect(bookingPath(lang, code, `&dates=${result.ok ? "withdrawn" : result.error}#dates`));
 }
 
 /** The guest asks for an add-on from their booking page; staff confirm it. */

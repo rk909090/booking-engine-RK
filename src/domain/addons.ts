@@ -430,3 +430,17 @@ export async function updateAddon(db: AnyDb, input: AddonInput & { addonId: stri
   await db.insert(schema.auditEvents).values({ actorType: "staff", actorId: input.actor.id, propertyId: input.propertyId, entityType: "addon", entityId: input.addonId, action: "addon.updated", after: { name: input.name.en, price: input.price, active: input.isActive }, occurredAt: new Date() });
   return { ok: true };
 }
+
+/**
+ * Add-on charges still on the guest's bill for orders not yet delivered
+ * (owner's decision, 26 Nov 2026): when a booking is cancelled they come off
+ * the bill and are refunded in full; the cancellation fee is on the stay only.
+ */
+export async function addonChargesOnBill(db: Executor, reservationId: string): Promise<{ total: number; chargeIds: string[] }> {
+  const rows = await db
+    .select({ id: schema.folioCharges.id, amount: schema.folioCharges.amount })
+    .from(schema.addonOrders)
+    .innerJoin(schema.folioCharges, eq(schema.folioCharges.id, schema.addonOrders.folioChargeId))
+    .where(and(eq(schema.addonOrders.reservationId, reservationId), inArray(schema.addonOrders.status, ["requested", "confirmed"]), eq(schema.folioCharges.status, "active")));
+  return { total: rows.reduce((s, r) => s + r.amount, 0), chargeIds: rows.map((r) => r.id) };
+}

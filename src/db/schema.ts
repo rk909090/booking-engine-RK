@@ -115,6 +115,9 @@ export const properties = pgTable("properties", {
   earlyBirdDays: smallint("early_bird_days"),
   earlyBirdBp: integer("early_bird_bp"),
   longStayTiers: jsonb("long_stay_tiers").$type<LongStayTier[]>().notNull().default([]),
+  /** Latest late check-out and earliest early check-in a guest may ask for from their booking page. */
+  guestLateCheckoutLatest: time("guest_late_checkout_latest").notNull().default("18:00"),
+  guestEarlyCheckinEarliest: time("guest_early_checkin_earliest").notNull().default("10:00"),
   /** Channel commission deducted before the owner split (see domain/owners.ts). */
   commissionRates: jsonb("commission_rates").$type<CommissionRates>().notNull().default({}),
   ...timestamps,
@@ -1113,5 +1116,37 @@ export const addonOrders = pgTable(
     check("addon_orders_amount", sql`${t.amount} = ${t.units} * ${t.unitPrice}`),
     index("addon_orders_reservation_idx").on(t.reservationId),
     index("addon_orders_status_idx").on(t.status, t.serviceDate),
+  ],
+);
+
+/**
+ * A guest's request to change their dates, from their booking page (decided
+ * with the owner, 26 Nov 2026): the guest sees an estimate, staff approve it
+ * with the usual date-change rules (possibly moving villa) or decline it.
+ */
+export const dateChangeRequests = pgTable(
+  "date_change_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reservationId: uuid("reservation_id")
+      .notNull()
+      .references(() => reservations.id, { onDelete: "cascade" }),
+    checkIn: date("check_in", { mode: "string" }).notNull(),
+    checkOut: date("check_out", { mode: "string" }).notNull(),
+    /** requested, approved, declined, cancelled */
+    status: text("status").notNull().default("requested"),
+    /** The new total shown to the guest when the same villa was free; null when only another villa could take the dates. */
+    quotedTotal: bigint("quoted_total", { mode: "number" }),
+    previousTotal: bigint("previous_total", { mode: "number" }).notNull(),
+    note: text("note"),
+    decidedBy: text("decided_by"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    declineReason: text("decline_reason"),
+    ...timestamps,
+  },
+  (t) => [
+    check("date_change_requests_dates", sql`${t.checkOut} > ${t.checkIn}`),
+    check("date_change_requests_status", sql`${t.status} IN ('requested', 'approved', 'declined', 'cancelled')`),
+    uniqueIndex("date_change_requests_one_open_idx").on(t.reservationId).where(sql`${t.status} = 'requested'`),
   ],
 );

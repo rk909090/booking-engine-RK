@@ -460,7 +460,19 @@
       "addon_invalid_count": "Check the persons, nights or quantity.",
       "addon_already_decided": "This order has already been handled.",
       "addon_reason_required": "A reason is required.",
-      "addon_charge_failed": "The charge on the bill could not be updated."
+      "addon_charge_failed": "The charge on the bill could not be updated.",
+      "datechange_not_allowed": "Date changes can be requested for confirmed bookings before arrival.",
+      "datechange_not_found": "Booking not found.",
+      "datechange_already_requested": "There is already a date change request waiting.",
+      "datechange_not_pending": "There is no request waiting.",
+      "datechange_invalid_dates": "Check the dates: check-out must be after check-in.",
+      "datechange_check_in_in_past": "The new check-in date has passed.",
+      "datechange_no_change": "These are the current dates.",
+      "datechange_dates_unavailable": "No villa of this type is free on those dates.",
+      "datechange_unit_blocked": "No villa of this type is free on those dates.",
+      "datechange_channel_booked": "No villa of this type is free on those dates.",
+      "datechange_price_changed": "The price changed; please check again.",
+      "datechange_reason_required": "A reason is required."
     },
     "activityTitle": "Activity",
     "noActivity": "No activity yet.",
@@ -1027,6 +1039,10 @@
       "subject": "Your add-on request · {code}",
       "confirmed": "{addon} on {when} is confirmed. {amount} has been added to your bill.",
       "declined": "Sorry, we cannot arrange {addon} on {when}. Nothing has been charged for it (if it was already paid, it will be refunded)."
+    },
+    "dateChange": {
+      "subject": "Your date change request · {code}",
+      "declined": "Sorry, we cannot change your stay to {dates} ({reason}). Your booking stays as it was."
     }
   },
   "messageLog": {
@@ -1051,7 +1067,8 @@
       "early_checkin_decided": "Early check-in decision",
       "precheckin_reminder": "Pre-check-in reminder",
       "payment_reminder": "Payment reminder",
-      "addon_decided": "Add-on decision"
+      "addon_decided": "Add-on decision",
+      "date_change_declined": "Date change declined"
     },
     "inactive": "{channels} not active yet: messages wait until the keys are set in hPanel, and are skipped if not sent within 48 hours."
   },
@@ -1379,9 +1396,14 @@
       "dates": "Check the dates: the end must be after the start.",
       "overlap": "This season overlaps another season of the same villa type.",
       "code_taken": "This code already exists at this property.",
-      "tiers": "Check the long-stay tiers: at least 2 nights each, different nights, and a percentage between 0.01 and 90."
+      "tiers": "Check the long-stay tiers: at least 2 nights each, different nights, and a percentage between 0.01 and 90.",
+      "times": "The latest late check-out must be after the normal check-out time, and the earliest early check-in before the normal check-in time."
     },
-    "tabAddons": "Add-ons & experiences"
+    "tabAddons": "Add-ons & experiences",
+    "guestTimesTitle": "Flexible times guests can ask for",
+    "guestTimesIntro": "From their booking page guests may ask for a late check-out (after {checkOut}) or an early check-in (before {checkIn}); staff still approve each request, and later or earlier times can be arranged at the desk.",
+    "lateLatest": "Latest late check-out",
+    "earlyEarliest": "Earliest early check-in"
   },
   "owners": {
     "title": "Owners",
@@ -1687,5 +1709,72 @@
       "role": "Only the branch manager can change the catalog.",
       "invalid": "Check the entries: both names, a price in whole rupiah above 0, notice between 0 and 720 hours."
     }
+  },
+  "portal": {
+    "note": "Note (optional)",
+    "sendRequest": "Send request",
+    "withdraw": "Withdraw request",
+    "earlyTitle": "Early check-in",
+    "earlyIntro": "Check-in is from {time}. Ask to arrive earlier; we confirm once we know the villa will be ready.",
+    "earlyTime": "Arrive from",
+    "earlyRequested": "Your request to arrive from {time} is waiting for confirmation.",
+    "earlyApproved": "Early check-in from {time} is confirmed.",
+    "earlyApprovedFee": "Early check-in from {time} is confirmed, with a fee of {amount} added to your bill.",
+    "earlyDeclined": "Sorry, we cannot offer early check-in from {time}.",
+    "earlyNone": "Early check-in cannot be requested for this booking any more. Please contact us.",
+    "earlyMessages": {
+      "sent": "Request sent. We will confirm soon.",
+      "withdrawn": "Request withdrawn.",
+      "rate_limited": "Too many requests. Please try again in a few minutes.",
+      "not_allowed": "Early check-in can no longer be requested for this booking.",
+      "already_requested": "You already have a request waiting.",
+      "time_unavailable": "That time is no longer possible. Please choose another.",
+      "not_pending": "There is no request waiting.",
+      "not_found": "Booking not found."
+    },
+    "datesTitle": "Change dates",
+    "datesIntro": "Choose new dates to see the price. Our team confirms the change; nights you already booked keep their price.",
+    "datesCheck": "Check price",
+    "datesNewTotal": "New total {total}.",
+    "datesMore": "({amount} more)",
+    "datesLess": "({amount} less, refunded if already paid)",
+    "datesSame": "(same total)",
+    "datesOtherVilla": "Your villa is taken on those dates, but another villa of the same type is free; our team will confirm the price.",
+    "datesFinePrint": "Nothing changes until we confirm. A late check-out or early check-in request tied to the old dates is cancelled.",
+    "datesRequested": "Your request to change to {dates} is waiting for confirmation.",
+    "datesEstimate": "Estimated new total {total}.",
+    "datesDeclined": "Your request to change to {dates} could not be accepted",
+    "dateMessages": {
+      "sent": "Request sent. We will confirm soon.",
+      "withdrawn": "Request withdrawn.",
+      "rate_limited": "Too many requests. Please try again in a few minutes."
+    },
+    "dateErrors": {
+      "not_allowed": "Date changes can be requested for confirmed bookings before arrival.",
+      "not_found": "Booking not found.",
+      "already_requested": "You already have a date change request waiting.",
+      "not_pending": "There is no request waiting.",
+      "invalid_dates": "Check the dates: check-out must be after check-in.",
+      "check_in_in_past": "The new check-in date has passed.",
+      "min_stay": "The minimum stay for that arrival is {nights} nights.",
+      "max_stay": "The longest stay is {nights} nights.",
+      "no_change": "These are your current dates.",
+      "dates_unavailable": "No villa of this type is free on those dates.",
+      "unit_blocked": "No villa of this type is free on those dates.",
+      "channel_booked": "No villa of this type is free on those dates.",
+      "price_changed": "The price changed; please check again.",
+      "reason_required": "A reason is required."
+    },
+    "staffTitle": "Date change request",
+    "staffRequested": "The guest asks to change to {dates}.",
+    "staffPrice": "Price now on the current villa: {total} ({difference}).",
+    "staffOtherVilla": "The current villa is taken; choose another free villa of the same type.",
+    "staffNoVilla": "No villa of this type is free on those dates: decline with a reason.",
+    "staffVilla": "Villa",
+    "staffCurrent": "current",
+    "staffApprove": "Approve and apply",
+    "staffDeclineReason": "Reason (sent to the guest)",
+    "staffDecline": "Decline",
+    "staffHint": "Approving applies the usual date-change rules at today's price and tells the guest."
   }
 }

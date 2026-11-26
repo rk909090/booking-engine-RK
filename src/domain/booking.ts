@@ -8,7 +8,7 @@ import { cancelReservationTasks, syncRequestTask } from "./tasks";
 import type { Locale } from "@/i18n/config";
 import { todayIn } from "./dates";
 import { applyBp, cancellationOutcome, NON_REFUNDABLE_TIERS, quoteStay, snapshotOf, type PricingRules, type PromoOffer, type Quote, type QuoteError } from "./pricing";
-import { checkCheckoutAddons, recordCheckoutAddons, type AddonChoice, type AddonError, type CheckedAddons } from "./addons";
+import { addonChargesOnBill, checkCheckoutAddons, recordCheckoutAddons, type AddonChoice, type AddonError, type CheckedAddons } from "./addons";
 import { findOrCreateGuest } from "./guests";
 import { checkPromo, type PromoError } from "./promos";
 import type { DiscountTerms, RatePlan } from "./types";
@@ -568,13 +568,25 @@ export async function cancelReservation(
     const r = row.reservation;
     if (r.status !== "hold" && r.status !== "confirmed") return { ok: false, error: "not_cancellable" } as const;
 
+    // Add-ons not yet delivered come off the bill in full; the fee is on the stay only.
+    const addons = await addonChargesOnBill(tx, r.id);
     const outcome = cancellationOutcome({
       tiers: r.policySnapshot?.cancellationTiers ?? [],
-      total: r.totalAmount,
+      total: r.totalAmount - addons.total,
       amountPaid: r.amountPaid,
       checkIn: r.checkIn,
       today: todayIn(row.timezone, now),
     });
+    if (addons.chargeIds.length) {
+      await tx
+        .update(schema.folioCharges)
+        .set({ status: "void", voidReason: "Booking cancelled", voidedBy: input.actor.id ?? input.actor.type, voidedAt: now, updatedAt: now })
+        .where(inArray(schema.folioCharges.id, addons.chargeIds));
+      await tx
+        .update(schema.reservations)
+        .set({ totalAmount: r.totalAmount - addons.total, extrasAmount: r.extrasAmount - addons.total })
+        .where(eq(schema.reservations.id, r.id));
+    }
 
     await tx
       .update(schema.reservations)

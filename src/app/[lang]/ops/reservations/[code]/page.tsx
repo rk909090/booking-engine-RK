@@ -26,6 +26,8 @@ import * as schema from "@/db/schema";
 import { and, desc, eq, lte, sql } from "drizzle-orm";
 import { GuestBadges } from "@/components/ops/guest-badges";
 import { AddonCard } from "@/components/ops/addon-card";
+import { DateChangeCard } from "@/components/ops/date-change-card";
+import { latestDateChange } from "@/domain/date-change";
 import { activeAddons, addonOrdersFor } from "@/domain/addons";
 import { addonViews } from "@/lib/addon-views";
 import { stayDays } from "@/lib/addon-input";
@@ -98,6 +100,9 @@ async function Detail({
     );
   }
   const { reservation: r, guest, unit, property } = data;
+  const dateRequest = await latestDateChange(getDb(), r.id);
+  const openDateRequest = dateRequest?.status === "requested" ? dateRequest : null;
+  const datePreview = openDateRequest ? await previewStayChange(getDb(), { reservationId: r.id, checkIn: openDateRequest.checkIn, checkOut: openDateRequest.checkOut, unitId: r.unitId }) : null;
   // A returning guest: stays of the same profile that ended before this one.
   const [{ pastStays }] = await getDb()
     .select({ pastStays: sql<number>`count(*)::int` })
@@ -404,6 +409,24 @@ async function Detail({
               </ul>
             )}
           </Card>
+
+          {openDateRequest ? (
+            <Card title={dict.portal.staffTitle}>
+              <DateChangeCard
+                lang={lang}
+                dict={dict}
+                code={r.code}
+                request={openDateRequest}
+                preview={datePreview ? (datePreview.ok ? { total: datePreview.plan.total, difference: datePreview.plan.difference } : { error: datePreview.error }) : null}
+                villas={
+                  datePreview?.ok
+                    ? [{ id: r.unitId, code: unit.code, current: true }]
+                    : (datePreview?.alternatives ?? []).map((a) => ({ id: a.id, code: a.code, current: false }))
+                }
+                canDecide={can(staff.actor, "reservation.modify", r.propertyId).allowed}
+              />
+            </Card>
+          ) : null}
 
           <Card title={dict.addons.staffTitle}>
             <AddonCard

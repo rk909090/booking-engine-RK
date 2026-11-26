@@ -18,7 +18,7 @@ type Actor = { type: "staff"; id: string };
  */
 
 export type RatesResult = { ok: true; id?: string } | { ok: false; error: RatesError };
-export type RatesError = "not_found" | "invalid" | "overlap" | "dates" | "code_taken" | "tiers";
+export type RatesError = "not_found" | "invalid" | "overlap" | "dates" | "code_taken" | "tiers" | "times";
 
 const UNIQUE_VIOLATION = "23505";
 const MAX_RATE = 1_000_000_000;
@@ -245,5 +245,25 @@ export async function setPromoActive(db: AnyDb, input: { promoId: string; active
     .set({ isActive: input.active, updatedAt: new Date() })
     .where(eq(schema.promoCodes.id, promo.id));
   await audit(db, input.actor, promo.propertyId, "promo_code", promo.id, input.active ? "promo.activated" : "promo.deactivated", { code: promo.code });
+  return { ok: true };
+}
+
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/**
+ * The latest late check-out and earliest early check-in a guest may ask for
+ * from their booking page (staff can still arrange anything at the desk).
+ */
+export async function updateGuestTimes(db: AnyDb, input: { propertyId: string; lateLatest: string; earlyEarliest: string; actor: Actor }): Promise<RatesResult> {
+  const [property] = await db.select().from(schema.properties).where(eq(schema.properties.id, input.propertyId));
+  if (!property) return { ok: false, error: "not_found" };
+  if (!HHMM.test(input.lateLatest) || !HHMM.test(input.earlyEarliest)) return { ok: false, error: "invalid" };
+  // Later than the normal check-out, earlier than the normal check-in.
+  if (input.lateLatest <= property.checkOutTime.slice(0, 5) || input.earlyEarliest >= property.checkInTime.slice(0, 5)) return { ok: false, error: "times" };
+  await db.update(schema.properties).set({ guestLateCheckoutLatest: input.lateLatest, guestEarlyCheckinEarliest: input.earlyEarliest, updatedAt: new Date() }).where(eq(schema.properties.id, property.id));
+  await audit(db, input.actor, property.id, "property", property.id, "rates.guest_times_updated", { lateLatest: input.lateLatest, earlyEarliest: input.earlyEarliest }, {
+    lateLatest: property.guestLateCheckoutLatest.slice(0, 5),
+    earlyEarliest: property.guestEarlyCheckinEarliest.slice(0, 5),
+  });
   return { ok: true };
 }

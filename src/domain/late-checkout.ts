@@ -296,13 +296,14 @@ export async function cancelLateCheckout(db: AnyDb | Tx, input: { reservationId:
  * A guest can withdraw a request while it waits, not once it is decided.
  */
 
-/** Latest departure a guest can ask for on their own; later needs the front desk. */
+/** Default latest departure a guest can ask for on their own (each property sets its own); later needs the front desk. */
 export const GUEST_LATEST = "18:00";
 const GUEST_STEP_MINUTES = 30;
 
 /** Times a guest may choose, given the limit now and (on the departure day) the time now. */
-export function guestLateCheckoutTimes(input: { standardCheckOut: string; latestAllowed: string | null; nowTime: string | null }): string[] {
-  const end = Math.min(toMinutes(input.latestAllowed ?? GUEST_LATEST), toMinutes(GUEST_LATEST));
+export function guestLateCheckoutTimes(input: { standardCheckOut: string; latestAllowed: string | null; nowTime: string | null; guestLatest?: string }): string[] {
+  const cap = input.guestLatest ?? GUEST_LATEST;
+  const end = Math.min(toMinutes(input.latestAllowed ?? cap), toMinutes(cap));
   const times: string[] = [];
   for (let m = toMinutes(input.standardCheckOut) + GUEST_STEP_MINUTES; m <= end; m += GUEST_STEP_MINUTES) {
     if (input.nowTime === null || m > toMinutes(input.nowTime)) times.push(fromMinutes(m));
@@ -321,6 +322,7 @@ async function guestTimes(db: Executor, loaded: Loaded, now: Date) {
     standardCheckOut: fit.standardCheckOut,
     latestAllowed: fit.latestAllowed,
     nowTime: departureDay ? timeIn(loaded.property.timezone, now) : null,
+    guestLatest: loaded.property.guestLateCheckoutLatest.slice(0, 5),
   });
 }
 

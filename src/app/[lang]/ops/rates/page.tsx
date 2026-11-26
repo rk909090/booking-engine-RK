@@ -20,6 +20,7 @@ import {
   addSeasonAction,
   removeClosureAction,
   removeSeasonAction,
+  updateGuestTimesAction,
   updateOffersAction,
   updateTypeRatesAction,
 } from "@/lib/ops/rate-actions";
@@ -266,6 +267,24 @@ async function Rates({ lang, dict, searchParams }: { lang: Locale; dict: Diction
           </Section>
         );
       })}
+
+      <Section id="guest-times" title={t.guestTimesTitle} intro={format(t.guestTimesIntro, { checkIn: property.checkInTime.slice(0, 5), checkOut: property.checkOutTime.slice(0, 5) })}>
+        <form action={updateGuestTimesAction} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+          {hidden("guest-times")}
+          <input type="hidden" name="propertyId" value={property.id} />
+          <label className="space-y-1 text-xs text-stone">
+            <span>{t.lateLatest}</span>
+            <input type="time" name="lateLatest" required defaultValue={property.guestLateCheckoutLatest.slice(0, 5)} className={input} />
+          </label>
+          <label className="space-y-1 text-xs text-stone">
+            <span>{t.earlyEarliest}</span>
+            <input type="time" name="earlyEarliest" required defaultValue={property.guestEarlyCheckinEarliest.slice(0, 5)} className={input} />
+          </label>
+          <button type="submit" className={button}>
+            {t.save}
+          </button>
+        </form>
+      </Section>
 
       <Section id="closures" title={t.closuresTitle} intro={t.closuresIntro}>
         {closures.length ? (

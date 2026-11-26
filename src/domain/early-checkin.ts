@@ -1,4 +1,4 @@
-import { and, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
 import { queueGuestMessage } from "./notifications";
@@ -256,4 +256,98 @@ export async function cancelEarlyCheckin(db: AnyDb, input: { reservationId: stri
     await audit(tx, r, input.actor, "early_checkin.cancelled", { time: request.requestedTime.slice(0, 5), fee: request.fee }, now);
     return { ok: true } as const;
   });
+}
+
+/*
+ * Requests from the guest's booking page (the mirror of late check-out): the
+ * guest picks from the times still possible right now, every 30 minutes from
+ * the property's earliest guest time (or once the guest leaving that day has
+ * gone plus the turnover, whichever is later) up to the standard check-in.
+ * Staff decide, with an optional fee. A waiting request can be withdrawn.
+ */
+
+const GUEST_STEP_MINUTES = 30;
+
+/** Times a guest may choose, given the earliest possible time and (on the arrival day) the time now. */
+export function guestEarlyCheckinTimes(input: { standardCheckIn: string; earliestAllowed: string | null; guestEarliest: string; nowTime: string | null }): string[] {
+  const start = Math.max(toMinutes(input.guestEarliest), input.earliestAllowed ? toMinutes(input.earliestAllowed) : 0);
+  const first = Math.ceil(start / GUEST_STEP_MINUTES) * GUEST_STEP_MINUTES;
+  const times: string[] = [];
+  for (let m = first; m < toMinutes(input.standardCheckIn); m += GUEST_STEP_MINUTES) {
+    if (input.nowTime === null || m > toMinutes(input.nowTime)) times.push(fromMinutes(m));
+  }
+  return times;
+}
+
+function timeIn(timeZone: string, now: Date): string {
+  return new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(now);
+}
+
+async function guestTimes(db: Executor, loaded: Loaded, now: Date) {
+  const fit = await check(db, loaded, loaded.property.checkInTime.slice(0, 5), now);
+  const arrivalDay = loaded.r.checkIn === todayIn(loaded.property.timezone, now);
+  return guestEarlyCheckinTimes({
+    standardCheckIn: fit.standardCheckIn,
+    earliestAllowed: fit.earliestAllowed,
+    guestEarliest: loaded.property.guestEarlyCheckinEarliest.slice(0, 5),
+    nowTime: arrivalDay ? timeIn(loaded.property.timezone, now) : null,
+  });
+}
+
+function guestCanAsk(loaded: Loaded, now: Date) {
+  return loaded.r.status === "confirmed" && loaded.r.checkIn >= todayIn(loaded.property.timezone, now);
+}
+
+/** What the guest's booking page shows: the latest request for the current arrival date, and the times on offer. */
+export async function guestEarlyCheckin(db: AnyDb, reservationId: string, now: Date = new Date()) {
+  const loaded = await load(db, reservationId, false);
+  if (!loaded || !guestCanAsk(loaded, now)) return null;
+  const [latest] = await db
+    .select()
+    .from(schema.earlyCheckinRequests)
+    .where(and(eq(schema.earlyCheckinRequests.reservationId, reservationId), eq(schema.earlyCheckinRequests.forDate, loaded.r.checkIn)))
+    .orderBy(desc(schema.earlyCheckinRequests.createdAt))
+    .limit(1);
+  return {
+    standardCheckIn: loaded.property.checkInTime.slice(0, 5),
+    request: latest ? { status: latest.status, time: latest.requestedTime.slice(0, 5), fee: latest.fee } : null,
+    times: await guestTimes(db, loaded, now),
+  };
+}
+
+/** A guest asks to arrive earlier, choosing one of the times still possible. */
+export async function requestEarlyCheckinAsGuest(db: AnyDb, input: { reservationId: string; time: string; note?: string | null; now?: Date }): Promise<EarlyCheckinResult | { ok: false; error: "time_unavailable" }> {
+  const now = input.now ?? new Date();
+  return db.transaction(async (tx) => {
+    const loaded = await load(tx, input.reservationId, true);
+    if (!loaded) return { ok: false, error: "not_found" } as const;
+    if (!guestCanAsk(loaded, now)) return { ok: false, error: "not_allowed" } as const;
+    if (await activeRequest(tx, loaded.r.id)) return { ok: false, error: "already_requested" } as const;
+    if (!(await guestTimes(tx, loaded, now)).includes(input.time)) return { ok: false, error: "time_unavailable" } as const;
+    await tx.insert(schema.earlyCheckinRequests).values({
+      reservationId: loaded.r.id,
+      forDate: loaded.r.checkIn,
+      requestedTime: input.time,
+      note: input.note?.trim().slice(0, 500) || null,
+      requestedBy: "guest",
+      createdAt: now,
+      updatedAt: now,
+    });
+    await tx.insert(schema.auditEvents).values({ actorType: "guest", propertyId: loaded.r.propertyId, entityType: "reservation", entityId: loaded.r.id, action: "early_checkin.requested", after: { time: input.time, forDate: loaded.r.checkIn, by: "guest" }, occurredAt: now });
+    return { ok: true } as const;
+  });
+}
+
+/** The guest withdraws a request that staff have not decided yet. */
+export async function cancelEarlyCheckinAsGuest(db: AnyDb, input: { reservationId: string; now?: Date }): Promise<EarlyCheckinResult> {
+  const now = input.now ?? new Date();
+  const updated = await db
+    .update(schema.earlyCheckinRequests)
+    .set({ status: "cancelled", decidedAt: now, decisionNote: "Withdrawn by guest", updatedAt: now })
+    .where(and(eq(schema.earlyCheckinRequests.reservationId, input.reservationId), eq(schema.earlyCheckinRequests.status, "requested")))
+    .returning({ id: schema.earlyCheckinRequests.id });
+  if (!updated.length) return { ok: false, error: "not_pending" };
+  const loaded = await load(db, input.reservationId, false);
+  await db.insert(schema.auditEvents).values({ actorType: "guest", propertyId: loaded?.r.propertyId ?? null, entityType: "reservation", entityId: input.reservationId, action: "early_checkin.withdrawn", after: {}, occurredAt: now });
+  return { ok: true };
 }

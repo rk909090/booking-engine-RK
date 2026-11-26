@@ -8,7 +8,7 @@ import { SiteShell } from "@/components/site/site-shell";
 import { ErrorNote, SuccessNote } from "@/components/ui";
 import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
-import { diffDays, todayIn } from "@/domain/dates";
+import { diffDays, isIsoDate, todayIn } from "@/domain/dates";
 import { guaranteeDue } from "@/domain/guarantee";
 import { guestLateCheckout } from "@/domain/late-checkout";
 import { preCheckinOpen, preCheckinView } from "@/domain/pre-checkin";
@@ -23,7 +23,10 @@ import { getDictionary, type Dictionary } from "@/i18n/get-dictionary";
 import { verifyBookingAccessToken } from "@/lib/booking/access";
 import { cancelAddonFromPortal, cancelBookingAsGuest, cancelLateCheckoutFromPortal, requestAddonFromPortal, requestLateCheckoutFromPortal } from "@/lib/booking/actions";
 import { AddonFields } from "@/components/addon-fields";
-import { activeAddons, addonOrdersFor } from "@/domain/addons";
+import { DateChangeSection, EarlyCheckinSection, type DateChangeView } from "@/components/site/guest-requests";
+import { latestDateChange, previewGuestDateChange } from "@/domain/date-change";
+import { guestEarlyCheckin } from "@/domain/early-checkin";
+import { activeAddons, addonChargesOnBill, addonOrdersFor } from "@/domain/addons";
 import { addonViews } from "@/lib/addon-views";
 import { stayDays } from "@/lib/addon-input";
 import { offerLabel } from "@/lib/pricing-labels";
@@ -100,6 +103,20 @@ async function BookingDetails({
   const balance = balanceDue(r);
   const depositDue = guaranteeDue(r, todayIn(row.timezone));
   const late = r.status === "confirmed" || r.status === "in_house" ? await guestLateCheckout(getDb(), r.id) : null;
+  const early = r.status === "confirmed" ? await guestEarlyCheckin(getDb(), r.id) : null;
+  const dateRequest = await latestDateChange(getDb(), r.id);
+  const ci = typeof sp.ci === "string" && isIsoDate(sp.ci) ? sp.ci : null;
+  const co = typeof sp.co === "string" && isIsoDate(sp.co) ? sp.co : null;
+  const datePreview = r.status === "confirmed" && ci && co ? await previewGuestDateChange(getDb(), { reservationId: r.id, checkIn: ci, checkOut: co }) : null;
+  const dateView: DateChangeView | null =
+    r.status === "confirmed" && r.checkIn >= todayIn(row.timezone)
+      ? {
+          request: dateRequest ? { status: dateRequest.status, checkIn: dateRequest.checkIn, checkOut: dateRequest.checkOut, quotedTotal: dateRequest.quotedTotal, declineReason: dateRequest.declineReason } : null,
+          preview: datePreview && ci && co ? (datePreview.ok ? { checkIn: ci, checkOut: co, ...datePreview } : { checkIn: ci, checkOut: co, ok: false, error: datePreview.error, minNights: datePreview.minNights, maxNights: datePreview.maxNights }) : null,
+          current: { checkIn: r.checkIn, checkOut: r.checkOut, total: r.totalAmount },
+          today: todayIn(row.timezone),
+        }
+      : null;
   const canOrderAddons = r.status === "confirmed" || r.status === "in_house";
   const addonCatalog = canOrderAddons ? addonViews(await activeAddons(getDb(), r.propertyId), lang, dict) : [];
   const addonOrders = await addonOrdersFor(getDb(), r.id);
@@ -122,7 +139,8 @@ async function BookingDetails({
     r.status === "confirmed"
       ? cancellationOutcome({
           tiers: r.policySnapshot?.cancellationTiers ?? [],
-          total: r.totalAmount,
+          // Add-ons not yet delivered are refunded in full: the fee is on the stay only.
+          total: r.totalAmount - (await addonChargesOnBill(getDb(), r.id)).total,
           amountPaid: r.amountPaid,
           checkIn: r.checkIn,
           today: todayIn(row.timezone),
@@ -315,6 +333,10 @@ async function BookingDetails({
           )}
         </section>
       ) : null}
+
+      {early ? <EarlyCheckinSection dict={dict} hidden={{ lang, code: r.code, token }} early={early} message={{ code: typeof sp.early === "string" ? sp.early : undefined }} /> : null}
+
+      {dateView ? <DateChangeSection dict={dict} hidden={{ lang, code: r.code, token }} view={dateView} message={{ code: typeof sp.dates === "string" ? sp.dates : undefined }} /> : null}
 
       {addonOrders.length || addonCatalog.length ? (
         <section id="addons" className="scroll-mt-6 rounded-2xl border border-line p-5" aria-labelledby="addons-title">

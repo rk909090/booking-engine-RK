@@ -13,6 +13,7 @@ import {
   removeSeason,
   setPromoActive,
   updateOffers,
+  updateGuestTimes,
   updateTypeRates,
   type RatesResult,
 } from "@/domain/rates";
@@ -259,4 +260,12 @@ export async function updateAddonAction(form: FormData) {
     const r = await updateAddon(getDb(), { propertyId, addonId, isActive: form.get("isActive") === "on", ...addonFields(form), actor });
     return r.ok ? { ok: true } : { ok: false, error: r.error };
   });
+}
+
+/** Latest late check-out and earliest early check-in guests may ask for from their booking page. */
+export async function updateGuestTimesAction(form: FormData) {
+  const propertyId = field(form, "propertyId");
+  await guarded(form, "rates", () => propertyById(propertyId), ({ actor }) =>
+    updateGuestTimes(getDb(), { propertyId, lateLatest: field(form, "lateLatest"), earlyEarliest: field(form, "earlyEarliest"), actor }),
+  );
 }

@@ -71,6 +71,7 @@ Contoh teks bahasa Indonesia (versi Inggris dibuat dengan arti yang sama dan uru
 - **`addon_confirmed`**: `Halo {{1}}, {{2}} pada {{3}} sudah dikonfirmasi. {{4}} ditambahkan ke tagihan Anda. Rincian: {{5}}`
   - {{2}} nama add-on · {{3}} tanggal dan jam · {{4}} harga
 - **`addon_declined`**: `Halo {{1}}, mohon maaf, {{2}} pada {{3}} tidak dapat kami siapkan. Tidak ada biaya untuk itu. Rincian: {{4}}`
+- **`date_change_declined`**: `Halo {{1}}, mohon maaf, perubahan tanggal ke {{2}} tidak dapat kami penuhi ({{3}}). Pesanan Anda tetap seperti semula: {{4}}`
 
 Biaya yang nol tampil sebagai "Rp 0"; boleh ditulis di template misalnya "Biaya tambahan: {{3}}".
 

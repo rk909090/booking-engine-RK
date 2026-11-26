@@ -55,7 +55,7 @@ function bookingLink(code: string, locale: Locale) {
 /** First name for a friendly greeting. */
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;
 
-type Payload = { refund?: number; fee?: number; approved?: boolean; time?: string; amount?: number; dueDate?: string; payBy?: string; depositDue?: number; addon?: { id: string; en: string }; date?: string };
+type Payload = { refund?: number; fee?: number; approved?: boolean; time?: string; amount?: number; dueDate?: string; payBy?: string; depositDue?: number; addon?: { id: string; en: string }; date?: string; checkIn?: string; checkOut?: string; reason?: string };
 
 export async function renderEmail(message: OutboxMessage, ctx: MessageContext): Promise<EmailMessage> {
   const { r } = ctx;
@@ -107,6 +107,10 @@ export async function renderEmail(message: OutboxMessage, ctx: MessageContext): 
       lines.push(p.approved ? format(t.addon.confirmed, { addon: name, when, amount: money(Number(p.amount ?? 0)) }) : format(t.addon.declined, { addon: name, when }));
       break;
     }
+    case "date_change_declined":
+      subject = format(t.dateChange.subject, vars);
+      lines.push(format(t.dateChange.declined, { dates: p.checkIn && p.checkOut ? formatDateRange(String(p.checkIn), String(p.checkOut), locale) : "", reason: String(p.reason ?? "") }));
+      break;
     case "payment_reminder":
       subject = format(t.payment.subject, vars);
       lines.push(format(t.payment.intro, { amount: money(p.amount ?? balanceDue(r)), date: date(p.dueDate ?? r.balanceDueDate ?? r.checkIn) }));
@@ -177,6 +181,8 @@ export function renderWhatsApp(message: OutboxMessage, ctx: MessageContext): Wha
       const when = `${p.date ? formatDate(String(p.date), locale) : ""}${p.time ? ` ${p.time}` : ""}`;
       return p.approved ? make("addon_confirmed", [name, addon, when, money(Number(p.amount ?? 0)), link]) : make("addon_declined", [name, addon, when, link]);
     }
+    case "date_change_declined":
+      return make("date_change_declined", [name, p.checkIn && p.checkOut ? formatDateRange(String(p.checkIn), String(p.checkOut), locale) : "", String(p.reason ?? ""), link]);
     case "payment_reminder":
       return make("payment_reminder", [name, money(p.amount ?? balanceDue(r)), formatDate(p.dueDate ?? r.balanceDueDate ?? r.checkIn, locale), link]);
   }

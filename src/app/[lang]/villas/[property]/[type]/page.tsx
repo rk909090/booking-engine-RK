@@ -8,7 +8,8 @@ import { VillaImage } from "@/components/site/villa-image";
 import { getDb } from "@/db/client";
 import { availabilityCalendar } from "@/domain/booking";
 import { isIsoDate, todayIn } from "@/domain/dates";
-import { hasLocale, type Locale } from "@/i18n/config";
+import { hasLocale, locales, type Locale } from "@/i18n/config";
+import { siteUrl } from "@/lib/site/seo";
 import { format } from "@/i18n/format";
 import { formatMoney } from "@/i18n/formatters";
 import { getDictionary, type Dictionary } from "@/i18n/get-dictionary";
@@ -22,9 +23,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!hasLocale(lang)) return {};
   const villa = await getVilla(property, type);
   if (!villa) return {};
+  const path = `/villas/${villa.property.slug}/${villa.type.slug}`;
   return {
     title: `${villa.type.name} · ${villa.property.name}`,
     description: villa.type.content.summary?.[lang],
+    alternates: { canonical: `/${lang}${path}`, languages: Object.fromEntries(locales.map((l) => [l, `/${l}${path}`])) },
   };
 }
 
@@ -65,9 +68,23 @@ async function VillaContent({
   const lowest = Math.min(villa.type.baseRate, ...villa.seasons.map((s) => s.nightlyRate));
   const checkIn = one(sp.checkIn);
   const checkOut = one(sp.checkOut);
+  // Structured data for search engines (schema.org); "<" is escaped so the JSON cannot close the script tag.
+  const jsonLd = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Accommodation",
+    name: `${villa.type.name} · ${villa.property.name}`,
+    description: villa.type.content.summary?.[lang] ?? villa.type.content.description?.[lang],
+    url: `${siteUrl()}/${lang}/villas/${villa.property.slug}/${villa.type.slug}`,
+    numberOfBedrooms: villa.type.bedrooms,
+    occupancy: { "@type": "QuantitativeValue", maxValue: villa.type.maxGuests },
+    amenityFeature: villa.type.amenities.map((code) => ({ "@type": "LocationFeatureSpecification", name: dict.amenities[code as keyof Dictionary["amenities"]] ?? code, value: true })),
+    containedInPlace: { "@type": "LodgingBusiness", name: villa.property.name, address: villa.property.content.location?.[lang] },
+    offers: { "@type": "Offer", priceCurrency: villa.property.currency, price: lowest, description: format(t.fromPrice, { amount: formatMoney(lowest, lang) }) },
+  }).replace(/</g, "\\u003c");
 
   return (
     <article className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
       <nav className="text-sm text-stone">
         <Link href={`/${lang}/stay?property=${villa.property.slug}`} className="hover:text-lagoon">
           {villa.property.name}

@@ -460,7 +460,19 @@
       "addon_invalid_count": "Periksa jumlah orang, malam, atau jumlah pesanan.",
       "addon_already_decided": "Pesanan ini sudah ditangani.",
       "addon_reason_required": "Alasan wajib diisi.",
-      "addon_charge_failed": "Tagihan tidak bisa diperbarui."
+      "addon_charge_failed": "Tagihan tidak bisa diperbarui.",
+      "datechange_not_allowed": "Perubahan tanggal bisa diajukan untuk booking terkonfirmasi sebelum kedatangan.",
+      "datechange_not_found": "Booking tidak ditemukan.",
+      "datechange_already_requested": "Sudah ada permintaan ubah tanggal yang menunggu.",
+      "datechange_not_pending": "Tidak ada permintaan yang menunggu.",
+      "datechange_invalid_dates": "Periksa tanggalnya: check-out harus setelah check-in.",
+      "datechange_check_in_in_past": "Tanggal check-in baru sudah lewat.",
+      "datechange_no_change": "Itu tanggal booking sekarang.",
+      "datechange_dates_unavailable": "Tidak ada vila tipe ini yang kosong pada tanggal itu.",
+      "datechange_unit_blocked": "Tidak ada vila tipe ini yang kosong pada tanggal itu.",
+      "datechange_channel_booked": "Tidak ada vila tipe ini yang kosong pada tanggal itu.",
+      "datechange_price_changed": "Harga berubah; silakan cek lagi.",
+      "datechange_reason_required": "Alasan wajib diisi."
     },
     "activityTitle": "Aktivitas",
     "noActivity": "Belum ada aktivitas.",
@@ -1027,6 +1039,10 @@
       "subject": "Permintaan add-on Anda · {code}",
       "confirmed": "{addon} pada {when} sudah dikonfirmasi. {amount} ditambahkan ke tagihan Anda.",
       "declined": "Mohon maaf, kami tidak bisa menyiapkan {addon} pada {when}. Tidak ada biaya untuk itu (bila sudah dibayar, akan dikembalikan)."
+    },
+    "dateChange": {
+      "subject": "Permintaan ubah tanggal · {code}",
+      "declined": "Mohon maaf, kami tidak bisa mengubah masa inap Anda ke {dates} ({reason}). Pesanan Anda tetap seperti semula."
     }
   },
   "messageLog": {
@@ -1051,7 +1067,8 @@
       "early_checkin_decided": "Keputusan early check-in",
       "precheckin_reminder": "Pengingat pre-check-in",
       "payment_reminder": "Pengingat pembayaran",
-      "addon_decided": "Keputusan add-on"
+      "addon_decided": "Keputusan add-on",
+      "date_change_declined": "Ubah tanggal ditolak"
     },
     "inactive": "{channels} belum aktif: pesan menunggu sampai kuncinya diisi di hPanel, dan dilewati bila belum terkirim dalam 48 jam."
   },
@@ -1379,9 +1396,14 @@
       "dates": "Periksa tanggalnya: tanggal akhir harus setelah tanggal mulai.",
       "overlap": "Musim ini bertumpuk dengan musim lain pada tipe vila yang sama.",
       "code_taken": "Kode ini sudah ada di properti ini.",
-      "tiers": "Periksa tingkat menginap lama: minimal 2 malam, jumlah malam berbeda, dan persentase antara 0,01 dan 90."
+      "tiers": "Periksa tingkat menginap lama: minimal 2 malam, jumlah malam berbeda, dan persentase antara 0,01 dan 90.",
+      "times": "Batas late check-out harus setelah jam check-out normal, dan batas early check-in sebelum jam check-in normal."
     },
-    "tabAddons": "Add-on & pengalaman"
+    "tabAddons": "Add-on & pengalaman",
+    "guestTimesTitle": "Jam fleksibel yang bisa diminta tamu",
+    "guestTimesIntro": "Dari halaman booking, tamu bisa minta late check-out (setelah {checkOut}) atau early check-in (sebelum {checkIn}); staf tetap menyetujui setiap permintaan, dan jam di luar batas ini bisa diatur langsung di meja depan.",
+    "lateLatest": "Late check-out paling lambat",
+    "earlyEarliest": "Early check-in paling awal"
   },
   "owners": {
     "title": "Pemilik",
@@ -1687,5 +1709,72 @@
       "role": "Hanya manajer cabang yang bisa mengubah katalog.",
       "invalid": "Periksa isiannya: nama dua bahasa, harga rupiah bulat di atas 0, batas pesan 0–720 jam."
     }
+  },
+  "portal": {
+    "note": "Catatan (opsional)",
+    "sendRequest": "Kirim permintaan",
+    "withdraw": "Tarik kembali",
+    "earlyTitle": "Early check-in",
+    "earlyIntro": "Check-in mulai pukul {time}. Minta datang lebih awal; kami konfirmasi setelah memastikan vila siap.",
+    "earlyTime": "Datang mulai",
+    "earlyRequested": "Permintaan datang mulai pukul {time} sedang menunggu konfirmasi.",
+    "earlyApproved": "Early check-in mulai pukul {time} sudah dikonfirmasi.",
+    "earlyApprovedFee": "Early check-in mulai pukul {time} sudah dikonfirmasi, dengan biaya {amount} ditambahkan ke tagihan Anda.",
+    "earlyDeclined": "Mohon maaf, kami tidak bisa memberikan early check-in mulai pukul {time}.",
+    "earlyNone": "Early check-in sudah tidak bisa diminta untuk booking ini. Silakan hubungi kami.",
+    "earlyMessages": {
+      "sent": "Permintaan terkirim. Kami akan segera mengonfirmasi.",
+      "withdrawn": "Permintaan ditarik kembali.",
+      "rate_limited": "Terlalu banyak permintaan. Coba lagi beberapa menit lagi.",
+      "not_allowed": "Early check-in sudah tidak bisa diminta untuk booking ini.",
+      "already_requested": "Anda sudah punya permintaan yang menunggu.",
+      "time_unavailable": "Jam itu sudah tidak memungkinkan. Pilih jam lain.",
+      "not_pending": "Tidak ada permintaan yang menunggu.",
+      "not_found": "Booking tidak ditemukan."
+    },
+    "datesTitle": "Ubah tanggal",
+    "datesIntro": "Pilih tanggal baru untuk melihat harganya. Tim kami mengonfirmasi perubahan; malam yang sudah dipesan tetap harganya.",
+    "datesCheck": "Cek harga",
+    "datesNewTotal": "Total baru {total}.",
+    "datesMore": "(lebih {amount})",
+    "datesLess": "(kurang {amount}, dikembalikan bila sudah dibayar)",
+    "datesSame": "(total sama)",
+    "datesOtherVilla": "Vila Anda terisi pada tanggal itu, tetapi ada vila lain dengan tipe sama yang kosong; tim kami akan mengonfirmasi harganya.",
+    "datesFinePrint": "Belum ada yang berubah sampai kami konfirmasi. Permintaan late check-out atau early check-in untuk tanggal lama ikut dibatalkan.",
+    "datesRequested": "Permintaan ubah ke {dates} sedang menunggu konfirmasi.",
+    "datesEstimate": "Perkiraan total baru {total}.",
+    "datesDeclined": "Permintaan ubah ke {dates} tidak dapat kami terima",
+    "dateMessages": {
+      "sent": "Permintaan terkirim. Kami akan segera mengonfirmasi.",
+      "withdrawn": "Permintaan ditarik kembali.",
+      "rate_limited": "Terlalu banyak permintaan. Coba lagi beberapa menit lagi."
+    },
+    "dateErrors": {
+      "not_allowed": "Perubahan tanggal bisa diajukan untuk booking terkonfirmasi sebelum kedatangan.",
+      "not_found": "Booking tidak ditemukan.",
+      "already_requested": "Anda sudah punya permintaan ubah tanggal yang menunggu.",
+      "not_pending": "Tidak ada permintaan yang menunggu.",
+      "invalid_dates": "Periksa tanggalnya: check-out harus setelah check-in.",
+      "check_in_in_past": "Tanggal check-in baru sudah lewat.",
+      "min_stay": "Minimal menginap untuk kedatangan itu {nights} malam.",
+      "max_stay": "Maksimal menginap {nights} malam.",
+      "no_change": "Itu tanggal Anda sekarang.",
+      "dates_unavailable": "Tidak ada vila tipe ini yang kosong pada tanggal itu.",
+      "unit_blocked": "Tidak ada vila tipe ini yang kosong pada tanggal itu.",
+      "channel_booked": "Tidak ada vila tipe ini yang kosong pada tanggal itu.",
+      "price_changed": "Harga berubah; silakan cek lagi.",
+      "reason_required": "Alasan wajib diisi."
+    },
+    "staffTitle": "Permintaan ubah tanggal",
+    "staffRequested": "Tamu minta ubah ke {dates}.",
+    "staffPrice": "Harga sekarang di vila yang sama: {total} ({difference}).",
+    "staffOtherVilla": "Vila sekarang terisi; pilih vila lain dengan tipe sama yang kosong.",
+    "staffNoVilla": "Tidak ada vila tipe ini yang kosong pada tanggal itu: tolak dengan alasan.",
+    "staffVilla": "Vila",
+    "staffCurrent": "sekarang",
+    "staffApprove": "Setujui dan terapkan",
+    "staffDeclineReason": "Alasan (dikirim ke tamu)",
+    "staffDecline": "Tolak",
+    "staffHint": "Menyetujui menerapkan aturan ubah tanggal biasa dengan harga hari ini dan mengabari tamu."
   }
 }

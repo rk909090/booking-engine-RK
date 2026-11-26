@@ -1,3 +1,4 @@
+import { siteIndexable, siteUrl } from "@/lib/site/seo";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
@@ -20,9 +21,10 @@ export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Prom
   return {
     title: { default: `${dict.meta.title} · ${brand.name}`, template: `%s · ${brand.name}` },
     description: dict.meta.description,
+    metadataBase: new URL(siteUrl()),
     alternates: { languages: Object.fromEntries(locales.map((l) => [l, `/${l}`])) },
-    // Development deployment: keep it out of search engines until launch.
-    robots: { index: false, follow: false },
+    // Out of search engines until launch: set SITE_INDEXABLE=true (see lib/site/seo.ts).
+    robots: siteIndexable() ? { index: true, follow: true } : { index: false, follow: false },
   };
 }
 
