@@ -1225,3 +1225,14 @@ export const reportRuns = pgTable(
     index("report_runs_status_idx").on(t.status, t.createdAt),
   ],
 );
+
+/**
+ * Settings for the whole group, one row per key (see domain/app-settings.ts).
+ * A missing row means the safe default.
+ */
+export const appSettings = pgTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedBy: text("updated_by"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

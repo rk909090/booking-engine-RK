@@ -48,7 +48,20 @@
       "generic": "Terjadi kesalahan. Coba lagi.",
       "noStaff": "Akun ini tidak terhubung ke staf aktif. Hubungi admin.",
       "passwordsDoNotMatch": "Kedua kata sandi tidak sama.",
-      "missingToken": "Tautan tidak lengkap atau sudah kedaluwarsa. Minta tautan baru ke admin."
+      "missingToken": "Tautan tidak lengkap atau sudah kedaluwarsa. Minta tautan baru ke admin.",
+      "demoOff": "Login preset sudah dimatikan. Masuk dengan akun Anda sendiri."
+    },
+    "demo": {
+      "title": "Mode presentasi: masuk sebagai",
+      "intro": "Akun demo berisi data contoh. Tanpa kata sandi.",
+      "error": "Gagal masuk dengan akun demo. Muat ulang halaman lalu coba lagi.",
+      "or": "atau masuk dengan akun Anda",
+      "hints": {
+        "director": "Semua properti, semua fitur",
+        "branch_manager": "Mengelola Ubud",
+        "front_office": "Resepsionis di Ubud",
+        "housekeeping": "Kesiapan vila di Ubud"
+      }
     }
   },
   "ops": {
@@ -71,7 +84,7 @@
   },
   "security": {
     "title": "Verifikasi dua langkah",
-    "intro": "Semua akun staf wajib memakai aplikasi autentikator (misalnya Google Authenticator, Microsoft Authenticator, atau 1Password).",
+    "intro": "Aplikasi autentikator (misalnya Google Authenticator, Microsoft Authenticator, atau 1Password) menambah langkah kedua saat masuk.",
     "enabled": "Verifikasi dua langkah sudah aktif untuk akun ini.",
     "step1": "1. Konfirmasi kata sandi Anda untuk memulai.",
     "start": "Mulai",
@@ -83,7 +96,16 @@
     "backupTitle": "Simpan kode cadangan Anda",
     "backupIntro": "Jika ponsel Anda hilang, setiap kode ini bisa dipakai sekali untuk masuk. Simpan di tempat aman sekarang; kode tidak akan ditampilkan lagi.",
     "continue": "Saya sudah menyimpannya, lanjutkan",
-    "toDashboard": "Ke dasbor"
+    "toDashboard": "Ke dasbor",
+    "required": "Wajib untuk setiap akun staf.",
+    "optional": "Saat ini tidak wajib. Anda tetap bisa memasangnya untuk akun Anda.",
+    "demoAccount": "Ini akun demo. Akun ini tidak punya kata sandi dan tidak memakai authenticator.",
+    "disableTitle": "Matikan authenticator",
+    "disableIntro": "Setelah itu Anda masuk hanya dengan email dan kata sandi. Jika 2FA diwajibkan lagi, Anda akan diminta memasangnya ulang.",
+    "disable": "Matikan authenticator",
+    "disabled": "Authenticator untuk akun ini sudah dimatikan.",
+    "setupOptional": "Pasang authenticator (opsional)",
+    "optionalEnabled": "Saat ini tidak wajib, jadi Anda bisa mematikannya di bawah."
   },
   "nav": {
     "villas": "Vila",
@@ -2060,7 +2082,7 @@
     "title": "Peran & izin",
     "intro": "Apa yang boleh dilakukan setiap peran. Dicentang = boleh. Perubahan langsung berlaku untuk semua orang dengan peran itu, di setiap halaman dan aksi (diperiksa oleh server).",
     "role": "Izin",
-    "locked": "Tetap: Direktur selalu memegang semua izin; hanya Direktur yang mengelola pengguna dan peran",
+    "locked": "Tetap: Direktur selalu memegang semua izin; hanya Direktur yang mengelola pengguna dan peran atau menghapus properti",
     "changed": "Berbeda dari bawaan",
     "save": "Simpan izin",
     "saved": "Izin tersimpan ({count} berubah).",
@@ -2249,6 +2271,10 @@
       "properties.manage": {
         "label": "Kelola properti",
         "hint": "Menambah properti, atau menutupnya dari booking dan website."
+      },
+      "properties.delete": {
+        "label": "Hapus properti",
+        "hint": "Menghapus properti tertutup yang belum pernah punya booking. Khusus Direktur."
       }
     }
   },
@@ -2311,7 +2337,8 @@
       "needs_property": "Pilih minimal satu properti untuk peran ini.",
       "exists": "Email ini sudah terdaftar sebagai staf.",
       "confirm": "Centang \"Saya yakin\" untuk melanjutkan.",
-      "role": "Peran Anda tidak dapat melakukan ini."
+      "role": "Peran Anda tidak dapat melakukan ini.",
+      "demo": "Akun demo bisa melihat pengguna dan peran, tetapi tidak bisa mengubahnya."
     },
     "done": {
       "saved": "Perubahan tersimpan.",
@@ -2349,7 +2376,8 @@
       "integrations": "Integrasi",
       "profile": "Profil & lokasi",
       "policies": "Kebijakan",
-      "properties": "Semua properti"
+      "properties": "Semua properti",
+      "access": "Login & keamanan"
     },
     "saved": "Pengaturan tersimpan.",
     "createdType": "Tipe vila dibuat. Atur tarif dan musimnya di halaman Tarif, lalu tawarkan di website bila sudah siap.",
@@ -2365,7 +2393,12 @@
       "not_found": "Tidak ditemukan.",
       "role": "Peran Anda tidak dapat mengubah pengaturan ini.",
       "map": "Titik peta tidak terbaca. Tempel koordinat (mis. -8.5069, 115.2625) atau link Google Maps lengkap.",
-      "confirm": "Centang \"Saya yakin\" untuk melanjutkan."
+      "confirm": "Centang \"Saya yakin\" untuk melanjutkan.",
+      "still_active": "Tutup properti dulu.",
+      "confirm_name": "Nama yang diketik tidak sama dengan nama properti.",
+      "ever_booked": "Properti ini pernah punya booking, jadi tidak bisa dihapus. Biarkan tertutup saja.",
+      "has_owner_records": "Properti ini punya catatan pemilik (kepemilikan, biaya atau laporan), jadi tidak bisa dihapus.",
+      "demo_account": "Akun demo tidak dapat mengubah ini."
     },
     "general": {
       "title": "Umum",
@@ -2543,6 +2576,42 @@
         "Asia/Makassar": "WITA: Bali, Lombok, Sulawesi",
         "Asia/Jakarta": "WIB: Jawa, Sumatra",
         "Asia/Jayapura": "WIT: Papua, Maluku"
+      },
+      "delete": "Hapus properti",
+      "deleteHint": "Menghapus properti selamanya, beserta tipe vila, vila, tarif, kode promo, add-on, tugas dan jadwal laporannya. Tidak bisa dibatalkan. Log audit tetap disimpan.",
+      "deleteConfirm": "Ketik nama properti untuk konfirmasi: {name}",
+      "deleteButton": "Hapus selamanya",
+      "cannotDelete": "Properti ini pernah punya booking, jadi bisa ditutup tetapi tidak bisa dihapus (riwayat booking dan keuangannya disimpan)."
+    },
+    "deletedProperty": "Properti dihapus.",
+    "access": {
+      "intro": "Cara staf masuk, untuk seluruh grup. Hanya Direktur dengan akun asli yang dapat mengubahnya.",
+      "demoReadOnly": "Anda masuk dengan akun demo: bisa melihat, tetapi tidak bisa mengubah saklar ini.",
+      "on": "Aktif",
+      "off": "Mati",
+      "required": "Wajib",
+      "optional": "Tidak wajib",
+      "demo": {
+        "title": "Login preset untuk presentasi",
+        "text": "Selama aktif, halaman login menampilkan satu tombol per peran yang langsung masuk ke akun demo tanpa kata sandi. Akun demo tidak dapat mengubah pengguna, peran, atau saklar ini.",
+        "warning": "Siapa pun yang membuka halaman login dapat memakai tombol ini dan mengubah data (tarif, konten properti, booking). Nyalakan tepat sebelum presentasi dan matikan segera setelahnya.",
+        "ready": "Siap",
+        "notReady": "Belum dibuat",
+        "missing": "Ada akun demo yang belum dibuat. Akun dibuat dengan npm run demo:logins (setelah npm run demo:seed).",
+        "offHint": "Mematikannya menyembunyikan tombol dan langsung mengeluarkan semua akun demo.",
+        "turnOff": "Matikan login preset",
+        "confirm": "Saya mengerti siapa pun bisa masuk selama ini aktif",
+        "turnOn": "Nyalakan login preset"
+      },
+      "twoFactor": {
+        "title": "Verifikasi dua langkah (authenticator)",
+        "requiredText": "Setiap staf wajib memasang aplikasi autentikator sebelum memakai area operasional.",
+        "optionalText": "Staf masuk hanya dengan email dan kata sandi. Wajibkan lagi sebelum peluncuran.",
+        "existing": "Akun yang sudah memakai authenticator tetap diminta kode; selama tidak diwajibkan, setiap orang bisa mematikan miliknya di halaman Keamanan akun.",
+        "offHint": "Staf tidak lagi diminta memasang authenticator.",
+        "onHint": "Staf yang belum memasang authenticator akan diminta memasangnya saat membuka halaman berikutnya.",
+        "turnOff": "Jangan wajibkan 2FA",
+        "turnOn": "Wajibkan 2FA untuk semua"
       }
     }
   }

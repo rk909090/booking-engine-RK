@@ -44,7 +44,7 @@ async function Policies({ lang, dict, searchParams }: { lang: Locale; dict: Dict
 
   return (
     <>
-      <SettingsHeader lang={lang} dict={dict} current="policies" property={ctx.property} properties={ctx.properties} sp={sp} canProperties={ctx.canProperties} />
+      <SettingsHeader lang={lang} dict={dict} current="policies" property={ctx.property} properties={ctx.properties} sp={sp} canProperties={ctx.canProperties} canAccess={ctx.canAccess} />
       <ReadOnly readOnly={!ctx.canManage} note={t.readOnly}>
         <form action={savePoliciesAction} className="space-y-6">
           <SettingsHidden lang={lang} property={p} anchor="" />

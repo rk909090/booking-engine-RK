@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
 import { todayIn } from "@/domain/dates";
-import { createProperty, createUnit, createUnitType, setPropertyActive, setUnitActive, updatePropertyContent, updatePropertyPolicies, updatePropertyProfile, updateUnitTypeDetails } from "@/domain/settings";
+import { createProperty, createUnit, deleteProperty, createUnitType, setPropertyActive, setUnitActive, updatePropertyContent, updatePropertyPolicies, updatePropertyProfile, updateUnitTypeDetails } from "@/domain/settings";
 import { hasLocale, locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { requireStaff } from "@/lib/auth/current-staff";
@@ -219,4 +219,20 @@ export async function setPropertyActiveAction(form: FormData) {
   if (!p) return back("error=not_found");
   const result = await setPropertyActive(getDb(), { propertyId, active, today: todayIn(p.timezone), actor: { type: "staff", id: staff.staffId } });
   back(result.ok ? "done=1" : `error=${result.error}`);
+}
+
+/** Deletes a closed property that never had a booking (directors only; see domain/settings.ts). */
+export async function deletePropertyAction(form: FormData) {
+  const langRaw = field(form, "lang");
+  const lang: Locale = hasLocale(langRaw) ? langRaw : "id";
+  const staff = await requireStaff(lang);
+  const back = (query: string): never => {
+    refresh();
+    redirect(`/${lang}/ops/settings/properties?${query}`);
+  };
+  const propertyId = field(form, "propertyId");
+  if (!UUID.test(propertyId)) return back("error=not_found");
+  if (!can(staff.actor, "properties.delete").allowed) return back("error=role");
+  const result = await deleteProperty(getDb(), { propertyId, confirmName: field(form, "confirmName"), actor: { type: "staff", id: staff.staffId } });
+  back(result.ok ? "done=deleted" : `error=${result.error}`);
 }

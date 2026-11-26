@@ -2,8 +2,14 @@
  * Removes the demo written by npm run demo:seed, and only that: demo guests
  * and everything on their bookings, demo owners, add-ons, promo codes,
  * tasks, expenses, report schedules and staff (demo-…@example.com), and
- * every record a demo staff member created. Puts back the property settings
- * the demo changed and the invoice counters. Real data stays as it is.
+ * every record a demo staff member created, including bookings made with a
+ * demo sign-in button during a presentation (and their guests, when they
+ * have no other booking). Removes the demo sign-in accounts and switches
+ * demo sign-in off. Puts back the property settings the demo changed and the
+ * invoice counters. Real data stays as it is.
+ *
+ * Not undone: settings a demo account changed during a presentation (rates,
+ * property content, villas); check them afterwards.
  *
  * Usage: npm run demo:clear
  */
@@ -25,8 +31,19 @@ async function main() {
         return;
       }
       const [seed] = await tx`SELECT before, occurred_at FROM audit_events WHERE action = 'demo.seeded' ORDER BY occurred_at DESC LIMIT 1`;
-      const guests = (await tx`SELECT id::text FROM guests WHERE email LIKE 'demo-%@example.com'`).map((r) => r.id as string);
-      const res = guests.length ? (await tx`SELECT id::text FROM reservations WHERE guest_id IN ${tx(guests)}`).map((r) => r.id as string) : [];
+      const demoGuests = (await tx`SELECT id::text FROM guests WHERE email LIKE 'demo-%@example.com'`).map((r) => r.id as string);
+      const demoRes = demoGuests.length ? (await tx`SELECT id::text FROM reservations WHERE guest_id IN ${tx(demoGuests)}`).map((r) => r.id as string) : [];
+      // Bookings made with a demo sign-in button (a presentation), for any guest.
+      const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const held = (await tx`SELECT DISTINCT entity_id FROM audit_events WHERE action = 'reservation.held' AND actor_id IN ${tx(staff)}`).map((r) => r.entity_id as string).filter((id) => UUID.test(id));
+      const presented = held.length ? await tx`SELECT id::text, guest_id::text FROM reservations WHERE id IN ${tx(held)}` : [];
+      const res = [...new Set([...demoRes, ...presented.map((r) => r.id as string)])];
+      const presentedGuests = [...new Set(presented.map((r) => r.guest_id as string))].filter((id) => !demoGuests.includes(id));
+      // Their guests go too, unless they have a booking that stays.
+      const lonely = presentedGuests.length
+        ? (await tx`SELECT g.id::text FROM guests g WHERE g.id IN ${tx(presentedGuests)} AND NOT EXISTS (SELECT 1 FROM reservations r WHERE r.guest_id = g.id AND NOT (r.id::text IN ${tx(res)}))`).map((r) => r.id as string)
+        : [];
+      const guests = [...demoGuests, ...lonely];
       const owners = (await tx`SELECT id::text FROM owners WHERE email LIKE 'demo-%@example.com' OR created_by IN ${tx(staff)}`).map((r) => r.id as string);
       const addons = (await tx`SELECT id::text FROM addons WHERE created_by IN ${tx(staff)}`).map((r) => r.id as string);
       const promos = (await tx`SELECT id::text FROM promo_codes WHERE created_by IN ${tx(staff)}`).map((r) => r.id as string);
@@ -74,6 +91,9 @@ async function main() {
           long_stay_tiers = ${tx.json((p.longStayTiers ?? []) as postgres.JSONValue)}, commission_rates = ${tx.json((p.commissionRates ?? {}) as postgres.JSONValue)}, updated_at = now() WHERE id = ${p.id as string}`;
       }
       await run("staff_members", tx`DELETE FROM staff_members WHERE id IN ${tx(staff)}`);
+      // Demo sign-in accounts (their sessions go with them) and the switch that showed them.
+      await run("auth_users", tx`DELETE FROM auth_users WHERE email LIKE 'demo-%@example.com'`);
+      await run("app_settings", tx`DELETE FROM app_settings WHERE key = 'demo_login'`);
     });
     if (Object.keys(counts).length) console.log("Removed:", counts);
   } finally {

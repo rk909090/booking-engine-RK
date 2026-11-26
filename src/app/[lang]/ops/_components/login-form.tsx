@@ -10,7 +10,8 @@ import { authClient, authErrorKind, navigateAfterAuthChange } from "@/lib/auth/c
 export function LoginForm({ lang, t }: { lang: Locale; t: Dictionary["auth"] }) {
   const router = useRouter();
   const params = useSearchParams();
-  const [error, setError] = useState<string | null>(params.get("error") === "no_staff" ? t.errors.noStaff : null);
+  const initial = params.get("error");
+  const [error, setError] = useState<string | null>(initial === "no_staff" ? t.errors.noStaff : initial === "demo_off" ? t.errors.demoOff : null);
   const [busy, setBusy] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {

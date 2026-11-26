@@ -19,7 +19,8 @@
     "staff:invite": "tsx --env-file-if-exists=.env.local scripts/staff-invite.ts",
     "db:sample-content": "tsx --env-file-if-exists=.env.local scripts/sample-content.ts",
     "demo:seed": "node --use-system-ca --conditions=react-server --env-file-if-exists=.env.local --import tsx scripts/demo/seed.ts",
-    "demo:clear": "node --use-system-ca --env-file-if-exists=.env.local --import tsx scripts/demo/clear.ts"
+    "demo:clear": "node --use-system-ca --env-file-if-exists=.env.local --import tsx scripts/demo/clear.ts",
+    "demo:logins": "node --use-system-ca --env-file-if-exists=.env.local --import tsx scripts/demo/logins.ts"
   },
   "dependencies": {
     "better-auth": "^1.7.28",

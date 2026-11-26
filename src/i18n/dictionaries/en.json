@@ -48,7 +48,20 @@
       "generic": "Something went wrong. Please try again.",
       "noStaff": "This account is not linked to an active staff member. Contact your admin.",
       "passwordsDoNotMatch": "The passwords do not match.",
-      "missingToken": "This link is incomplete or has expired. Ask your admin for a new one."
+      "missingToken": "This link is incomplete or has expired. Ask your admin for a new one.",
+      "demoOff": "Demo sign-in has been turned off. Sign in with your own account."
+    },
+    "demo": {
+      "title": "Presentation mode: sign in as",
+      "intro": "Demo accounts with sample data. No password needed.",
+      "error": "Could not sign in with the demo account. Refresh the page and try again.",
+      "or": "or sign in with your account",
+      "hints": {
+        "director": "Every property, every feature",
+        "branch_manager": "Runs Ubud",
+        "front_office": "Front desk at Ubud",
+        "housekeeping": "Villa readiness at Ubud"
+      }
     }
   },
   "ops": {
@@ -71,7 +84,7 @@
   },
   "security": {
     "title": "Two-step verification",
-    "intro": "Every staff account must use an authenticator app (for example Google Authenticator, Microsoft Authenticator or 1Password).",
+    "intro": "An authenticator app (such as Google Authenticator, Microsoft Authenticator or 1Password) adds a second step when you sign in.",
     "enabled": "Two-step verification is on for this account.",
     "step1": "1. Confirm your password to begin.",
     "start": "Start",
@@ -83,7 +96,16 @@
     "backupTitle": "Save your backup codes",
     "backupIntro": "If you lose your phone, each of these codes signs you in once. Store them somewhere safe now; they will not be shown again.",
     "continue": "I have saved them, continue",
-    "toDashboard": "Go to dashboard"
+    "toDashboard": "Go to dashboard",
+    "required": "Required for every staff account.",
+    "optional": "Not required at the moment. You can still set it up for your account.",
+    "demoAccount": "This is a demo account. It has no password and does not use an authenticator.",
+    "disableTitle": "Turn the authenticator off",
+    "disableIntro": "You will then sign in with email and password only. If 2FA becomes required again, you will be asked to set it up again.",
+    "disable": "Turn authenticator off",
+    "disabled": "The authenticator is off for this account.",
+    "setupOptional": "Set up an authenticator (optional)",
+    "optionalEnabled": "Not required at the moment, so you can turn it off below."
   },
   "nav": {
     "villas": "Villas",
@@ -2060,7 +2082,7 @@
     "title": "Roles & permissions",
     "intro": "What each role may do. Ticked = allowed. Changes apply at once to everyone with that role, on every page and action (the server checks them).",
     "role": "Permission",
-    "locked": "Fixed: directors keep every permission; only directors manage users and roles",
+    "locked": "Fixed: directors always hold every permission; only directors manage users and roles or delete properties",
     "changed": "Changed from the default",
     "save": "Save permissions",
     "saved": "Permissions saved ({count} changed).",
@@ -2249,6 +2271,10 @@
       "properties.manage": {
         "label": "Manage properties",
         "hint": "Add a property, or close it to bookings and the website."
+      },
+      "properties.delete": {
+        "label": "Delete properties",
+        "hint": "Deletes a closed property that never had a booking. Directors only."
       }
     }
   },
@@ -2311,7 +2337,8 @@
       "needs_property": "Choose at least one property for this role.",
       "exists": "This email already belongs to a staff member.",
       "confirm": "Tick \"I am sure\" to continue.",
-      "role": "Your role cannot do this."
+      "role": "Your role cannot do this.",
+      "demo": "Demo accounts can look at users and roles but cannot change them."
     },
     "done": {
       "saved": "Changes saved.",
@@ -2349,7 +2376,8 @@
       "integrations": "Integrations",
       "profile": "Profile & location",
       "policies": "Policies",
-      "properties": "All properties"
+      "properties": "All properties",
+      "access": "Sign-in & security"
     },
     "saved": "Settings saved.",
     "createdType": "Villa type created. Set its rates and seasons on the Rates page, then offer it on the website when ready.",
@@ -2365,7 +2393,12 @@
       "not_found": "Not found.",
       "role": "Your role cannot change these settings.",
       "map": "The map point could not be read. Paste coordinates (e.g. -8.5069, 115.2625) or a full Google Maps link.",
-      "confirm": "Tick \"I am sure\" to continue."
+      "confirm": "Tick \"I am sure\" to continue.",
+      "still_active": "Close the property first.",
+      "confirm_name": "The name you typed does not match the property name.",
+      "ever_booked": "This property has had bookings, so it cannot be deleted. Keep it closed instead.",
+      "has_owner_records": "This property has owner records (ownership, expenses or statements), so it cannot be deleted.",
+      "demo_account": "A demo account cannot change this."
     },
     "general": {
       "title": "General",
@@ -2543,6 +2576,42 @@
         "Asia/Makassar": "WITA: Bali, Lombok, Sulawesi",
         "Asia/Jakarta": "WIB: Java, Sumatra",
         "Asia/Jayapura": "WIT: Papua, Maluku"
+      },
+      "delete": "Delete property",
+      "deleteHint": "Deletes the property for good, with its villa types, villas, rates, promo codes, add-ons, tasks and report schedules. It cannot be undone. The audit log is kept.",
+      "deleteConfirm": "Type the property name to confirm: {name}",
+      "deleteButton": "Delete for good",
+      "cannotDelete": "This property has had bookings, so it can be closed but not deleted (its booking and money history is kept)."
+    },
+    "deletedProperty": "Property deleted.",
+    "access": {
+      "intro": "How staff sign in, for the whole group. Only a director with a real account can change this.",
+      "demoReadOnly": "You are signed in with a demo account: you can look, but not change these switches.",
+      "on": "On",
+      "off": "Off",
+      "required": "Required",
+      "optional": "Not required",
+      "demo": {
+        "title": "Demo sign-in for presentations",
+        "text": "While on, the sign-in page shows one button per role that signs in to a demo account without a password. Demo accounts cannot change users, roles or these switches.",
+        "warning": "Anyone who opens the sign-in page can use these buttons and change data (rates, property content, bookings). Turn it on just before a presentation and off straight after.",
+        "ready": "Ready",
+        "notReady": "Not set up",
+        "missing": "A demo account is missing. It is created with npm run demo:logins (after npm run demo:seed).",
+        "offHint": "Turning it off hides the buttons and signs every demo account out at once.",
+        "turnOff": "Turn demo sign-in off",
+        "confirm": "I understand anyone can sign in while this is on",
+        "turnOn": "Turn demo sign-in on"
+      },
+      "twoFactor": {
+        "title": "Two-step verification (authenticator)",
+        "requiredText": "Every staff member must set up an authenticator app before using the operations area.",
+        "optionalText": "Staff sign in with email and password only. Turn this back on before launch.",
+        "existing": "Accounts that already use an authenticator are still asked for a code; each person can turn theirs off on their account security page while this is not required.",
+        "offHint": "Staff will no longer be asked to set up an authenticator.",
+        "onHint": "Staff without an authenticator will be asked to set one up the next time they open a page.",
+        "turnOff": "Stop requiring 2FA",
+        "turnOn": "Require 2FA for everyone"
       }
     }
   }

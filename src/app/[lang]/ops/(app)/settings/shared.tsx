@@ -7,8 +7,8 @@ import { requireStaff } from "@/lib/auth/current-staff";
 import { can } from "@/lib/authz/permissions";
 import { visibleProperties } from "@/lib/ops/queries";
 
-export type SettingsTab = "profile" | "policies" | "content" | "villas" | "properties" | "integrations";
-const PATHS: Record<SettingsTab, string> = { profile: "", policies: "/policies", content: "/content", villas: "/villas", properties: "/properties", integrations: "/integrations" };
+export type SettingsTab = "profile" | "policies" | "content" | "villas" | "properties" | "access" | "integrations";
+const PATHS: Record<SettingsTab, string> = { profile: "", policies: "/policies", content: "/content", villas: "/villas", properties: "/properties", access: "/access", integrations: "/integrations" };
 /** Tabs about one property (they show the property switcher). */
 const PER_PROPERTY: SettingsTab[] = ["profile", "policies", "content", "villas"];
 
@@ -16,11 +16,13 @@ const PER_PROPERTY: SettingsTab[] = ["profile", "policies", "content", "villas"]
 export async function settingsContext(lang: Locale, sp: Record<string, string | string[] | undefined>) {
   const staff = await requireStaff(lang);
   const canProperties = can(staff.actor, "properties.manage").allowed;
-  if (!can(staff.actor, "settings.view").allowed) return { staff, property: null, properties: [], canManage: false, canProperties } as const;
+  // The sign-in switches belong to whoever manages users (directors).
+  const canAccess = can(staff.actor, "users.manage").allowed;
+  if (!can(staff.actor, "settings.view").allowed) return { staff, property: null, properties: [], canManage: false, canProperties, canAccess } as const;
   const properties = (await visibleProperties(staff.actor)).filter((p) => can(staff.actor, "settings.view", p.id).allowed);
   const property = properties.find((p) => p.slug === sp.property) ?? properties[0] ?? null;
   const canManage = property ? can(staff.actor, "settings.manage", property.id).allowed : false;
-  return { staff, property, properties, canManage, canProperties } as const;
+  return { staff, property, properties, canManage, canProperties, canAccess } as const;
 }
 
 export function SettingsHeader({
@@ -31,6 +33,7 @@ export function SettingsHeader({
   properties,
   sp,
   canProperties = false,
+  canAccess = false,
 }: {
   lang: Locale;
   dict: Dictionary;
@@ -40,10 +43,12 @@ export function SettingsHeader({
   sp: Record<string, string | string[] | undefined>;
   /** Show the "all properties" tab (properties.manage). */
   canProperties?: boolean;
+  /** Show the sign-in & security tab (users.manage). */
+  canAccess?: boolean;
 }) {
   const t = dict.settings;
   const q = property ? `?property=${property.slug}` : "";
-  const done = sp.done === "created" ? t.createdType : sp.done === "property" ? t.createdProperty : sp.done ? t.saved : undefined;
+  const done = sp.done === "created" ? t.createdType : sp.done === "property" ? t.createdProperty : sp.done === "deleted" ? t.deletedProperty : sp.done ? t.saved : undefined;
   const error = typeof sp.error === "string" ? ((t.errors as Record<string, string>)[sp.error] ?? t.errors.invalid) : undefined;
   return (
     <>
@@ -58,7 +63,7 @@ export function SettingsHeader({
       />
       <nav aria-label={t.title} className="mb-6 flex flex-wrap gap-1 border-b border-line">
         {(Object.keys(PATHS) as SettingsTab[])
-          .filter((tab) => tab !== "properties" || canProperties)
+          .filter((tab) => (tab !== "properties" || canProperties) && (tab !== "access" || canAccess))
           .map((tab) => (
           <Link
             key={tab}

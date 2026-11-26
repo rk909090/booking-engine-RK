@@ -15,7 +15,7 @@ type Actor = { type: "staff"; id: string };
  * Every change is logged with what it was before.
  */
 
-export type SettingsError = "not_found" | "invalid" | "times" | "tiers" | "code_taken" | "has_bookings";
+export type SettingsError = "not_found" | "invalid" | "times" | "tiers" | "code_taken" | "has_bookings" | "still_active" | "confirm_name" | "ever_booked" | "has_owner_records";
 export type SettingsResult = { ok: true; id?: string } | { ok: false; error: SettingsError };
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -311,6 +311,62 @@ export async function createProperty(db: AnyDb, input: { name: string; timezone:
   const [created] = await db.insert(schema.properties).values({ slug, name, timezone: input.timezone }).returning({ id: schema.properties.id });
   await audit(db, input.actor, created.id, "property", created.id, "settings.property_created", {}, { name, slug, timezone: input.timezone });
   return { ok: true, id: created.id };
+}
+
+/**
+ * Deletes a property for good (decided with the owner, 26 Nov 2026): only a
+ * closed one, only when its name is typed to confirm, and only when it never
+ * had a booking or owner records, so no money history is lost. Its villa
+ * types, villas, rates, closures, promo codes, add-ons, tasks, report
+ * schedules and staff assignments go with it. The audit log keeps its
+ * entries (without the property link) plus one for the deletion.
+ */
+export async function deleteProperty(db: AnyDb, input: { propertyId: string; confirmName: string; actor: Actor }): Promise<SettingsResult> {
+  const [property] = await db.select().from(schema.properties).where(eq(schema.properties.id, input.propertyId));
+  if (!property) return { ok: false, error: "not_found" };
+  if (property.isActive) return { ok: false, error: "still_active" };
+  const typed = input.confirmName.trim().replace(/\s+/g, " ").toLowerCase();
+  if (typed !== property.name.trim().replace(/\s+/g, " ").toLowerCase()) return { ok: false, error: "confirm_name" };
+  const id = property.id;
+  const [booked] = await db.select({ id: schema.reservations.id }).from(schema.reservations).where(eq(schema.reservations.propertyId, id)).limit(1);
+  if (booked) return { ok: false, error: "ever_booked" };
+  const unitIds = db.select({ id: schema.units.id }).from(schema.units).where(eq(schema.units.propertyId, id));
+  const [owned] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(sql`(
+      SELECT 1 FROM ${schema.unitOwnerships} WHERE ${schema.unitOwnerships.unitId} IN ${unitIds}
+      UNION ALL SELECT 1 FROM ${schema.ownerExpenses} WHERE ${schema.ownerExpenses.propertyId} = ${id}
+      UNION ALL SELECT 1 FROM ${schema.recurringExpenses} WHERE ${schema.recurringExpenses.propertyId} = ${id}
+      UNION ALL SELECT 1 FROM ${schema.ownerStatements} WHERE ${schema.ownerStatements.propertyId} = ${id}
+    ) AS owner_records`);
+  if (owned.n > 0) return { ok: false, error: "has_owner_records" };
+
+  await db.transaction(async (tx) => {
+    // Rows that point at the property (or its villa types) without cascading.
+    await tx.delete(schema.reportRuns).where(eq(schema.reportRuns.propertyId, id));
+    await tx.delete(schema.reportSubscriptions).where(eq(schema.reportSubscriptions.propertyId, id));
+    await tx.delete(schema.addons).where(eq(schema.addons.propertyId, id));
+    await tx.delete(schema.promoCodes).where(eq(schema.promoCodes.propertyId, id));
+    await tx.delete(schema.arrivalClosures).where(eq(schema.arrivalClosures.propertyId, id));
+    // Villas take their status, blocks, calendar feeds and tasks with them; villa types their seasons.
+    await tx.delete(schema.units).where(eq(schema.units.propertyId, id));
+    await tx.delete(schema.unitTypes).where(eq(schema.unitTypes.propertyId, id));
+    await tx.update(schema.auditEvents).set({ propertyId: null }).where(eq(schema.auditEvents.propertyId, id));
+    // Staff assignments, invoice counters and remaining tasks cascade.
+    await tx.delete(schema.properties).where(eq(schema.properties.id, id));
+    await tx.insert(schema.auditEvents).values({
+      actorType: "staff",
+      actorId: input.actor.id,
+      propertyId: null,
+      entityType: "property",
+      entityId: id,
+      action: "settings.property_deleted",
+      before: { name: property.name, slug: property.slug, timezone: property.timezone },
+      after: {},
+      occurredAt: new Date(),
+    });
+  });
+  return { ok: true };
 }
 
 /** Closes a property to new bookings and the website (or opens it again). Not while bookings are current or coming. */

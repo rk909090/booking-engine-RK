@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { NoAccess } from "@/components/ops/ops-shell";
+import { can } from "@/lib/authz/permissions";
 import { Card, dangerButton, inputClass, labelClass, Pill, primaryButton, secondaryButton } from "@/components/ops/ui";
 import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
@@ -12,7 +13,7 @@ import { TIMEZONES } from "@/domain/settings";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { format } from "@/i18n/format";
 import { getDictionary, type Dictionary } from "@/i18n/get-dictionary";
-import { createPropertyAction, setPropertyActiveAction } from "@/lib/ops/settings-actions";
+import { createPropertyAction, deletePropertyAction, setPropertyActiveAction } from "@/lib/ops/settings-actions";
 import { SettingsHeader, settingsContext } from "../shared";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/ops/settings/properties">): Promise<Metadata> {
@@ -42,7 +43,8 @@ async function Properties({ lang, dict, searchParams }: { lang: Locale; dict: Di
   const properties = await db.select().from(schema.properties).orderBy(asc(schema.properties.name));
   const ids = properties.map((p) => p.id);
   const today = todayIn(properties[0]?.timezone ?? "Asia/Makassar");
-  const [types, units, upcoming] = ids.length
+  const canDelete = can(ctx.staff.actor, "properties.delete").allowed;
+  const [types, units, upcoming, booked] = ids.length
     ? await Promise.all([
         db.select({ id: schema.unitTypes.propertyId, n: sql<number>`count(*)::int` }).from(schema.unitTypes).where(inArray(schema.unitTypes.propertyId, ids)).groupBy(schema.unitTypes.propertyId),
         db.select({ id: schema.units.propertyId, n: sql<number>`count(*)::int` }).from(schema.units).where(and(inArray(schema.units.propertyId, ids), sql`${schema.units.isActive}`)).groupBy(schema.units.propertyId),
@@ -51,14 +53,16 @@ async function Properties({ lang, dict, searchParams }: { lang: Locale; dict: Di
           .from(schema.reservations)
           .where(and(inArray(schema.reservations.propertyId, ids), inArray(schema.reservations.status, ["hold", "confirmed", "in_house"]), gt(schema.reservations.checkOut, today)))
           .groupBy(schema.reservations.propertyId),
+        // Any booking ever: such a property can be closed but not deleted.
+        db.select({ id: schema.reservations.propertyId, n: sql<number>`count(*)::int` }).from(schema.reservations).where(inArray(schema.reservations.propertyId, ids)).groupBy(schema.reservations.propertyId),
       ])
-    : [[], [], []];
+    : [[], [], [], []];
   const n = (rows: Array<{ id: string; n: number }>, id: string) => rows.find((r) => r.id === id)?.n ?? 0;
   const tz = t.tz as Record<string, string>;
 
   return (
     <>
-      <SettingsHeader lang={lang} dict={dict} current="properties" property={ctx.property} properties={ctx.properties} sp={sp} canProperties={ctx.canProperties} />
+      <SettingsHeader lang={lang} dict={dict} current="properties" property={ctx.property} properties={ctx.properties} sp={sp} canProperties={ctx.canProperties} canAccess={ctx.canAccess} />
       <p className="mb-4 max-w-3xl text-sm text-stone">{t.intro}</p>
       <div className="grid gap-4 lg:grid-cols-2">
         {properties.map((p) => (
@@ -96,14 +100,37 @@ async function Properties({ lang, dict, searchParams }: { lang: Locale; dict: Di
                   </button>
                 </form>
               ) : (
-                <form action={setPropertyActiveAction}>
-                  <input type="hidden" name="lang" value={lang} />
-                  <input type="hidden" name="propertyId" value={p.id} />
-                  <input type="hidden" name="active" value="true" />
-                  <button type="submit" className={primaryButton}>
-                    {t.activate}
-                  </button>
-                </form>
+                <div className="space-y-4">
+                  <form action={setPropertyActiveAction}>
+                    <input type="hidden" name="lang" value={lang} />
+                    <input type="hidden" name="propertyId" value={p.id} />
+                    <input type="hidden" name="active" value="true" />
+                    <button type="submit" className={primaryButton}>
+                      {t.activate}
+                    </button>
+                  </form>
+                  {canDelete ? (
+                    n(booked, p.id) > 0 ? (
+                      <p className="text-xs text-stone">{t.cannotDelete}</p>
+                    ) : (
+                      <details className="rounded-lg border border-danger/30 bg-danger/5 p-3">
+                        <summary className="cursor-pointer text-sm font-medium text-danger">{t.delete}</summary>
+                        <form action={deletePropertyAction} className="mt-3 space-y-3">
+                          <input type="hidden" name="lang" value={lang} />
+                          <input type="hidden" name="propertyId" value={p.id} />
+                          <p className="text-xs text-stone">{t.deleteHint}</p>
+                          <label className={labelClass}>
+                            <span>{format(t.deleteConfirm, { name: p.name })}</span>
+                            <input name="confirmName" required autoComplete="off" className={inputClass} />
+                          </label>
+                          <button type="submit" className={dangerButton}>
+                            {t.deleteButton}
+                          </button>
+                        </form>
+                      </details>
+                    )
+                  ) : null}
+                </div>
               )}
             </div>
           </Card>

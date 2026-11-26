@@ -46,6 +46,7 @@ export const actions = [
   "settings.view",
   "settings.manage",
   "properties.manage",
+  "properties.delete",
   "users.manage",
   "roles.manage",
   "channels.manage",
@@ -109,6 +110,8 @@ const base: Record<Action, readonly Role[]> = {
   "settings.manage": ["director", "branch_manager"],
   /** Add a property, or close it to bookings and the website. */
   "properties.manage": ["director"],
+  /** Delete a closed property that never had a booking (locked: directors only). */
+  "properties.delete": ["director"],
   /** Invite staff, change their role and properties, deactivate, reset 2FA. */
   "users.manage": ["director"],
   /** Change what each role may do (this matrix). */
@@ -208,12 +211,13 @@ export function defaultAllows(role: Role, action: Action): boolean {
 
 /**
  * Cells of the matrix that cannot be changed: directors keep every permission,
- * only directors manage users and roles, and everybody has a home page.
+ * only directors manage users and roles or delete properties, and everybody
+ * has a home page.
  * Otherwise a single save could lock everyone out.
  */
 export function isLocked(role: Role, action: Action): boolean {
   if (role === "director") return true;
-  return action === "users.manage" || action === "roles.manage" || action === "dashboard.view";
+  return action === "users.manage" || action === "roles.manage" || action === "properties.delete" || action === "dashboard.view";
 }
 
 export type PermissionOverride = { role: string; action: string; allowed: boolean };

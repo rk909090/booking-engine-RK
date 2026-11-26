@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { getDb } from "@/db/client";
+import { readAccessSettings, staffGate } from "@/domain/app-settings";
 import type { Locale } from "@/i18n/config";
 import { getAuth } from "./server";
 import { loadStaffProfile, type StaffProfile } from "./staff";
@@ -29,13 +30,17 @@ const currentSession = cache(async (): Promise<{ signedIn: false } | { signedIn:
   return { signedIn: true, profile: await loadStaffProfile(getDb(), session.user) };
 });
 
+/** The group's sign-in switches, read once per request. */
+export const currentAccessSettings = cache(() => readAccessSettings(getDb()));
+
 /**
  * Data access layer for the operations area. Reads the request's session,
  * so callers must render inside a <Suspense> boundary (Cache Components).
  *
  * - no session                  -> login page
  * - no active staff record      -> login page with ?error=no_staff
- * - 2FA not set up (unless allowed) -> security page to enroll
+ * - demo account, demo sign-in switched off -> login page with ?error=demo_off
+ * - 2FA required but not set up (unless allowed) -> security page to enroll
  */
 export async function requireStaff(
   lang: Locale,
@@ -46,8 +51,8 @@ export async function requireStaff(
   const profile = current.profile;
   if (!profile) redirect(`/${lang}/ops/login?error=no_staff`);
 
-  if (!profile.twoFactorEnabled && !options.allowWithoutTwoFactor) {
-    redirect(`/${lang}/ops/security`);
-  }
+  const gate = staffGate(profile, await currentAccessSettings(), options);
+  if (gate === "demo_off") redirect(`/${lang}/ops/login?error=demo_off`);
+  if (gate === "enroll") redirect(`/${lang}/ops/security`);
   return profile;
 }

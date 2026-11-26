@@ -1,6 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
+import { isDemoEmail } from "@/domain/app-settings";
 import { permissionsFor, type Actor, type Role } from "@/lib/authz/permissions";
 
 type AnyDb = PgDatabase<PgQueryResultHKT, typeof schema>;
@@ -11,6 +12,8 @@ export type StaffProfile = {
   email: string;
   role: Role;
   twoFactorEnabled: boolean;
+  /** A demo account (demo-…@example.com), signed in with a demo button. */
+  isDemo: boolean;
   actor: Actor;
 };
 
@@ -45,6 +48,7 @@ export async function loadStaffProfile(
     email: row.email,
     role: row.role,
     twoFactorEnabled: authUser.twoFactorEnabled === true,
+    isDemo: isDemoEmail(row.email),
     actor: {
       staffId: row.id,
       role: row.role,

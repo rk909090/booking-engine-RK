@@ -5,6 +5,7 @@ import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import { brand } from "@/config/brand";
 import type { Locale } from "@/i18n/config";
 import * as schema from "@/db/schema";
+import { demoLogin } from "./demo-login";
 import { deliverSetupLink } from "./outbox";
 
 type AnyDb = PgDatabase<PgQueryResultHKT, typeof schema>;
@@ -64,7 +65,7 @@ export function createAuth(db: AnyDb, settings: AuthSettings) {
       // Without it every visitor would share one rate-limit bucket.
       ipAddress: { ipAddressHeaders: ["x-forwarded-for"] },
     },
-    plugins: [twoFactor({ issuer: brand.name })],
+    plugins: [twoFactor({ issuer: brand.name }), demoLogin(db)],
   });
 }
 

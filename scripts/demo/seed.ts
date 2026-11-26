@@ -36,6 +36,7 @@ import { balanceDue } from "../../src/domain/pricing";
 import { createPromo, updateOffers } from "../../src/domain/rates";
 import { addSubscription } from "../../src/domain/report-schedule";
 import { createStaffBooking } from "../../src/domain/staff-booking";
+import { ensureDemoLogins } from "./logins";
 import { assignTask, claimTask, finishCleaning, finishInspection, finishTask, reportMaintenance, startTask } from "../../src/domain/tasks";
 import type { RatePlan } from "../../src/domain/types";
 import idDict from "../../src/i18n/dictionaries/id.json";
@@ -160,6 +161,8 @@ async function main() {
       console.log("Dry run: nothing written.");
     } else {
       await push(remote, catalog, changes);
+      const logins = await ensureDemoLogins(remote);
+      console.log(`Demo sign-in accounts: ${logins.created.join(", ") || "already set up"}${logins.missing.length ? `; missing ${logins.missing.join(", ")}` : ""}.`);
       console.log("Demo written. Remove it before launch with: npm run demo:clear");
     }
     await local.close();

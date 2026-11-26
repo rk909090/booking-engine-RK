@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as schema from "@/db/schema";
 import { seedSampleData } from "@/db/seed-data";
 import { createHold } from "@/domain/booking";
-import { createProperty, createUnit, createUnitType, normaliseCancellationTiers, parseCoordinates, setPropertyActive, setUnitActive, updatePropertyContent, updatePropertyPolicies, updatePropertyProfile, updateUnitTypeDetails, type PolicyInput } from "@/domain/settings";
+import { createProperty, createUnit, createUnitType, deleteProperty, normaliseCancellationTiers, parseCoordinates, setPropertyActive, setUnitActive, updatePropertyContent, updatePropertyPolicies, updatePropertyProfile, updateUnitTypeDetails, type PolicyInput } from "@/domain/settings";
 import { createTestDb, type TestDb } from "./test-db";
 
 let db: TestDb;
@@ -179,5 +179,54 @@ describe("property profile and location", () => {
     expect(await setPropertyActive(db, { propertyId: (again as { id: string }).id, active: false, today: "2027-01-02", actor })).toEqual({ ok: true });
     // Ubud has a booking in March 2027 (from the villa test above).
     expect(await setPropertyActive(db, { propertyId: ubud.id, active: false, today: "2027-01-02", actor })).toEqual({ ok: false, error: "has_bookings" });
+  });
+
+  it("deletes a closed property that never had a booking, with everything set up under it", async () => {
+    const made = await createProperty(db, { name: "Test  Property", timezone: "Asia/Makassar", actor });
+    const id = (made as { id: string }).id;
+    const type = await createUnitType(db, { propertyId: id, name: "Garden Villa", bedrooms: 1, maxGuests: 2, baseRate: 3_000_000, actor });
+    const typeId = (type as { id: string }).id;
+    expect((await createUnit(db, { unitTypeId: typeId, code: "TST-01", name: "", actor })).ok).toBe(true);
+    const [unit] = await db.select().from(schema.units).where(eq(schema.units.code, "TST-01"));
+    const [staff] = await db.insert(schema.staffMembers).values({ email: "bm-test@example.com", fullName: "BM Test", role: "branch_manager" }).returning();
+    await db.insert(schema.staffPropertyAccess).values({ staffId: staff.id, propertyId: id });
+    await db.insert(schema.rateSeasons).values({ unitTypeId: typeId, name: "High", startDate: "2027-07-01", endDate: "2027-08-31", nightlyRate: 4_000_000 });
+    await db.insert(schema.arrivalClosures).values({ propertyId: id, startDate: "2027-12-30", endDate: "2028-01-02", createdBy: "bm-1" });
+    await db.insert(schema.promoCodes).values({ propertyId: id, code: "TEST10", kind: "percent", valueBp: 1000, createdBy: "bm-1" });
+    await db.insert(schema.addons).values({ propertyId: id, name: { id: "Sarapan", en: "Breakfast" }, category: "food_beverage", pricing: "per_person", price: 150_000, createdBy: "bm-1" });
+    await db.insert(schema.tasks).values({ propertyId: id, unitId: unit.id, kind: "maintenance", title: "Fix tap" });
+    await db.insert(schema.unitBlocks).values({ unitId: unit.id, startDate: "2027-05-01", endDate: "2027-05-03", reason: "maintenance" });
+    await db.insert(schema.reportSubscriptions).values({ propertyId: id, kind: "daily", email: "bm-test@example.com", createdBy: "bm-1" });
+    await db.insert(schema.invoiceCounters).values({ propertyId: id, year: 2027 });
+
+    // Still open: close it first. Then the name must match (spaces and case do not matter).
+    expect(await deleteProperty(db, { propertyId: id, confirmName: "Test Property", actor })).toEqual({ ok: false, error: "still_active" });
+    await setPropertyActive(db, { propertyId: id, active: false, today: "2027-01-02", actor });
+    expect(await deleteProperty(db, { propertyId: id, confirmName: "Test", actor })).toEqual({ ok: false, error: "confirm_name" });
+
+    // Owner records keep it.
+    const [owner] = await db.insert(schema.owners).values({ fullName: "Owner Test", createdBy: "bm-1" }).returning();
+    const [own] = await db.insert(schema.unitOwnerships).values({ ownerId: owner.id, unitId: unit.id, startDate: "2027-01-01", managementFeeBp: 2000, createdBy: "bm-1" }).returning();
+    expect(await deleteProperty(db, { propertyId: id, confirmName: "test property", actor })).toEqual({ ok: false, error: "has_owner_records" });
+    await db.delete(schema.unitOwnerships).where(eq(schema.unitOwnerships.id, own.id));
+
+    expect(await deleteProperty(db, { propertyId: id, confirmName: " test property ", actor })).toEqual({ ok: true });
+    expect(await db.select().from(schema.properties).where(eq(schema.properties.id, id))).toEqual([]);
+    expect(await db.select().from(schema.unitTypes).where(eq(schema.unitTypes.propertyId, id))).toEqual([]);
+    expect(await db.select().from(schema.units).where(eq(schema.units.id, unit.id))).toEqual([]);
+    expect(await db.select().from(schema.rateSeasons).where(eq(schema.rateSeasons.unitTypeId, typeId))).toEqual([]);
+    expect(await db.select().from(schema.staffPropertyAccess).where(eq(schema.staffPropertyAccess.staffId, staff.id))).toEqual([]);
+    // The staff member and the audit trail stay; the trail loses the property link.
+    expect((await db.select().from(schema.staffMembers).where(eq(schema.staffMembers.id, staff.id))).length).toBe(1);
+    const trail = await db.select().from(schema.auditEvents).where(eq(schema.auditEvents.entityId, id));
+    expect(trail.map((e) => e.action)).toEqual(expect.arrayContaining(["settings.property_created", "settings.property_deactivated", "settings.property_deleted"]));
+    expect(trail.every((e) => e.propertyId === null)).toBe(true);
+  });
+
+  it("never deletes a property that has had a booking", async () => {
+    await db.update(schema.properties).set({ isActive: false }).where(eq(schema.properties.id, ubud.id));
+    const [current] = await db.select().from(schema.properties).where(eq(schema.properties.id, ubud.id));
+    expect(await deleteProperty(db, { propertyId: ubud.id, confirmName: current.name, actor })).toEqual({ ok: false, error: "ever_booked" });
+    await db.update(schema.properties).set({ isActive: true }).where(eq(schema.properties.id, ubud.id));
   });
 });

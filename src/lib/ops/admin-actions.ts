@@ -37,9 +37,16 @@ function backTo(url: string): never {
   redirect(url);
 }
 
+/**
+ * The signed-in director, or why not. Demo accounts (demo sign-in buttons)
+ * may look at these pages but change nothing: anyone can use those buttons
+ * while demo sign-in is on, and could otherwise invite themselves a real
+ * account or take over another one with a password link.
+ */
 async function director(lang: Locale, action: "users.manage" | "roles.manage") {
   const staff = await requireStaff(lang);
-  if (!can(staff.actor, action).allowed) return null;
+  if (!can(staff.actor, action).allowed) return "role" as const;
+  if (staff.isDemo) return "demo" as const;
   return staff;
 }
 
@@ -48,7 +55,7 @@ async function director(lang: Locale, action: "users.manage" | "roles.manage") {
 export async function saveRolesAction(form: FormData) {
   const lang = langOf(form);
   const staff = await director(lang, "roles.manage");
-  if (!staff) backTo(`/${lang}/ops/roles?error=role`);
+  if (typeof staff === "string") return backTo(`/${lang}/ops/roles?error=${staff}`);
   const granted = form
     .getAll("perm")
     .filter((v): v is string => typeof v === "string")
@@ -63,7 +70,7 @@ export async function saveRolesAction(form: FormData) {
 export async function resetRolesAction(form: FormData) {
   const lang = langOf(form);
   const staff = await director(lang, "roles.manage");
-  if (!staff) backTo(`/${lang}/ops/roles?error=role`);
+  if (typeof staff === "string") return backTo(`/${lang}/ops/roles?error=${staff}`);
   if (field(form, "confirm") !== "yes") backTo(`/${lang}/ops/roles?error=confirm#reset`);
   await resetRolePermissions(getDb(), { actor: { type: "staff", id: staff.staffId } });
   backTo(`/${lang}/ops/roles?reset=1`);
@@ -76,7 +83,7 @@ export async function updateUserAction(form: FormData) {
   const staffId = field(form, "staffId");
   const back = (q: string): never => backTo(`/${lang}/ops/users/${UUID.test(staffId) ? staffId : ""}?${q}`);
   const staff = await director(lang, "users.manage");
-  if (!staff) return back("error=role");
+  if (typeof staff === "string") return back(`error=${staff}`);
   if (!UUID.test(staffId)) back("error=not_found");
   const propertyIds = form.getAll("propertyId").filter((v): v is string => typeof v === "string" && UUID.test(v));
   const result = await updateStaffMember(getDb(), { staffId, fullName: field(form, "fullName"), role: field(form, "role"), propertyIds, actor: { type: "staff", id: staff.staffId } });
@@ -88,7 +95,7 @@ export async function setUserActiveAction(form: FormData) {
   const staffId = field(form, "staffId");
   const back = (q: string): never => backTo(`/${lang}/ops/users/${UUID.test(staffId) ? staffId : ""}?${q}`);
   const staff = await director(lang, "users.manage");
-  if (!staff) return back("error=role");
+  if (typeof staff === "string") return back(`error=${staff}`);
   const active = field(form, "active") === "true";
   if (!active && field(form, "confirm") !== "yes") back("error=confirm");
   const result = await setStaffActive(getDb(), { staffId, active, actor: { type: "staff", id: staff.staffId } });
@@ -100,7 +107,7 @@ export async function resetUserTwoFactorAction(form: FormData) {
   const staffId = field(form, "staffId");
   const back = (q: string): never => backTo(`/${lang}/ops/users/${UUID.test(staffId) ? staffId : ""}?${q}`);
   const staff = await director(lang, "users.manage");
-  if (!staff) return back("error=role");
+  if (typeof staff === "string") return back(`error=${staff}`);
   if (field(form, "confirm") !== "yes") back("error=confirm");
   const result = await resetStaffTwoFactor(getDb(), { staffId, actor: { type: "staff", id: staff.staffId } });
   back(result.ok ? "done=twoFactor" : `error=${result.error === "self" ? "self" : "not_found"}`);
@@ -112,7 +119,7 @@ export type LinkState = { ok: true; url: string; emailed: boolean; name: string;
 export async function issueLinkAction(_prev: LinkState, form: FormData): Promise<LinkState> {
   const lang = langOf(form);
   const staff = await director(lang, "users.manage");
-  if (!staff) return { ok: false, error: "role" };
+  if (typeof staff === "string") return { ok: false, error: staff };
   const staffId = field(form, "staffId");
   if (!UUID.test(staffId)) return { ok: false, error: "not_found" };
   const [member] = await getDb().select().from(schema.staffMembers).where(eq(schema.staffMembers.id, staffId));
@@ -126,7 +133,7 @@ export async function issueLinkAction(_prev: LinkState, form: FormData): Promise
 export async function inviteUserAction(_prev: LinkState, form: FormData): Promise<LinkState> {
   const lang = langOf(form);
   const staff = await director(lang, "users.manage");
-  if (!staff) return { ok: false, error: "role" };
+  if (typeof staff === "string") return { ok: false, error: staff };
   const email = field(form, "email").toLowerCase();
   const fullName = field(form, "fullName").replace(/\s+/g, " ");
   const role = field(form, "role");

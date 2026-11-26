@@ -22,5 +22,5 @@ export const ACTION_GROUPS: Array<{ key: "home" | "reservations" | "money" | "gu
   { key: "guests", actions: ["guest.view", "guest.edit", "guest.merge", "guest.privacy", "guest.apoa"] },
   { key: "operations", actions: ["villa_status.view", "housekeeping.update", "unit.block", "tasks.view", "tasks.work", "tasks.assign", "tasks.configure"] },
   { key: "business", actions: ["performance.view", "reports.schedule", "rates.view", "rates.manage", "channels.manage", "owners.view", "owners.manage", "owners.expense"] },
-  { key: "admin", actions: ["team.view", "users.manage", "roles.manage", "settings.view", "settings.manage", "properties.manage"] },
+  { key: "admin", actions: ["team.view", "users.manage", "roles.manage", "settings.view", "settings.manage", "properties.manage", "properties.delete"] },
 ];
