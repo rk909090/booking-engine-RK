@@ -19,6 +19,14 @@ const properties: Record<string, PropertyContent> = {
       id: "Pagi dimulai dengan kabut di atas pepohonan dan suara sungai di bawah. Desa Sayan bisa dicapai dengan berjalan kaki.",
       en: "Mornings begin with mist over the canopy and the river below. Sayan village is a short walk away.",
     },
+    // Sample profile: the phone is a zero number on purpose (no real person), the email is example.com.
+    address: "Jl. Raya Sayan, Banjar Sayan, Ubud, Gianyar, Bali 80571",
+    contact: { phone: "+62 361 000 000", email: "ubud@example.com" },
+    directions: {
+      id: "Dari pusat Ubud ke arah barat melewati Jembatan Campuhan, lalu ikuti Jl. Raya Sayan ±10 menit. Gerbang kayu ada di sisi kanan setelah pura desa; parkir di halaman depan. Host kami menyambut di lobi terbuka.",
+      en: "From central Ubud head west over the Campuhan bridge, then follow Jl. Raya Sayan for about 10 minutes. The wooden gate is on the right after the village temple; park in the front courtyard. Our host meets you in the open lobby.",
+    },
+    geo: { lat: -8.5069, lng: 115.2422 },
   },
   canggu: {
     tagline: { id: "Vila kolam renang di antara sawah", en: "Pool villas among the rice fields" },
@@ -27,6 +35,13 @@ const properties: Record<string, PropertyContent> = {
       id: "Sawah di depan, pantai berpasir hitam lima menit bersepeda. Tenang di siang hari, dekat dengan kafe di sore hari.",
       en: "Rice fields in front, a black-sand beach five minutes by bike. Quiet by day, close to the cafés by evening.",
     },
+    address: "Jl. Pantai Berawa, Tibubeneng, Kuta Utara, Badung, Bali 80361",
+    contact: { phone: "+62 361 000 000", email: "canggu@example.com" },
+    directions: {
+      id: "Dari Jl. Raya Canggu belok ke Jl. Pantai Berawa, lalu masuk gang di sebelah kiri sebelum pantai. Ikuti jalan setapak di tepi sawah sekitar 200 m sampai gerbang batu. Mobil bisa berhenti tepat di depan gerbang.",
+      en: "From Jl. Raya Canggu turn onto Jl. Pantai Berawa, then take the lane on the left before the beach. Follow the path along the rice fields for about 200 m to the stone gate. Cars can stop right at the gate.",
+    },
+    geo: { lat: -8.656, lng: 115.142 },
   },
 };
 
@@ -95,15 +110,20 @@ const unitTypes: Record<
 /** Sample peak season used in demos: 20 Dec to 5 Jan, minimum 5 nights. */
 const HIGH_SEASON = { name: "Puncak / Peak", startDate: "2026-12-20", endDate: "2027-01-05", minStayNights: 5 };
 
+/** Fills in the sample fields; anything else already entered (invoice details, house rules, checklists) is kept. */
 export async function applySampleContent(db: AnyDb) {
   for (const [slug, content] of Object.entries(properties)) {
-    await db.update(schema.properties).set({ content, updatedAt: new Date() }).where(eq(schema.properties.slug, slug));
+    const [current] = await db.select({ content: schema.properties.content }).from(schema.properties).where(eq(schema.properties.slug, slug));
+    if (!current) continue;
+    await db.update(schema.properties).set({ content: { ...current.content, ...content }, updatedAt: new Date() }).where(eq(schema.properties.slug, slug));
   }
   for (const [slug, t] of Object.entries(unitTypes)) {
+    const [currentType] = await db.select({ content: schema.unitTypes.content }).from(schema.unitTypes).where(eq(schema.unitTypes.slug, slug));
+    if (!currentType) continue;
     const [type] = await db
       .update(schema.unitTypes)
       .set({
-        content: t.content,
+        content: { ...currentType.content, ...t.content },
         amenities: t.amenities,
         minStayNights: t.minStayNights,
         sortOrder: t.sortOrder,
