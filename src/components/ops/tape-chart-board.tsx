@@ -53,7 +53,7 @@ function cellAt(x: number, y: number): { unitId: string; date: string } | null {
  * check-out date. Nothing is saved on drop: the server previews the change
  * (price, balance, conflicts) and staff confirm it.
  */
-export function TapeChartBoard({ lang, dict, from, days, today, units, stays, blocks, canModify, canMove }: Props) {
+export function TapeChartBoard({ lang, dict, from, days, today, units, stays, blocks, canModify, canMove, cellWidth = 44 }: Props & { cellWidth?: number }) {
   const { cal: t, sc } = dict;
   const router = useRouter();
   const span = days.length;
@@ -182,7 +182,9 @@ export function TapeChartBoard({ lang, dict, from, days, today, units, stays, bl
     return { row, startCol, endCol, ok, source };
   })();
 
-  const columns = `minmax(140px, 180px) repeat(${span}, minmax(44px, 1fr))`;
+  // Narrower day columns for long ranges, so 90 days still fit a wide screen.
+  const columns = `minmax(140px, 180px) repeat(${span}, minmax(${cellWidth}px, 1fr))`;
+  const narrow = cellWidth < 32;
 
   return (
     <>
@@ -194,12 +196,12 @@ export function TapeChartBoard({ lang, dict, from, days, today, units, stays, bl
       ) : null}
 
       <div className={`mt-5 overflow-x-auto rounded-xl border border-line bg-white/70 ${drag?.moved ? "cursor-grabbing select-none" : ""}`}>
-        <div className="grid text-xs" style={{ gridTemplateColumns: columns, minWidth: 180 + span * 44 }}>
+        <div className="grid text-xs" style={{ gridTemplateColumns: columns, minWidth: 180 + span * cellWidth }}>
           <div className="sticky left-0 z-10 border-b border-r border-line bg-white px-3 py-2 font-medium text-stone">{t.unit}</div>
           {days.map((d) => (
-            <div key={d} className={`border-b border-line px-1 py-2 text-center ${d === today ? "bg-terracotta/10 font-semibold text-terracotta-deep" : "text-stone"}`}>
-              {formatDate(d, lang, { weekday: "short" })}
-              <span className="block text-sm text-ink">{Number(d.slice(8))}</span>
+            <div key={d} title={formatDate(d, lang, { weekday: "long", day: "numeric", month: "long" })} className={`border-b border-line px-0.5 py-2 text-center ${d === today ? "bg-terracotta/10 font-semibold text-terracotta-deep" : "text-stone"} ${d.endsWith("-01") ? "border-l border-l-lagoon/30" : ""}`}>
+              {narrow ? formatDate(d, lang, { weekday: "narrow" }) : formatDate(d, lang, { weekday: "short" })}
+              <span className={`block text-ink ${narrow ? "text-xs" : "text-sm"}`}>{Number(d.slice(8))}</span>
             </div>
           ))}
 

@@ -22,7 +22,8 @@ export function discountLimitBp(
   property: { discountLimitFrontOfficeBp: number; discountLimitManagerBp: number },
   role: string,
 ): number {
-  if (role === "branch_manager") return property.discountLimitManagerBp;
+  // Directors give discounts up to the branch manager's limit.
+  if (role === "branch_manager" || role === "director") return property.discountLimitManagerBp;
   if (role === "front_office") return property.discountLimitFrontOfficeBp;
   return 0;
 }

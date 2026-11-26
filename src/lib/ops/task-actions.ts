@@ -44,9 +44,19 @@ async function withTask(form: FormData, action: Action, op: (ctx: { taskId: stri
   const langRaw = field(form, "lang");
   const lang: Locale = hasLocale(langRaw) ? langRaw : "id";
   const taskId = field(form, "taskId");
-  // From a task's own page (or panel), return there; from the board, to the board.
+  // From a task's own page (or panel), return there; from the table, to the table as it was filtered.
+  const kept = new URLSearchParams();
+  const sent = new URLSearchParams(field(form, "filters"));
+  for (const key of ["status", "kind", "assignee", "property", "due", "q", "page"]) {
+    const v = sent.get(key);
+    if (v) kept.set(key, v.slice(0, 80));
+  }
   const back = (query: string): never =>
-    backTo(field(form, "returnTo") === "detail" && UUID.test(taskId) ? `/${lang}/ops/tasks/${taskId}?${query}` : `/${lang}/ops/tasks?${query}${UUID.test(taskId) ? `#task-${taskId}` : ""}`);
+    backTo(
+      field(form, "returnTo") === "detail" && UUID.test(taskId)
+        ? `/${lang}/ops/tasks/${taskId}?${query}`
+        : `/${lang}/ops/tasks?${kept.toString()}${kept.size ? "&" : ""}${query}${UUID.test(taskId) ? `#task-${taskId}` : ""}`,
+    );
   const staff = await requireStaff(lang);
   if (!UUID.test(taskId)) back("error=not_found");
   const [task] = await getDb().select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).limit(1);

@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as schema from "@/db/schema";
 import { seedSampleData } from "@/db/seed-data";
 import { createHold } from "@/domain/booking";
-import { createUnit, createUnitType, normaliseCancellationTiers, setUnitActive, updatePropertyContent, updatePropertyPolicies, updateUnitTypeDetails, type PolicyInput } from "@/domain/settings";
+import { createProperty, createUnit, createUnitType, normaliseCancellationTiers, parseCoordinates, setPropertyActive, setUnitActive, updatePropertyContent, updatePropertyPolicies, updatePropertyProfile, updateUnitTypeDetails, type PolicyInput } from "@/domain/settings";
 import { createTestDb, type TestDb } from "./test-db";
 
 let db: TestDb;
@@ -22,7 +22,6 @@ afterAll(async () => close());
 
 const policies = (over: Partial<PolicyInput> = {}): PolicyInput => ({
   propertyId: ubud.id,
-  name: "Ubud",
   checkInTime: "14:00",
   checkOutTime: "11:00",
   taxRateBp: 1000,
@@ -125,5 +124,60 @@ describe("villa types and villas", () => {
     // After the stay it can go.
     expect(await setUnitActive(db, { unitId: unit.id, active: false, today: "2027-03-13", actor })).toEqual({ ok: true });
     expect(await setUnitActive(db, { unitId: unit.id, active: true, today: "2027-03-13", actor })).toEqual({ ok: true });
+  });
+});
+
+describe("property profile and location", () => {
+  it("reads coordinates from pasted text and Google Maps links", () => {
+    expect(parseCoordinates("-8.506854, 115.262503")).toEqual({ lat: -8.506854, lng: 115.262503 });
+    expect(parseCoordinates("https://www.google.com/maps/place/Ubud/@-8.5069,115.2625,17z/data=!3m1")).toEqual({ lat: -8.5069, lng: 115.2625 });
+    expect(parseCoordinates("https://maps.google.com/?q=-8.65,115.13")).toEqual({ lat: -8.65, lng: 115.13 });
+    expect(parseCoordinates("https://www.google.com/maps/place/X/data=!4m6!3m5!1s0x0:0x0!8m2!3d-8.6478!4d115.1385")).toEqual({ lat: -8.6478, lng: 115.1385 });
+    expect(parseCoordinates("https://maps.app.goo.gl/AbCdEf")).toBeNull();
+    expect(parseCoordinates("95, 10")).toBeNull();
+  });
+
+  it("saves name, address, contact, directions and the map point, keeping the other content", async () => {
+    await updatePropertyContent(db, { propertyId: ubud.id, tagline: { id: "Tepi sungai", en: "Riverside" }, actor });
+    const saved = await updatePropertyProfile(db, {
+      propertyId: ubud.id,
+      name: "Attara Ubud",
+      location: { id: "Ubud, Bali", en: "Ubud, Bali" },
+      address: "Jl. Raya Sayan No. 1, Ubud, Gianyar, Bali 80571",
+      phone: "+62 361 123 456",
+      whatsapp: "+62 812 3456 7890",
+      email: "ubud@example.com",
+      directions: { id: "Belok kiri setelah jembatan.", en: "Turn left after the bridge." },
+      map: "https://www.google.com/maps/@-8.5069,115.2625,17z",
+      actor,
+    });
+    expect(saved).toEqual({ ok: true });
+    let [p] = await db.select().from(schema.properties).where(eq(schema.properties.id, ubud.id));
+    expect(p.name).toBe("Attara Ubud");
+    expect(p.content.geo).toEqual({ lat: -8.5069, lng: 115.2625 });
+    expect(p.content.contact?.whatsapp).toBe("+62 812 3456 7890");
+    expect(p.content.tagline).toEqual({ id: "Tepi sungai", en: "Riverside" });
+    // Saving the content form keeps the location (it lives on the profile now).
+    await updatePropertyContent(db, { propertyId: ubud.id, tagline: { id: "Baru", en: "New" }, actor });
+    [p] = await db.select().from(schema.properties).where(eq(schema.properties.id, ubud.id));
+    expect(p.content.location).toEqual({ id: "Ubud, Bali", en: "Ubud, Bali" });
+    expect(p.content.address).toContain("Jl. Raya Sayan");
+  });
+
+  it("refuses a map it cannot read and a malformed phone", async () => {
+    expect(await updatePropertyProfile(db, { propertyId: ubud.id, name: "Attara Ubud", map: "https://maps.app.goo.gl/x", actor })).toEqual({ ok: false, error: "map" });
+    expect(await updatePropertyProfile(db, { propertyId: ubud.id, name: "Attara Ubud", phone: "call me", actor })).toEqual({ ok: false, error: "invalid" });
+  });
+
+  it("creates a property with a unique slug and closes it only without current or coming bookings", async () => {
+    const created = await createProperty(db, { name: "Seminyak", timezone: "Asia/Makassar", actor });
+    expect(created.ok).toBe(true);
+    const again = await createProperty(db, { name: "Seminyak", timezone: "Asia/Makassar", actor });
+    const props = await db.select().from(schema.properties);
+    expect(props.filter((p) => p.slug.startsWith("seminyak")).map((p) => p.slug).sort()).toEqual(["seminyak", "seminyak-2"]);
+    expect(await createProperty(db, { name: "Nowhere", timezone: "Europe/Paris", actor })).toEqual({ ok: false, error: "invalid" });
+    expect(await setPropertyActive(db, { propertyId: (again as { id: string }).id, active: false, today: "2027-01-02", actor })).toEqual({ ok: true });
+    // Ubud has a booking in March 2027 (from the villa test above).
+    expect(await setPropertyActive(db, { propertyId: ubud.id, active: false, today: "2027-01-02", actor })).toEqual({ ok: false, error: "has_bookings" });
   });
 });

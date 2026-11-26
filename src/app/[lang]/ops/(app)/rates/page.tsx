@@ -271,7 +271,7 @@ async function Rates({ lang, dict, searchParams }: { lang: Locale; dict: Diction
       <Section id="guest-times" title={t.guestTimesTitle}>
         <p className="text-sm text-stone">
           {t.guestTimesMoved}{" "}
-          <Link href={`/${lang}/ops/settings?property=${property.slug}#times`} className="font-medium text-lagoon hover:underline">
+          <Link href={`/${lang}/ops/settings/policies?property=${property.slug}#times`} className="font-medium text-lagoon hover:underline">
             {t.guestTimesLink}
           </Link>
         </p>

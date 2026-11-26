@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, or, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
 import { isIsoDate, todayIn } from "./dates";
@@ -66,17 +66,25 @@ async function audit(db: Executor, task: Pick<Task, "propertyId" | "id">, actor:
   });
 }
 
-/** Staff who can be given tasks at a property: active branch managers, front office and housekeeping with access to it. */
+/**
+ * Staff who can be given tasks at a property: active branch managers, front
+ * office and housekeeping with access to it, and active directors (who work
+ * on every property).
+ */
 export async function assignableStaff(db: Executor, propertyId: string) {
   return db
     .select({ id: schema.staffMembers.id, fullName: schema.staffMembers.fullName, role: schema.staffMembers.role })
     .from(schema.staffMembers)
-    .innerJoin(schema.staffPropertyAccess, eq(schema.staffPropertyAccess.staffId, schema.staffMembers.id))
     .where(
       and(
-        eq(schema.staffPropertyAccess.propertyId, propertyId),
         eq(schema.staffMembers.isActive, true),
-        inArray(schema.staffMembers.role, [...ASSIGNABLE_ROLES]),
+        or(
+          eq(schema.staffMembers.role, "director"),
+          and(
+            inArray(schema.staffMembers.role, [...ASSIGNABLE_ROLES]),
+            sql`EXISTS (SELECT 1 FROM ${schema.staffPropertyAccess} a WHERE a.staff_id = ${schema.staffMembers.id} AND a.property_id = ${propertyId})`,
+          ),
+        ),
       ),
     )
     .orderBy(asc(schema.staffMembers.fullName));

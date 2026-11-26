@@ -50,7 +50,7 @@ async function Villas({ lang, dict, searchParams }: { lang: Locale; dict: Dictio
 
   return (
     <>
-      <SettingsHeader lang={lang} dict={dict} current="villas" property={property} properties={ctx.properties} sp={sp} />
+      <SettingsHeader lang={lang} dict={dict} current="villas" property={property} properties={ctx.properties} sp={sp} canProperties={ctx.canProperties} />
       <ReadOnly readOnly={!ctx.canManage} note={dict.settings.readOnly}>
         <div className="space-y-6">
           {types.map((type) => {

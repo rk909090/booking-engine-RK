@@ -37,7 +37,7 @@ async function Content({ lang, dict, searchParams }: { lang: Locale; dict: Dicti
   const [p] = await getDb().select().from(schema.properties).where(eq(schema.properties.id, ctx.property.id));
   const t = dict.settings.content;
   const c = p.content;
-  const pair = (key: "tagline" | "description" | "location", label: string, rows: number, max: number) => (
+  const pair = (key: "tagline" | "description", label: string, rows: number, max: number) => (
     <fieldset className="space-y-2">
       <legend className="text-xs font-semibold text-ink">{label}</legend>
       <div className="grid gap-3 lg:grid-cols-2">
@@ -57,7 +57,7 @@ async function Content({ lang, dict, searchParams }: { lang: Locale; dict: Dicti
 
   return (
     <>
-      <SettingsHeader lang={lang} dict={dict} current="content" property={ctx.property} properties={ctx.properties} sp={sp} />
+      <SettingsHeader lang={lang} dict={dict} current="content" property={ctx.property} properties={ctx.properties} sp={sp} canProperties={ctx.canProperties} />
       <ReadOnly readOnly={!ctx.canManage} note={dict.settings.readOnly}>
         <form action={saveContentAction} className="space-y-6">
           <SettingsHidden lang={lang} property={p} anchor="" />
@@ -65,7 +65,6 @@ async function Content({ lang, dict, searchParams }: { lang: Locale; dict: Dicti
             <div className="space-y-5">
               {pair("tagline", t.tagline, 1, 160)}
               {pair("description", t.description, 5, 3000)}
-              {pair("location", t.location, 1, 300)}
             </div>
           </Card>
           <Card id="rules" title={t.rulesTitle}>

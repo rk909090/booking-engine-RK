@@ -1,6 +1,7 @@
 "use server";
 
 import { eq } from "drizzle-orm";
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
@@ -23,9 +24,18 @@ function field(form: FormData, key: string) {
 async function run(form: FormData, action: Action, unitId: string, op: (staffId: string) => Promise<HkResult>) {
   const raw = field(form, "lang");
   const lang: Locale = hasLocale(raw) ? raw : "id";
-  const property = field(form, "property");
-  const back: (query: string) => never = (query) =>
-    redirect(`/${lang}/ops/villa-status?property=${encodeURIComponent(property)}&${query}#unit-${unitId}`);
+  // Back to the table as it was filtered (only the known filter keys are kept).
+  const kept = new URLSearchParams();
+  const sent = new URLSearchParams(field(form, "filters"));
+  for (const key of ["property", "state", "type", "attention", "today", "q"]) {
+    const v = sent.get(key);
+    if (v) kept.set(key, v.slice(0, 80));
+  }
+  if (!kept.has("property") && field(form, "property")) kept.set("property", field(form, "property"));
+  const back: (query: string) => never = (query) => {
+    refresh();
+    redirect(`/${lang}/ops/villa-status?${kept.toString()}${kept.size ? "&" : ""}${query}#unit-${unitId}`);
+  };
 
   const staff = await requireStaff(lang);
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(unitId)) back("error=not_found");

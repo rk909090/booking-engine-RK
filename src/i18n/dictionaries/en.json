@@ -138,7 +138,10 @@
     "book": "Continue to book",
     "photoNote": "Villa photography coming soon.",
     "prevMonth": "Previous month",
-    "nextMonth": "Next month"
+    "nextMonth": "Next month",
+    "locationTitle": "Location",
+    "openMap": "Open in Google Maps",
+    "directionsTitle": "Getting here"
   },
   "amenities": {
     "private_pool": "Private pool",
@@ -596,7 +599,19 @@
       "not_movable": "This booking cannot be changed from the calendar.",
       "no_change": "Nothing changed."
     },
-    "channel": "Booked on another channel"
+    "channel": "Booked on another channel",
+    "range": {
+      "label": "Date range",
+      "thisWeek": "This week",
+      "thisMonth": "This month",
+      "nextMonth": "Next month",
+      "from": "From",
+      "to": "To",
+      "apply": "Show",
+      "capped": "Ranges are limited to {max} days; showing the first {max}.",
+      "showing": "{from} – {to} · {count} days",
+      "invalid": "The end date is before the start date; showing from the start date."
+    }
   },
   "opsHome": {
     "arrivals": "Arriving today",
@@ -656,7 +671,32 @@
     "lateConflict": "Conflicts with the arrival: limit {time}",
     "earlyCheckin": "Early check-in {time}",
     "earlyRequested": "Early check-in {time} requested (not decided)",
-    "earlyConflict": "Conflicts with the departing guest: earliest {time}"
+    "earlyConflict": "Conflicts with the departing guest: earliest {time}",
+    "table": {
+      "villa": "Villa",
+      "status": "Status",
+      "inHouse": "In house",
+      "arrival": "Arriving today",
+      "maintenance": "Maintenance",
+      "lastChange": "Last change",
+      "actions": "Actions"
+    },
+    "filters": {
+      "label": "Filter villas",
+      "allProperties": "All properties",
+      "allStates": "All statuses",
+      "allTypes": "All villa types",
+      "attention": "Needs attention only",
+      "anyDay": "Today: all",
+      "arrival": "Arriving today",
+      "departure": "Departing today",
+      "search": "Search villa or guest",
+      "reset": "Reset",
+      "count": "{count} villas",
+      "none": "No villas match these filters."
+    },
+    "blockMenu": "Block…",
+    "nothing": "—"
   },
   "stayChange": {
     "title": "Change dates or villa",
@@ -1061,7 +1101,10 @@
       "subject": "Booking {code} confirmed",
       "intro": "Thank you! Your booking at {property} is confirmed.",
       "payBy": "Please pay {amount} by {date}.",
-      "precheckin": "You can complete the online pre-check-in from your booking page for a quicker check-in."
+      "precheckin": "You can complete the online pre-check-in from your booking page for a quicker check-in.",
+      "address": "Address: {address}",
+      "map": "Map: {url}",
+      "directions": "Getting there: {text}"
     },
     "modified": {
       "subject": "Your booking {code} has changed",
@@ -1339,7 +1382,54 @@
       "cost_no_owner": "This villa has no owner on that date, so the cost cannot be charged. Set the owner first (Owners › Owners & villas).",
       "cost_month_locked": "The owner's statement for this month is already locked; record the cost as an adjustment next month."
     },
-    "costOptional": "Cost (Rp, optional)"
+    "costOptional": "Cost (Rp, optional)",
+    "statusLabels": {
+      "open": "Open",
+      "in_progress": "In progress",
+      "done": "Done",
+      "cancelled": "Cancelled"
+    },
+    "table": {
+      "task": "Task",
+      "villa": "Villa & booking",
+      "due": "Due",
+      "assignee": "Assigned to",
+      "status": "Status",
+      "actions": "Actions",
+      "open": "Open",
+      "finish": "Finish…",
+      "finished": "Finished {when}",
+      "noDue": "No due date"
+    },
+    "quick": {
+      "active": "Active",
+      "mine": "Mine",
+      "unassigned": "Nobody assigned",
+      "late": "Late",
+      "done": "Done"
+    },
+    "filters": {
+      "label": "Filter tasks",
+      "active": "Active (open & in progress)",
+      "all": "All statuses",
+      "allKinds": "All kinds",
+      "allPeople": "Anyone",
+      "me": "Me",
+      "nobody": "Nobody yet",
+      "allProperties": "All properties",
+      "anyDue": "Any due date",
+      "late": "Late",
+      "today": "Due today",
+      "week": "Next 7 days",
+      "none": "No due date",
+      "search": "Search task, villa, booking, person",
+      "reset": "Reset",
+      "count": "{count} tasks",
+      "empty": "No tasks match these filters.",
+      "page": "Page {page} of {pages}",
+      "prev": "Previous",
+      "next": "Next"
+    }
   },
   "pricing": {
     "plans": {
@@ -1970,7 +2060,7 @@
     "title": "Roles & permissions",
     "intro": "What each role may do. Ticked = allowed. Changes apply at once to everyone with that role, on every page and action (the server checks them).",
     "role": "Permission",
-    "locked": "Fixed: keeps the group from locking itself out",
+    "locked": "Fixed: directors keep every permission; only directors manage users and roles",
     "changed": "Changed from the default",
     "save": "Save permissions",
     "saved": "Permissions saved ({count} changed).",
@@ -1980,7 +2070,7 @@
     "resetConfirm": "Yes, reset all roles",
     "reset": "Reset to defaults",
     "resetDone": "All roles are back to the default permissions.",
-    "discountNote": "Discount limits are set per role in Settings; roles other than branch manager and front office have a limit of 0.",
+    "discountNote": "Discount limits are set per role in Settings; directors use the branch manager's limit, housekeeping has none.",
     "scopeNote": "Directors act on every property; other roles only on the properties assigned to them on the Users page.",
     "groups": {
       "home": "Home & calendar",
@@ -2155,6 +2245,10 @@
       "settings.manage": {
         "label": "Change settings",
         "hint": "Change property settings, content and villas."
+      },
+      "properties.manage": {
+        "label": "Manage properties",
+        "hint": "Add a property, or close it to bookings and the website."
       }
     }
   },
@@ -2250,10 +2344,12 @@
     "title": "Settings",
     "intro": "Everything about how each property works: times and policies, what guests read, the villas, and connected services.",
     "tabs": {
-      "property": "Property & policies",
       "content": "Content & invoices",
       "villas": "Villa types & villas",
-      "integrations": "Integrations"
+      "integrations": "Integrations",
+      "profile": "Profile & location",
+      "policies": "Policies",
+      "properties": "All properties"
     },
     "saved": "Settings saved.",
     "createdType": "Villa type created. Set its rates and seasons on the Rates page, then offer it on the website when ready.",
@@ -2267,7 +2363,9 @@
       "code_taken": "That villa code is already used.",
       "has_bookings": "This villa has a current or coming booking; move it first.",
       "not_found": "Not found.",
-      "role": "Your role cannot change these settings."
+      "role": "Your role cannot change these settings.",
+      "map": "The map point could not be read. Paste coordinates (e.g. -8.5069, 115.2625) or a full Google Maps link.",
+      "confirm": "Tick \"I am sure\" to continue."
     },
     "general": {
       "title": "General",
@@ -2397,6 +2495,54 @@
         "name": "Demo data",
         "on": "Demo data is still in the database. Run npm run demo:clear before launch and before setting the email, WhatsApp or cron keys.",
         "off": "No demo data."
+      }
+    },
+    "createdProperty": "Property created. Complete its profile, then add villa types and villas, set the rates, and assign staff on the Users page.",
+    "profile": {
+      "title": "Property profile",
+      "name": "Property name",
+      "area": "Area (short)",
+      "areaHint": "Shown on the website's home page, e.g. \"Ubud, Bali\".",
+      "address": "Full address",
+      "addressHint": "Shown on the villa pages and in booking confirmation emails.",
+      "contactTitle": "Contact for guests",
+      "phone": "Phone",
+      "whatsapp": "WhatsApp",
+      "email": "Email",
+      "directions": "Directions & arrival",
+      "directionsHint": "How to find the property, parking, who meets the guest. Shown on the villa pages and in confirmation emails.",
+      "mapTitle": "Location on the map",
+      "map": "Google Maps link or coordinates",
+      "mapHint": "In Google Maps, right-click the villa's spot and copy the coordinates (e.g. -8.5069, 115.2625), or paste the full link from the address bar. Short maps.app.goo.gl links carry no coordinates.",
+      "mapNone": "No map point yet.",
+      "openMap": "Open in Google Maps",
+      "systemTitle": "System",
+      "timezone": "Time zone",
+      "currency": "Currency",
+      "webAddress": "Web address",
+      "fixed": "Set when the property was created."
+    },
+    "properties": {
+      "intro": "Every property in the group. Closing one removes it from the website and from booking; its records stay.",
+      "active": "Open",
+      "inactive": "Closed",
+      "villas": "{count} villas",
+      "types": "{count} types",
+      "upcoming": "{count} current or coming bookings",
+      "open": "Settings",
+      "deactivate": "Close property",
+      "deactivateHint": "Removes the property from the website and from booking. Not possible while bookings are current or coming.",
+      "activate": "Open again",
+      "confirm": "I am sure",
+      "newTitle": "Add a property",
+      "name": "Property name",
+      "timezone": "Time zone",
+      "create": "Add property",
+      "newHint": "Afterwards: complete the profile and location, add villa types and villas, set rates, then assign staff.",
+      "tz": {
+        "Asia/Makassar": "WITA: Bali, Lombok, Sulawesi",
+        "Asia/Jakarta": "WIB: Java, Sumatra",
+        "Asia/Jayapura": "WIT: Papua, Maluku"
       }
     }
   }

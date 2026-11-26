@@ -31,6 +31,7 @@ export async function loadMessageContext(db: AnyDb, reservationId: string) {
       r: schema.reservations,
       guestName: schema.guests.fullName,
       propertyName: schema.properties.name,
+      propertyContent: schema.properties.content,
       timezone: schema.properties.timezone,
       checkInTime: schema.properties.checkInTime,
       checkOutTime: schema.properties.checkOutTime,
@@ -45,6 +46,8 @@ export async function loadMessageContext(db: AnyDb, reservationId: string) {
 }
 
 export type MessageContext = NonNullable<Awaited<ReturnType<typeof loadMessageContext>>>;
+
+const mapsLink = (lat: number, lng: number) => `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 
 const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
@@ -79,6 +82,10 @@ export async function renderEmail(message: OutboxMessage, ctx: MessageContext): 
         lines.push(format(t.confirmed.payBy, { amount: money(Math.min(r.depositAmount, r.totalAmount) - r.amountPaid), date: date(p.payBy) }));
       }
       lines.push(t.confirmed.precheckin);
+      // Where to go, as set on the property's profile.
+      if (ctx.propertyContent.address) lines.push(format(t.confirmed.address, { address: ctx.propertyContent.address }));
+      if (ctx.propertyContent.directions?.[locale]) lines.push(format(t.confirmed.directions, { text: ctx.propertyContent.directions[locale] }));
+      if (ctx.propertyContent.geo) lines.push(format(t.confirmed.map, { url: mapsLink(ctx.propertyContent.geo.lat, ctx.propertyContent.geo.lng) }));
       break;
     case "booking_modified":
       subject = format(t.modified.subject, vars);

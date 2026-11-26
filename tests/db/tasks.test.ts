@@ -123,6 +123,15 @@ describe("assigning", () => {
     expect(await assignTask(db, { taskId: task.id, assigneeId: hk2.id, actor: hk1 })).toEqual({ ok: true });
     expect((await tasksOf("clean"))[0].assigneeId).toBe(hk2.id);
   });
+
+  it("lets a director take or be given a task at any property", async () => {
+    const [dir] = await db.insert(schema.staffMembers).values({ email: "dir@example.com", fullName: "Director", role: "director" }).returning();
+    // Directors have no property rows: they work on every property.
+    await changeUnitState(db, { unitId: unitIds[1], to: "dirty", actor: hk1 });
+    const [task] = await tasksOf("clean");
+    expect(await claimTask(db, { taskId: task.id, actor: { type: "staff", id: dir.id } })).toEqual({ ok: true });
+    expect(await assignTask(db, { taskId: task.id, assigneeId: dir.id, actor: hk1 })).toEqual({ ok: true });
+  });
 });
 
 describe("maintenance tickets", () => {

@@ -138,7 +138,10 @@
     "book": "Lanjut memesan",
     "photoNote": "Foto vila akan ditambahkan.",
     "prevMonth": "Bulan sebelumnya",
-    "nextMonth": "Bulan berikutnya"
+    "nextMonth": "Bulan berikutnya",
+    "locationTitle": "Lokasi",
+    "openMap": "Buka di Google Maps",
+    "directionsTitle": "Cara menuju ke sini"
   },
   "amenities": {
     "private_pool": "Kolam renang pribadi",
@@ -596,7 +599,19 @@
       "not_movable": "Pesanan ini tidak bisa diubah dari kalender.",
       "no_change": "Tidak ada yang berubah."
     },
-    "channel": "Dipesan di kanal lain"
+    "channel": "Dipesan di kanal lain",
+    "range": {
+      "label": "Rentang tanggal",
+      "thisWeek": "Minggu ini",
+      "thisMonth": "Bulan ini",
+      "nextMonth": "Bulan depan",
+      "from": "Dari",
+      "to": "Sampai",
+      "apply": "Tampilkan",
+      "capped": "Rentang dibatasi {max} hari; yang tampil {max} hari pertama.",
+      "showing": "{from} – {to} · {count} hari",
+      "invalid": "Tanggal akhir sebelum tanggal mulai; ditampilkan dari tanggal mulai."
+    }
   },
   "opsHome": {
     "arrivals": "Tiba hari ini",
@@ -656,7 +671,32 @@
     "lateConflict": "Bentrok dengan kedatangan: batas {time}",
     "earlyCheckin": "Early check-in {time}",
     "earlyRequested": "Minta early check-in {time} (belum diputuskan)",
-    "earlyConflict": "Bentrok dengan tamu yang pulang: paling cepat {time}"
+    "earlyConflict": "Bentrok dengan tamu yang pulang: paling cepat {time}",
+    "table": {
+      "villa": "Vila",
+      "status": "Status",
+      "inHouse": "Menginap",
+      "arrival": "Tiba hari ini",
+      "maintenance": "Perawatan",
+      "lastChange": "Perubahan terakhir",
+      "actions": "Aksi"
+    },
+    "filters": {
+      "label": "Saring vila",
+      "allProperties": "Semua properti",
+      "allStates": "Semua status",
+      "allTypes": "Semua tipe vila",
+      "attention": "Hanya yang perlu perhatian",
+      "anyDay": "Hari ini: semua",
+      "arrival": "Tiba hari ini",
+      "departure": "Berangkat hari ini",
+      "search": "Cari vila atau tamu",
+      "reset": "Atur ulang",
+      "count": "{count} vila",
+      "none": "Tidak ada vila yang cocok dengan filter ini."
+    },
+    "blockMenu": "Blokir…",
+    "nothing": "—"
   },
   "stayChange": {
     "title": "Ubah tanggal atau vila",
@@ -1061,7 +1101,10 @@
       "subject": "Pesanan {code} terkonfirmasi",
       "intro": "Terima kasih! Pesanan Anda di {property} sudah terkonfirmasi.",
       "payBy": "Mohon lakukan pembayaran {amount} paling lambat {date}.",
-      "precheckin": "Anda bisa mengisi pre-check-in online dari halaman pesanan agar check-in lebih cepat."
+      "precheckin": "Anda bisa mengisi pre-check-in online dari halaman pesanan agar check-in lebih cepat.",
+      "address": "Alamat: {address}",
+      "map": "Peta: {url}",
+      "directions": "Cara menuju lokasi: {text}"
     },
     "modified": {
       "subject": "Perubahan pesanan {code}",
@@ -1339,7 +1382,54 @@
       "cost_no_owner": "Vila ini belum punya pemilik pada tanggal itu, jadi biaya tidak bisa dibebankan. Atur pemiliknya dulu (Pemilik › Pemilik & vila).",
       "cost_month_locked": "Statement pemilik bulan ini sudah dikunci; catat biayanya sebagai penyesuaian bulan depan."
     },
-    "costOptional": "Biaya (Rp, opsional)"
+    "costOptional": "Biaya (Rp, opsional)",
+    "statusLabels": {
+      "open": "Terbuka",
+      "in_progress": "Dikerjakan",
+      "done": "Selesai",
+      "cancelled": "Dibatalkan"
+    },
+    "table": {
+      "task": "Tugas",
+      "villa": "Vila & booking",
+      "due": "Tenggat",
+      "assignee": "Petugas",
+      "status": "Status",
+      "actions": "Aksi",
+      "open": "Buka",
+      "finish": "Selesaikan…",
+      "finished": "Selesai {when}",
+      "noDue": "Tanpa tenggat"
+    },
+    "quick": {
+      "active": "Aktif",
+      "mine": "Milik saya",
+      "unassigned": "Belum ada petugas",
+      "late": "Terlambat",
+      "done": "Selesai"
+    },
+    "filters": {
+      "label": "Saring tugas",
+      "active": "Aktif (terbuka & dikerjakan)",
+      "all": "Semua status",
+      "allKinds": "Semua jenis",
+      "allPeople": "Semua petugas",
+      "me": "Saya",
+      "nobody": "Belum ada petugas",
+      "allProperties": "Semua properti",
+      "anyDue": "Semua tenggat",
+      "late": "Terlambat",
+      "today": "Tenggat hari ini",
+      "week": "7 hari ke depan",
+      "none": "Tanpa tenggat",
+      "search": "Cari tugas, vila, booking, petugas",
+      "reset": "Atur ulang",
+      "count": "{count} tugas",
+      "empty": "Tidak ada tugas yang cocok dengan filter ini.",
+      "page": "Halaman {page} dari {pages}",
+      "prev": "Sebelumnya",
+      "next": "Berikutnya"
+    }
   },
   "pricing": {
     "plans": {
@@ -1970,7 +2060,7 @@
     "title": "Peran & izin",
     "intro": "Apa yang boleh dilakukan setiap peran. Dicentang = boleh. Perubahan langsung berlaku untuk semua orang dengan peran itu, di setiap halaman dan aksi (diperiksa oleh server).",
     "role": "Izin",
-    "locked": "Tetap: mencegah sistem terkunci",
+    "locked": "Tetap: Direktur selalu memegang semua izin; hanya Direktur yang mengelola pengguna dan peran",
     "changed": "Berbeda dari bawaan",
     "save": "Simpan izin",
     "saved": "Izin tersimpan ({count} berubah).",
@@ -1980,7 +2070,7 @@
     "resetConfirm": "Ya, kembalikan semua peran",
     "reset": "Kembalikan ke bawaan",
     "resetDone": "Semua peran kembali ke izin bawaan.",
-    "discountNote": "Batas diskon diatur per peran di Pengaturan; peran selain Manajer Cabang dan Front Office punya batas 0.",
+    "discountNote": "Batas diskon diatur per peran di Pengaturan; Direktur memakai batas Manajer Cabang, Housekeeping tidak punya batas diskon.",
     "scopeNote": "Direktur bertindak di semua properti; peran lain hanya di properti yang ditugaskan di halaman Pengguna.",
     "groups": {
       "home": "Beranda & kalender",
@@ -2155,6 +2245,10 @@
       "settings.manage": {
         "label": "Ubah pengaturan",
         "hint": "Mengubah pengaturan properti, konten, dan vila."
+      },
+      "properties.manage": {
+        "label": "Kelola properti",
+        "hint": "Menambah properti, atau menutupnya dari booking dan website."
       }
     }
   },
@@ -2250,10 +2344,12 @@
     "title": "Pengaturan",
     "intro": "Semua tentang cara kerja tiap properti: jam dan kebijakan, yang dibaca tamu, vila, dan layanan yang terhubung.",
     "tabs": {
-      "property": "Properti & kebijakan",
       "content": "Konten & invoice",
       "villas": "Tipe vila & unit",
-      "integrations": "Integrasi"
+      "integrations": "Integrasi",
+      "profile": "Profil & lokasi",
+      "policies": "Kebijakan",
+      "properties": "Semua properti"
     },
     "saved": "Pengaturan tersimpan.",
     "createdType": "Tipe vila dibuat. Atur tarif dan musimnya di halaman Tarif, lalu tawarkan di website bila sudah siap.",
@@ -2267,7 +2363,9 @@
       "code_taken": "Kode vila itu sudah dipakai.",
       "has_bookings": "Vila ini punya booking yang sedang berjalan atau akan datang; pindahkan dulu.",
       "not_found": "Tidak ditemukan.",
-      "role": "Peran Anda tidak dapat mengubah pengaturan ini."
+      "role": "Peran Anda tidak dapat mengubah pengaturan ini.",
+      "map": "Titik peta tidak terbaca. Tempel koordinat (mis. -8.5069, 115.2625) atau link Google Maps lengkap.",
+      "confirm": "Centang \"Saya yakin\" untuk melanjutkan."
     },
     "general": {
       "title": "Umum",
@@ -2397,6 +2495,54 @@
         "name": "Data demo",
         "on": "Data demo masih ada di database. Jalankan npm run demo:clear sebelum peluncuran dan sebelum mengisi kunci email, WhatsApp, atau cron.",
         "off": "Tidak ada data demo."
+      }
+    },
+    "createdProperty": "Properti dibuat. Lengkapi profilnya, lalu tambah tipe vila dan vila, atur tarif, dan tugaskan staf di halaman Pengguna.",
+    "profile": {
+      "title": "Profil properti",
+      "name": "Nama properti",
+      "area": "Area (singkat)",
+      "areaHint": "Tampil di beranda website, mis. \"Ubud, Bali\".",
+      "address": "Alamat lengkap",
+      "addressHint": "Tampil di halaman vila dan di email konfirmasi booking.",
+      "contactTitle": "Kontak untuk tamu",
+      "phone": "Telepon",
+      "whatsapp": "WhatsApp",
+      "email": "Email",
+      "directions": "Petunjuk arah & kedatangan",
+      "directionsHint": "Cara menemukan properti, parkir, siapa yang menyambut tamu. Tampil di halaman vila dan email konfirmasi.",
+      "mapTitle": "Lokasi di peta",
+      "map": "Link Google Maps atau koordinat",
+      "mapHint": "Di Google Maps, klik kanan titik vila lalu salin koordinatnya (mis. -8.5069, 115.2625), atau tempel link lengkap dari bilah alamat. Link pendek maps.app.goo.gl tidak berisi koordinat.",
+      "mapNone": "Belum ada titik di peta.",
+      "openMap": "Buka di Google Maps",
+      "systemTitle": "Sistem",
+      "timezone": "Zona waktu",
+      "currency": "Mata uang",
+      "webAddress": "Alamat web",
+      "fixed": "Ditetapkan saat properti dibuat."
+    },
+    "properties": {
+      "intro": "Semua properti dalam grup. Properti yang ditutup hilang dari website dan tidak bisa dipesan; datanya tetap tersimpan.",
+      "active": "Buka",
+      "inactive": "Tutup",
+      "villas": "{count} vila",
+      "types": "{count} tipe",
+      "upcoming": "{count} booking berjalan/akan datang",
+      "open": "Pengaturan",
+      "deactivate": "Tutup properti",
+      "deactivateHint": "Menghapus properti dari website dan dari pemesanan. Tidak bisa selama ada booking yang sedang berjalan atau akan datang.",
+      "activate": "Buka kembali",
+      "confirm": "Saya yakin",
+      "newTitle": "Tambah properti",
+      "name": "Nama properti",
+      "timezone": "Zona waktu",
+      "create": "Tambah properti",
+      "newHint": "Setelah itu: lengkapi profil dan lokasi, tambah tipe vila dan vila, atur tarif, lalu tugaskan staf.",
+      "tz": {
+        "Asia/Makassar": "WITA: Bali, Lombok, Sulawesi",
+        "Asia/Jakarta": "WIB: Jawa, Sumatra",
+        "Asia/Jayapura": "WIT: Papua, Maluku"
       }
     }
   }

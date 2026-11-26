@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { lang as rootLang } from "next/root-params";
 import Link from "next/link";
+import { MapEmbed, mapsLink } from "@/components/site/map-embed";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { SiteShell } from "@/components/site/site-shell";
@@ -63,6 +64,7 @@ async function VillaContent({
   const villa = await getVilla(property, type);
   if (!villa) notFound();
   const t = dict.villa;
+  const place = villa.property.content;
   const today = todayIn(villa.property.timezone);
   const days = await availabilityCalendar(getDb(), { unitTypeId: villa.type.id, from: today, days: 180 });
   const lowest = Math.min(villa.type.baseRate, ...villa.seasons.map((s) => s.nightlyRate));
@@ -78,7 +80,12 @@ async function VillaContent({
     numberOfBedrooms: villa.type.bedrooms,
     occupancy: { "@type": "QuantitativeValue", maxValue: villa.type.maxGuests },
     amenityFeature: villa.type.amenities.map((code) => ({ "@type": "LocationFeatureSpecification", name: dict.amenities[code as keyof Dictionary["amenities"]] ?? code, value: true })),
-    containedInPlace: { "@type": "LodgingBusiness", name: villa.property.name, address: villa.property.content.location?.[lang] },
+    containedInPlace: {
+      "@type": "LodgingBusiness",
+      name: villa.property.name,
+      address: villa.property.content.address ?? villa.property.content.location?.[lang],
+      ...(villa.property.content.geo ? { geo: { "@type": "GeoCoordinates", latitude: villa.property.content.geo.lat, longitude: villa.property.content.geo.lng } } : {}),
+    },
     offers: { "@type": "Offer", priceCurrency: villa.property.currency, price: lowest, description: format(t.fromPrice, { amount: formatMoney(lowest, lang) }) },
   }).replace(/</g, "\\u003c");
 
@@ -118,6 +125,28 @@ async function VillaContent({
                   </li>
                 ))}
               </ul>
+            </section>
+          ) : null}
+          {place.address || place.geo || place.directions?.[lang] ? (
+            <section className="mt-8" aria-labelledby="location-heading">
+              <h2 id="location-heading" className="text-sm font-semibold uppercase tracking-[0.15em] text-terracotta-deep">
+                {t.locationTitle}
+              </h2>
+              {place.address ? <p className="mt-3 text-ink">{place.address}</p> : null}
+              {place.geo ? (
+                <>
+                  <MapEmbed lat={place.geo.lat} lng={place.geo.lng} title={`${t.locationTitle}: ${villa.property.name}`} className="mt-3 h-64 w-full rounded-xl border border-line" />
+                  <a href={mapsLink(place.geo.lat, place.geo.lng)} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm font-medium text-lagoon hover:underline">
+                    {t.openMap} ↗
+                  </a>
+                </>
+              ) : null}
+              {place.directions?.[lang] ? (
+                <div className="mt-4">
+                  <h3 className="text-sm font-medium text-ink">{t.directionsTitle}</h3>
+                  <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-stone">{place.directions[lang]}</p>
+                </div>
+              ) : null}
             </section>
           ) : null}
         </div>

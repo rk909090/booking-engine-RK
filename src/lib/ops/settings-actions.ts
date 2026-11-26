@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
 import { todayIn } from "@/domain/dates";
-import { createUnit, createUnitType, setUnitActive, updatePropertyContent, updatePropertyPolicies, updateUnitTypeDetails } from "@/domain/settings";
+import { createProperty, createUnit, createUnitType, setPropertyActive, setUnitActive, updatePropertyContent, updatePropertyPolicies, updatePropertyProfile, updateUnitTypeDetails } from "@/domain/settings";
 import { hasLocale, locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { requireStaff } from "@/lib/auth/current-staff";
@@ -58,8 +58,25 @@ async function context(form: FormData, page: string) {
   return { lang, propertyId, back, actor: { type: "staff" as const, id: staff.staffId } };
 }
 
-export async function savePoliciesAction(form: FormData) {
+export async function saveProfileAction(form: FormData) {
   const { propertyId, back, actor } = await context(form, "");
+  const result = await updatePropertyProfile(getDb(), {
+    propertyId,
+    name: field(form, "name"),
+    location: pair(form, "location"),
+    address: field(form, "address"),
+    phone: field(form, "phone"),
+    whatsapp: field(form, "whatsapp"),
+    email: field(form, "email"),
+    directions: pair(form, "directions"),
+    map: field(form, "map"),
+    actor,
+  });
+  back(result.ok ? "done=1" : `error=${result.error}`);
+}
+
+export async function savePoliciesAction(form: FormData) {
+  const { propertyId, back, actor } = await context(form, "/policies");
   const days = form.getAll("tierDays").map((v) => (typeof v === "string" ? v.trim() : ""));
   const charges = form.getAll("tierCharge").map((v) => (typeof v === "string" ? v.trim() : ""));
   const tiers = days
@@ -68,7 +85,6 @@ export async function savePoliciesAction(form: FormData) {
     .map((r) => ({ minDaysBefore: int(r.d), chargeBp: bp(r.c) }));
   const result = await updatePropertyPolicies(getDb(), {
     propertyId,
-    name: field(form, "name"),
     checkInTime: field(form, "checkInTime"),
     checkOutTime: field(form, "checkOutTime"),
     taxRateBp: bp(field(form, "taxRate")),
@@ -96,7 +112,6 @@ export async function saveContentAction(form: FormData) {
     propertyId,
     tagline: pair(form, "tagline"),
     description: pair(form, "description"),
-    location: pair(form, "location"),
     houseRules: { id: ruleLines(field(form, "rules_id")), en: ruleLines(field(form, "rules_en")) },
     invoice: { legalName: field(form, "legalName"), address: field(form, "address"), taxId: field(form, "taxId"), phone: field(form, "phone"), email: field(form, "email") },
     actor,
@@ -166,5 +181,42 @@ export async function setUnitActiveAction(form: FormData) {
     .where(eq(schema.units.id, unitId));
   if (!unit || unit.propertyId !== propertyId) return back("error=not_found");
   const result = await setUnitActive(getDb(), { unitId, active: field(form, "active") === "true", today: todayIn(unit.timezone), actor });
+  back(result.ok ? "done=1" : `error=${result.error}`);
+}
+
+/** Directors (properties.manage) add properties; not tied to an existing one. */
+export async function createPropertyAction(form: FormData) {
+  const langRaw = field(form, "lang");
+  const lang: Locale = hasLocale(langRaw) ? langRaw : "id";
+  const staff = await requireStaff(lang);
+  const back = (query: string): never => {
+    refresh();
+    redirect(`/${lang}/ops/settings/properties?${query}`);
+  };
+  if (!can(staff.actor, "properties.manage").allowed) return back("error=role");
+  const result = await createProperty(getDb(), { name: field(form, "name"), timezone: field(form, "timezone"), actor: { type: "staff", id: staff.staffId } });
+  if (!result.ok) return back(`error=${result.error}`);
+  const [created] = await getDb().select({ slug: schema.properties.slug }).from(schema.properties).where(eq(schema.properties.id, result.id!));
+  refresh();
+  // Straight to the new property's profile, the next thing to fill in.
+  redirect(`/${lang}/ops/settings?property=${created.slug}&done=property`);
+}
+
+export async function setPropertyActiveAction(form: FormData) {
+  const langRaw = field(form, "lang");
+  const lang: Locale = hasLocale(langRaw) ? langRaw : "id";
+  const staff = await requireStaff(lang);
+  const back = (query: string): never => {
+    refresh();
+    redirect(`/${lang}/ops/settings/properties?${query}`);
+  };
+  const propertyId = field(form, "propertyId");
+  if (!UUID.test(propertyId)) return back("error=not_found");
+  if (!can(staff.actor, "properties.manage").allowed) return back("error=role");
+  const active = field(form, "active") === "true";
+  if (!active && field(form, "confirm") !== "yes") return back("error=confirm");
+  const [p] = await getDb().select({ timezone: schema.properties.timezone }).from(schema.properties).where(eq(schema.properties.id, propertyId));
+  if (!p) return back("error=not_found");
+  const result = await setPropertyActive(getDb(), { propertyId, active, today: todayIn(p.timezone), actor: { type: "staff", id: staff.staffId } });
   back(result.ok ? "done=1" : `error=${result.error}`);
 }

@@ -27,7 +27,6 @@ async function audit(db: AnyDb, actor: Actor, propertyId: string, entityType: st
 
 export type PolicyInput = {
   propertyId: string;
-  name: string;
   checkInTime: string;
   checkOutTime: string;
   taxRateBp: number;
@@ -58,8 +57,6 @@ export function normaliseCancellationTiers(tiers: CancellationTier[]): Cancellat
 export async function updatePropertyPolicies(db: AnyDb, input: PolicyInput): Promise<SettingsResult> {
   const [property] = await db.select().from(schema.properties).where(eq(schema.properties.id, input.propertyId));
   if (!property) return { ok: false, error: "not_found" };
-  const name = input.name.trim().replace(/\s+/g, " ");
-  if (name.length < 2 || name.length > 80) return { ok: false, error: "invalid" };
   if (![input.checkInTime, input.checkOutTime, input.guestLateCheckoutLatest, input.guestEarlyCheckinEarliest].every((t) => HHMM.test(t))) return { ok: false, error: "times" };
   // Guests leave before the next ones arrive; the guests' own requests stay between those times (see domain/rates.ts).
   if (input.checkOutTime >= input.checkInTime || input.guestLateCheckoutLatest <= input.checkOutTime || input.guestEarlyCheckinEarliest >= input.checkInTime) return { ok: false, error: "times" };
@@ -76,7 +73,6 @@ export async function updatePropertyPolicies(db: AnyDb, input: PolicyInput): Pro
   const tiers = normaliseCancellationTiers(input.cancellationTiers);
   if (!tiers) return { ok: false, error: "tiers" };
   const after = {
-    name,
     checkInTime: input.checkInTime,
     checkOutTime: input.checkOutTime,
     taxRateBp: input.taxRateBp,
@@ -112,7 +108,6 @@ export async function updatePropertyContent(
     propertyId: string;
     tagline?: LocalizedText;
     description?: LocalizedText;
-    location?: LocalizedText;
     houseRules?: { id: string[]; en: string[] };
     invoice?: { legalName?: string; address?: string; taxId?: string; phone?: string; email?: string };
     actor: Actor;
@@ -134,7 +129,6 @@ export async function updatePropertyContent(
     ...property.content,
     tagline: text(input.tagline, 160),
     description: text(input.description, 3000),
-    location: text(input.location, 300),
     // No rules entered: the general default is used (see pre-check-in).
     houseRules: rules.id.length || rules.en.length ? rules : undefined,
     invoice: Object.values(invoice).some(Boolean) ? invoice : undefined,
@@ -233,5 +227,106 @@ export async function setUnitActive(db: AnyDb, input: { unitId: string; active: 
   }
   await db.update(schema.units).set({ isActive: input.active, updatedAt: new Date() }).where(eq(schema.units.id, unit.id));
   await audit(db, input.actor, unit.propertyId, "unit", unit.id, input.active ? "settings.unit_activated" : "settings.unit_deactivated", { isActive: unit.isActive }, { isActive: input.active });
+  return { ok: true };
+}
+
+/**
+ * Reads a map point from what staff paste: "-8.5069, 115.2625", or a Google
+ * Maps link (…/@-8.5069,115.2625,17z, …?q=-8.5069,115.2625, …!3d-8.5069!4d115.2625).
+ * Short links (maps.app.goo.gl) carry no coordinates and return null.
+ */
+export function parseCoordinates(input: string): { lat: number; lng: number } | null {
+  const s = decodeURIComponent(input.trim());
+  const num = String.raw`(-?\d{1,3}(?:\.\d+)?)`;
+  const patterns = [
+    new RegExp(String.raw`!3d${num}!4d${num}`),
+    new RegExp(String.raw`@${num},\s*${num}`),
+    new RegExp(String.raw`[?&](?:q|query|ll|center|destination)=${num},\s*${num}`),
+    new RegExp(String.raw`^${num}\s*,\s*${num}$`),
+  ];
+  for (const re of patterns) {
+    const m = s.match(re);
+    if (!m) continue;
+    const lat = Number(m[1]);
+    const lng = Number(m[2]);
+    if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && !(lat === 0 && lng === 0)) return { lat: Math.round(lat * 1e6) / 1e6, lng: Math.round(lng * 1e6) / 1e6 };
+  }
+  return null;
+}
+
+const PHONE = /^\+?[0-9 ()-]{6,20}$/;
+
+/** Name, area line, address, contact, directions and map point: what guests need to find the property. */
+export async function updatePropertyProfile(
+  db: AnyDb,
+  input: {
+    propertyId: string;
+    name: string;
+    location?: LocalizedText;
+    address?: string;
+    phone?: string;
+    whatsapp?: string;
+    email?: string;
+    directions?: LocalizedText;
+    /** Pasted coordinates or a map link; empty removes the point. */
+    map?: string;
+    actor: Actor;
+  },
+): Promise<SettingsResult | { ok: false; error: "map" }> {
+  const [property] = await db.select().from(schema.properties).where(eq(schema.properties.id, input.propertyId));
+  if (!property) return { ok: false, error: "not_found" };
+  const name = input.name.trim().replace(/\s+/g, " ");
+  if (name.length < 2 || name.length > 80) return { ok: false, error: "invalid" };
+  const phone = clean(input.phone, 20);
+  const whatsapp = clean(input.whatsapp, 20);
+  const email = clean(input.email, 200);
+  if ((phone && !PHONE.test(phone)) || (whatsapp && !PHONE.test(whatsapp)) || (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) return { ok: false, error: "invalid" };
+  const mapText = clean(input.map, 2000);
+  const geo = mapText ? parseCoordinates(mapText) : null;
+  if (mapText && !geo) return { ok: false, error: "map" };
+  const contact = { phone: phone || undefined, whatsapp: whatsapp || undefined, email: email || undefined };
+  const content: PropertyContent = {
+    ...property.content,
+    location: text(input.location, 300),
+    address: clean(input.address, 400) || undefined,
+    contact: Object.values(contact).some(Boolean) ? contact : undefined,
+    directions: text(input.directions, 2000),
+    geo: geo ?? undefined,
+  };
+  await db.update(schema.properties).set({ name, content, updatedAt: new Date() }).where(eq(schema.properties.id, property.id));
+  await audit(db, input.actor, property.id, "property", property.id, "settings.profile_updated", { name: property.name, content: property.content }, { name, content });
+  return { ok: true };
+}
+
+export const TIMEZONES = ["Asia/Makassar", "Asia/Jakarta", "Asia/Jayapura"] as const;
+
+/** A new property; its villa types, rates and staff are set up afterwards. Unique slug from the name. */
+export async function createProperty(db: AnyDb, input: { name: string; timezone: string; actor: Actor }): Promise<SettingsResult> {
+  const name = input.name.trim().replace(/\s+/g, " ");
+  const base = slugify(name);
+  if (name.length < 2 || name.length > 80 || !base || !(TIMEZONES as readonly string[]).includes(input.timezone)) return { ok: false, error: "invalid" };
+  const taken = new Set((await db.select({ slug: schema.properties.slug }).from(schema.properties)).map((p) => p.slug));
+  let slug = base;
+  for (let n = 2; taken.has(slug); n++) slug = `${base}-${n}`;
+  const [created] = await db.insert(schema.properties).values({ slug, name, timezone: input.timezone }).returning({ id: schema.properties.id });
+  await audit(db, input.actor, created.id, "property", created.id, "settings.property_created", {}, { name, slug, timezone: input.timezone });
+  return { ok: true, id: created.id };
+}
+
+/** Closes a property to new bookings and the website (or opens it again). Not while bookings are current or coming. */
+export async function setPropertyActive(db: AnyDb, input: { propertyId: string; active: boolean; today: string; actor: Actor }): Promise<SettingsResult> {
+  const [property] = await db.select().from(schema.properties).where(eq(schema.properties.id, input.propertyId));
+  if (!property) return { ok: false, error: "not_found" };
+  if (property.isActive === input.active) return { ok: true };
+  if (!input.active) {
+    const [booked] = await db
+      .select({ id: schema.reservations.id })
+      .from(schema.reservations)
+      .where(and(eq(schema.reservations.propertyId, property.id), inArray(schema.reservations.status, ["hold", "confirmed", "in_house"]), gt(schema.reservations.checkOut, input.today)))
+      .limit(1);
+    if (booked) return { ok: false, error: "has_bookings" };
+  }
+  await db.update(schema.properties).set({ isActive: input.active, updatedAt: new Date() }).where(eq(schema.properties.id, property.id));
+  await audit(db, input.actor, property.id, "property", property.id, input.active ? "settings.property_activated" : "settings.property_deactivated", { isActive: property.isActive }, { isActive: input.active });
   return { ok: true };
 }

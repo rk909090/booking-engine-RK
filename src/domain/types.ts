@@ -31,7 +31,16 @@ export type UnitTypeContent = {
 export type PropertyContent = {
   tagline?: LocalizedText;
   description?: LocalizedText;
+  /** Short area line ("Ubud, Bali"), shown on the home page. */
   location?: LocalizedText;
+  /** Street address, shown on the villa pages and in booking emails. */
+  address?: string;
+  /** How guests reach the property. */
+  contact?: { phone?: string; whatsapp?: string; email?: string };
+  /** Directions and arrival notes for guests. */
+  directions?: LocalizedText;
+  /** The property on the map (decimal degrees). */
+  geo?: { lat: number; lng: number };
   /** Seller details printed on invoices (legal name, address, tax number, contact). */
   invoice?: { legalName?: string; address?: string; taxId?: string; phone?: string; email?: string };
   /** House rules guests agree to at pre-check-in; a general default is used until set. */

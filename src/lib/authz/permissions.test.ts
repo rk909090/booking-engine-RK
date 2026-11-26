@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import en from "@/i18n/dictionaries/en.json";
+import id from "@/i18n/dictionaries/id.json";
 import { ACTION_GROUPS } from "./action-groups";
-import { actions, authorize, can, ForbiddenError, rolesFor, type Actor, type Role } from "./permissions";
+import { actions, authorize, can, ForbiddenError, isLocked, permissionsFor, rolesFor, type Actor, type Role } from "./permissions";
 
 const UBUD = "prop-ubud";
 const CANGGU = "prop-canggu";
@@ -16,32 +18,30 @@ describe("permissions matrix", () => {
     expect(new Set(listed).size).toBe(listed.length);
   });
 
+  it("labels every action on the roles screen in both languages", () => {
+    for (const dict of [en, id]) {
+      const labels = dict.rbac.actions as Record<string, { label: string; hint: string }>;
+      for (const action of actions) expect(labels[action]?.label, action).toBeTruthy();
+    }
+  });
+
   it("defines at least one role for every action", () => {
     for (const action of actions) expect(rolesFor(action).length).toBeGreaterThan(0);
   });
 
-  it("keeps directors read-only", () => {
+  it("lets directors do everything, on every property, whatever is saved", () => {
     const director = actor("director", { propertyIds: [] });
-    const mutations = actions.filter(
-      (a) => a.startsWith("reservation.") && a !== "reservation.view",
-    );
-    for (const action of mutations) {
-      expect(can(director, action, UBUD)).toEqual({ allowed: false, reason: "role_not_permitted" });
+    for (const action of actions) {
+      expect(can(director, action, CANGGU)).toEqual({ allowed: true });
+      expect(isLocked("director", action)).toBe(true);
     }
-    expect(can(director, "reservation.view", CANGGU)).toEqual({ allowed: true });
-    expect(can(director, "performance.view", CANGGU)).toEqual({ allowed: true });
-  });
-
-  it("lets directors look at tasks, villa status and rates without changing them", () => {
-    const director = actor("director", { propertyIds: [] });
-    for (const action of ["tasks.view", "villa_status.view", "rates.view"] as const) expect(can(director, action, UBUD).allowed).toBe(true);
-    for (const action of ["tasks.work", "tasks.assign", "tasks.configure", "housekeeping.update", "unit.block", "rates.manage", "addon.manage"] as const) {
-      expect(can(director, action, UBUD).allowed).toBe(false);
-    }
+    // Saved overrides cannot take anything away from directors.
+    const stripped = permissionsFor("director", actions.map((action) => ({ role: "director", action, allowed: false })));
+    expect([...stripped].sort()).toEqual([...actions].sort());
     expect(can(actor("front_office"), "rates.view", UBUD).allowed).toBe(false);
   });
 
-  it("lets only branch managers cancel", () => {
+  it("lets branch managers (not front office) cancel", () => {
     expect(can(actor("branch_manager"), "reservation.cancel", UBUD).allowed).toBe(true);
     expect(can(actor("front_office"), "reservation.cancel", UBUD)).toEqual({
       allowed: false,
@@ -49,10 +49,10 @@ describe("permissions matrix", () => {
     });
   });
 
-  it("lets only branch managers record refund payouts", () => {
+  it("lets branch managers (not front office) record refund payouts", () => {
     expect(can(actor("branch_manager"), "payment.refund", UBUD).allowed).toBe(true);
     expect(can(actor("front_office"), "payment.refund", UBUD).allowed).toBe(false);
-    expect(can(actor("director", { propertyIds: [] }), "payment.refund", UBUD).allowed).toBe(false);
+    expect(can(actor("director", { propertyIds: [] }), "payment.refund", UBUD).allowed).toBe(true);
   });
 
   it("hides reports and team from front office", () => {

@@ -3,10 +3,10 @@
  * Hiding a menu item is never the security boundary; this is.
  *
  * Defaults follow the reference demo (see docs/01-ANALISIS-DEMO-SAVARA.md, section 2):
- * directors see everything and administer users, roles and settings (but do
- * not run bookings), branch managers run one or more properties fully, front
- * office runs the day without cancellations, reports or team pages, and
- * housekeeping only updates villa readiness.
+ * directors may do everything on every property (owner's decision, 26 Nov
+ * 2026), branch managers run one or more properties fully, front office runs
+ * the day without cancellations, reports or team pages, and housekeeping
+ * only updates villa readiness.
  *
  * The matrix below holds the defaults. A director can change them per role on
  * the roles screen (saved as overrides in role_permissions); the cells in
@@ -45,6 +45,7 @@ export const actions = [
   "team.view",
   "settings.view",
   "settings.manage",
+  "properties.manage",
   "users.manage",
   "roles.manage",
   "channels.manage",
@@ -68,7 +69,7 @@ const R = {
   managers: ["branch_manager"],
 } as const satisfies Record<string, readonly Role[]>;
 
-const matrix: Record<Action, readonly Role[]> = {
+const base: Record<Action, readonly Role[]> = {
   "dashboard.view": R.all,
   "reservation.view": R.allButHousekeeping,
   "reservation.create": R.operators,
@@ -106,6 +107,8 @@ const matrix: Record<Action, readonly Role[]> = {
   "settings.view": ["director", "branch_manager"],
   /** Change a property's settings (branch managers: their own properties). */
   "settings.manage": ["director", "branch_manager"],
+  /** Add a property, or close it to bookings and the website. */
+  "properties.manage": ["director"],
   /** Invite staff, change their role and properties, deactivate, reset 2FA. */
   "users.manage": ["director"],
   /** Change what each role may do (this matrix). */
@@ -132,6 +135,11 @@ const matrix: Record<Action, readonly Role[]> = {
   /** Edit the inspection checklists. */
   "tasks.configure": R.managers,
 };
+
+/** Directors may do everything: every action includes them (and their cells are locked on the roles screen). */
+const matrix = Object.fromEntries(
+  Object.entries(base).map(([action, allowed]) => [action, allowed.includes("director") ? allowed : (["director", ...allowed] as readonly Role[])]),
+) as Record<Action, readonly Role[]>;
 
 export type Actor = {
   staffId: string;
@@ -199,13 +207,13 @@ export function defaultAllows(role: Role, action: Action): boolean {
 }
 
 /**
- * Cells of the matrix that cannot be changed: only directors manage users and
- * roles, everybody has a home page, and directors always keep the team and
- * settings pages. Otherwise a single save could lock everyone out.
+ * Cells of the matrix that cannot be changed: directors keep every permission,
+ * only directors manage users and roles, and everybody has a home page.
+ * Otherwise a single save could lock everyone out.
  */
 export function isLocked(role: Role, action: Action): boolean {
-  if (action === "users.manage" || action === "roles.manage" || action === "dashboard.view") return true;
-  return role === "director" && (action === "team.view" || action === "settings.view" || action === "settings.manage");
+  if (role === "director") return true;
+  return action === "users.manage" || action === "roles.manage" || action === "dashboard.view";
 }
 
 export type PermissionOverride = { role: string; action: string; allowed: boolean };

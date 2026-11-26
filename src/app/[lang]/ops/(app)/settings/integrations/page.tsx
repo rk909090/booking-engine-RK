@@ -75,7 +75,7 @@ async function Integrations({ lang, dict, searchParams }: { lang: Locale; dict: 
 
   return (
     <>
-      <SettingsHeader lang={lang} dict={dict} current="integrations" property={ctx.property} properties={ctx.properties} sp={sp} />
+      <SettingsHeader lang={lang} dict={dict} current="integrations" property={ctx.property} properties={ctx.properties} sp={sp} canProperties={ctx.canProperties} />
       <p className="mb-4 max-w-3xl text-sm text-stone">{t.intro}</p>
       <div className="grid gap-4 md:grid-cols-2">
         {items.map((i) => {
