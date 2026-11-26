@@ -77,7 +77,8 @@ describe("queueing guest messages", () => {
       ["booking_confirmed", "whatsapp", "6281123456789"],
     ]);
     await db.delete(schema.notificationOutbox);
-    await booking({ phone: null, unit: 1 });
+    // Another guest who gave only an email (the same email would reuse Ana's profile, phone included).
+    await booking({ phone: null, email: "bo@example.com", unit: 1 });
     expect((await outbox()).map((m) => m.channel)).toEqual(["email"]);
     expect(both.code).toBeTruthy();
   });

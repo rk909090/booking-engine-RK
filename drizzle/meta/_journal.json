@@ -141,6 +141,13 @@
       "when": 1795663906416,
       "tag": "0019_owner_statements",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1795665506545,
+      "tag": "0020_guest_crm",
+      "breakpoints": true
     }
   ]
 }

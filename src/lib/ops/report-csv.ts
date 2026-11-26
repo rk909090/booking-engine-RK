@@ -19,14 +19,14 @@ type Report = {
   };
 };
 
-function cell(value: string | number): string {
+export function cell(value: string | number): string {
   const text = String(value);
   // Quote when needed; a leading =, +, - or @ is neutralised so a spreadsheet never runs it as a formula.
   const safe = /^[=+\-@]/.test(text) && typeof value === "string" ? `'${text}` : text;
   return /[",\n\r;]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }
 
-const csv = (rows: Array<Array<string | number>>) => "﻿" + rows.map((r) => r.map(cell).join(",")).join("\r\n") + "\r\n";
+export const csv = (rows: Array<Array<string | number>>) => "﻿" + rows.map((r) => r.map(cell).join(",")).join("\r\n") + "\r\n";
 const pct = (x: number) => (x * 100).toFixed(1);
 
 function perfRow(p: Perf) {

@@ -197,12 +197,20 @@ export const guests = pgTable(
     fullName: text("full_name").notNull(),
     email: text("email"),
     phone: text("phone"),
+    /** Digits only, Indonesian numbers as 62…; used to recognise a returning guest (see domain/guests.ts). */
+    phoneNormalized: text("phone_normalized"),
     countryCode: char("country_code", { length: 2 }),
+    /** Internal notes and preferences (allergies, pillow, favourite villa). Never shown to the guest. */
+    notes: text("notes"),
+    tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
+    /** Set when the guest's personal data was erased on request (UU PDP); bookings and money stay. */
+    anonymizedAt: timestamp("anonymized_at", { withTimezone: true }),
     ...timestamps,
   },
   (t) => [
     index("guests_email_lower_idx").on(sql`lower(${t.email})`),
-    check("guests_has_contact", sql`${t.email} IS NOT NULL OR ${t.phone} IS NOT NULL`),
+    index("guests_phone_normalized_idx").on(t.phoneNormalized),
+    check("guests_has_contact", sql`${t.email} IS NOT NULL OR ${t.phone} IS NOT NULL OR ${t.anonymizedAt} IS NOT NULL`),
   ],
 );
 
@@ -270,6 +278,9 @@ export const reservations = pgTable(
     /** How the discount was given, so it can be re-applied when the dates change. */
     discount: jsonb("discount").$type<DiscountTerms>(),
     ratePlan: text("rate_plan").notNull().default("standard"),
+    /** Foreign guests reported to immigration (APOA), and by whom. */
+    apoaReportedAt: timestamp("apoa_reported_at", { withTimezone: true }),
+    apoaReportedBy: text("apoa_reported_by"),
     /** Plan and offers the booking was priced with (see domain/pricing.ts). */
     pricingTerms: jsonb("pricing_terms").$type<PricingTerms>(),
     /** The promo code whose discount applied; counts towards its limit. */

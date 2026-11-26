@@ -32,6 +32,10 @@ export const actions = [
   "housekeeping.update",
   "unit.block",
   "guest.view",
+  "guest.edit",
+  "guest.merge",
+  "guest.privacy",
+  "guest.apoa",
   "performance.view",
   "portfolio.view",
   "team.view",
@@ -79,6 +83,13 @@ const matrix: Record<Action, readonly Role[]> = {
   "housekeeping.update": ["branch_manager", "front_office", "housekeeping"],
   "unit.block": R.operators,
   "guest.view": R.allButHousekeeping,
+  /** Contact details, notes, preferences and tags of a guest profile (domain/guests.ts). */
+  "guest.edit": R.operators,
+  "guest.merge": R.operators,
+  /** UU PDP requests: export a guest's data and erase it. */
+  "guest.privacy": R.managers,
+  /** Foreign guest list for immigration (APOA): export with document numbers, mark reported. */
+  "guest.apoa": R.operators,
   "performance.view": ["director", "branch_manager"],
   "portfolio.view": ["director"],
   "team.view": ["director", "branch_manager"],

@@ -8,6 +8,7 @@ import { cancelReservationTasks, syncRequestTask } from "./tasks";
 import type { Locale } from "@/i18n/config";
 import { todayIn } from "./dates";
 import { cancellationOutcome, NON_REFUNDABLE_TIERS, quoteStay, snapshotOf, type PricingRules, type PromoOffer, type Quote, type QuoteError } from "./pricing";
+import { findOrCreateGuest } from "./guests";
 import { checkPromo, type PromoError } from "./promos";
 import type { DiscountTerms, RatePlan } from "./types";
 
@@ -309,15 +310,8 @@ export async function createHold(db: AnyDb, input: HoldInput): Promise<HoldResul
     const order = input.candidateUnitIds ?? free.map((u) => u.id);
     if (order.length === 0) return { ok: false, error: { kind: "sold_out" } } as const;
 
-    const [guest] = await tx
-      .insert(schema.guests)
-      .values({
-        fullName,
-        email: email || null,
-        phone,
-        countryCode: input.guest.countryCode?.trim().toUpperCase() || null,
-      })
-      .returning();
+    // A returning guest keeps one profile (see domain/guests.ts).
+    const guest = { id: await findOrCreateGuest(tx, { fullName, email: email || null, phone, countryCode: input.guest.countryCode ?? null }) };
 
     const holdExpiresAt = new Date(now.getTime() + (input.holdMinutes ?? property.holdMinutes) * 60_000);
     for (const unitId of order) {

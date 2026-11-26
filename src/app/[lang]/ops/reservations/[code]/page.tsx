@@ -23,7 +23,8 @@ import { loadStayFacts, stayActions, type ActionState } from "@/domain/operation
 import { balanceDue } from "@/domain/pricing";
 import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, lte, sql } from "drizzle-orm";
+import { GuestBadges } from "@/components/ops/guest-badges";
 import { channelStatus } from "@/lib/notifications/providers";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { format } from "@/i18n/format";
@@ -93,6 +94,11 @@ async function Detail({
     );
   }
   const { reservation: r, guest, unit, property } = data;
+  // A returning guest: stays of the same profile that ended before this one.
+  const [{ pastStays }] = await getDb()
+    .select({ pastStays: sql<number>`count(*)::int` })
+    .from(schema.reservations)
+    .where(and(eq(schema.reservations.guestId, guest.id), eq(schema.reservations.status, "checked_out"), lte(schema.reservations.checkOut, r.checkIn)));
   const now = new Date();
   const facts = await loadStayFacts(getDb(), r, property.timezone, now);
   const actions = stayActions(facts);
@@ -219,7 +225,9 @@ async function Detail({
         <StatusBadge status={r.status} label={dict.booking.status[r.status]} />
         <span className="text-sm text-stone">{dict.resList.sources[r.source]}</span>
       </div>
-      <p className="mt-1 text-lg text-ink">{guest.fullName}</p>
+      <p className="mt-1 text-lg text-ink">
+        {guest.anonymizedAt ? dict.guests.anonymized : guest.fullName} <GuestBadges dict={dict} tags={guest.tags} pastStays={Number(pastStays)} />
+      </p>
 
       <div className="mt-4 space-y-2">
         {sp.done ? <SuccessNote>{t.done}</SuccessNote> : null}
@@ -261,6 +269,16 @@ async function Detail({
               <Item label={t.email} value={guest.email ?? t.none} />
               <Item label={t.phone} value={guest.phone ?? t.none} />
             </Grid>
+            {guest.notes ? (
+              <p className="mt-3 whitespace-pre-line rounded-lg bg-sand px-3 py-2 text-sm text-ink">
+                <span className="font-medium">{dict.guests.notes}:</span> {guest.notes}
+              </p>
+            ) : null}
+            {can(staff.actor, "guest.view", r.propertyId).allowed ? (
+              <Link href={`/${lang}/ops/guests/${guest.id}`} className="mt-3 inline-block text-sm text-lagoon hover:underline">
+                {dict.guests.openProfile}
+              </Link>
+            ) : null}
           </Card>
 
           <Card title={dict.preCheckinStaff.title}>

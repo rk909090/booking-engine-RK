@@ -1,3 +1,4 @@
+import { GuestBadges } from "@/components/ops/guest-badges";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -166,7 +167,7 @@ async function ReservationList({
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-ink">
-                    {r.guestName}
+                    {r.guestName} <GuestBadges dict={dict} tags={r.guestTags} pastStays={r.guestPastStays} />
                     <span className="block text-xs text-stone">{t.sources[r.source]}</span>
                   </td>
                   <td className="px-4 py-3 text-ink">

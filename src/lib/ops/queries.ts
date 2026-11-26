@@ -122,6 +122,9 @@ export async function listReservations(actor: Actor, filters: ReservationFilters
       refundAmount: schema.reservations.refundAmount,
       refundPaid,
       guestName: schema.guests.fullName,
+      guestTags: schema.guests.tags,
+      /** Stays of this guest that ended before this booking (a returning guest). */
+      guestPastStays: sql<number>`(SELECT count(*)::int FROM ${schema.reservations} p WHERE p.guest_id = ${schema.reservations.guestId} AND p.status = 'checked_out' AND p.check_out <= ${schema.reservations.checkIn})`,
       unitCode: schema.units.code,
       typeName: schema.unitTypes.name,
       propertyName: schema.properties.name,
