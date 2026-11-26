@@ -23,8 +23,8 @@ export function OpsShell({ lang, dict, children }: { lang: Locale; dict: Diction
   );
 }
 
-type NavKey = "home" | "reservations" | "calendar" | "villaStatus" | "tasks" | "reports" | "rates" | "channels";
-const items: Array<{ key: NavKey; href: string; action: Action }> = [
+type NavKey = "home" | "reservations" | "calendar" | "villaStatus" | "tasks" | "reports" | "rates" | "owners" | "channels";
+const items: Array<{ key: NavKey; href: string; action: Action | Action[] }> = [
   { key: "home", href: "", action: "dashboard.view" },
   { key: "reservations", href: "/reservations", action: "reservation.view" },
   { key: "calendar", href: "/calendar", action: "calendar.view" },
@@ -32,6 +32,8 @@ const items: Array<{ key: NavKey; href: string; action: Action }> = [
   { key: "tasks", href: "/tasks", action: "tasks.view" },
   { key: "reports", href: "/reports", action: "performance.view" },
   { key: "rates", href: "/rates", action: "rates.manage" },
+  // Front office reach the owners area for expenses only.
+  { key: "owners", href: "/owners", action: ["owners.view", "owners.expense"] },
   { key: "channels", href: "/channels", action: "channels.manage" },
 ];
 
@@ -41,7 +43,7 @@ export function OpsNav({ lang, dict, staff, current }: { lang: Locale; dict: Dic
     <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
       <nav aria-label={dict.opsNav.menu} className="flex flex-wrap gap-1">
         {items
-          .filter((i) => can(staff.actor, i.action).allowed)
+          .filter((i) => (Array.isArray(i.action) ? i.action : [i.action]).some((a) => can(staff.actor, a).allowed))
           .map((i) => (
             <Link
               key={i.key}

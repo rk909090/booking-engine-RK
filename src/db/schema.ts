@@ -25,6 +25,8 @@ import { authUsers } from "./auth-schema";
 import {
   SAMPLE_CANCELLATION_TIERS,
   type CancellationTier,
+  type CommissionRates,
+  type OwnerStatementData,
   type DiscountTerms,
   type Guarantee,
   type LongStayTier,
@@ -112,6 +114,8 @@ export const properties = pgTable("properties", {
   earlyBirdDays: smallint("early_bird_days"),
   earlyBirdBp: integer("early_bird_bp"),
   longStayTiers: jsonb("long_stay_tiers").$type<LongStayTier[]>().notNull().default([]),
+  /** Channel commission deducted before the owner split (see domain/owners.ts). */
+  commissionRates: jsonb("commission_rates").$type<CommissionRates>().notNull().default({}),
   ...timestamps,
 }, (t) => [
   check("properties_non_refundable_bp_range", sql`${t.nonRefundableBp} IS NULL OR ${t.nonRefundableBp} BETWEEN 1 AND 9000`),
@@ -872,5 +876,144 @@ export const promoCodes = pgTable(
     check("promo_codes_max_uses_positive", sql`${t.maxUses} IS NULL OR ${t.maxUses} >= 1`),
     check("promo_codes_book_window", sql`${t.bookFrom} IS NULL OR ${t.bookUntil} IS NULL OR ${t.bookUntil} >= ${t.bookFrom}`),
     check("promo_codes_stay_window", sql`${t.stayFrom} IS NULL OR ${t.stayUntil} IS NULL OR ${t.stayUntil} >= ${t.stayFrom}`),
+  ],
+);
+
+/*
+ * Villa owners and statements (decided with the owner, 26 Nov 2026): each
+ * villa has an owner; room revenue is counted per night stayed (net of
+ * discount, without tax and service), channel commission comes off first,
+ * the management fee is a share of what remains, then expenses (manual,
+ * recurring and maintenance costs) are deducted. A branch manager locks a
+ * finished month, prints or saves the statement and records the payout.
+ */
+export const owners = pgTable("owners", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  fullName: text("full_name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  note: text("note"),
+  createdBy: text("created_by").notNull(),
+  ...timestamps,
+});
+
+/** Who owns a villa over [start_date, end_date) and the management fee agreed. Periods of a villa may not overlap. */
+export const unitOwnerships = pgTable(
+  "unit_ownerships",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    unitId: uuid("unit_id")
+      .notNull()
+      .references(() => units.id),
+    ownerId: uuid("owner_id")
+      .notNull()
+      .references(() => owners.id),
+    startDate: date("start_date", { mode: "string" }).notNull(),
+    /** Null while the owner still owns it. */
+    endDate: date("end_date", { mode: "string" }),
+    managementFeeBp: integer("management_fee_bp").notNull(),
+    createdBy: text("created_by").notNull(),
+    ...timestamps,
+  },
+  (t) => [
+    check("unit_ownerships_dates_ordered", sql`${t.endDate} IS NULL OR ${t.endDate} > ${t.startDate}`),
+    check("unit_ownerships_fee_range", sql`${t.managementFeeBp} BETWEEN 0 AND 10000`),
+    index("unit_ownerships_owner_idx").on(t.ownerId),
+    index("unit_ownerships_unit_idx").on(t.unitId, t.startDate),
+  ],
+);
+
+/** A cost charged to a villa's owner: entered by staff, or the cost of a finished maintenance ticket. */
+export const ownerExpenses = pgTable(
+  "owner_expenses",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id),
+    unitId: uuid("unit_id")
+      .notNull()
+      .references(() => units.id),
+    expenseDate: date("expense_date", { mode: "string" }).notNull(),
+    category: text("category").notNull(),
+    description: text("description").notNull(),
+    /** Rupiah; negative only for an adjustment (money back to the owner). */
+    amount: bigint("amount", { mode: "number" }).notNull(),
+    source: text("source").notNull().default("manual"),
+    taskId: uuid("task_id").references(() => tasks.id),
+    createdBy: text("created_by").notNull(),
+    voidedAt: timestamp("voided_at", { withTimezone: true }),
+    voidedBy: text("voided_by"),
+    voidReason: text("void_reason"),
+    ...timestamps,
+  },
+  (t) => [
+    check("owner_expenses_category", sql`${t.category} IN ('utilities', 'repairs', 'supplies', 'cleaning', 'staff', 'pool_garden', 'internet', 'other', 'adjustment')`),
+    check("owner_expenses_amount", sql`${t.amount} <> 0 AND (${t.amount} > 0 OR ${t.category} = 'adjustment')`),
+    check("owner_expenses_source", sql`${t.source} IN ('manual', 'maintenance')`),
+    uniqueIndex("owner_expenses_task_key").on(t.taskId),
+    index("owner_expenses_property_date_idx").on(t.propertyId, t.expenseDate),
+  ],
+);
+
+/** A monthly cost charged every month from start_month to end_month (inclusive; first days of months), prorated by days owned. */
+export const recurringExpenses = pgTable(
+  "recurring_expenses",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id),
+    unitId: uuid("unit_id")
+      .notNull()
+      .references(() => units.id),
+    category: text("category").notNull(),
+    description: text("description").notNull(),
+    amount: bigint("amount", { mode: "number" }).notNull(),
+    startMonth: date("start_month", { mode: "string" }).notNull(),
+    endMonth: date("end_month", { mode: "string" }),
+    createdBy: text("created_by").notNull(),
+    ...timestamps,
+  },
+  (t) => [
+    check("recurring_expenses_amount_positive", sql`${t.amount} > 0`),
+    check("recurring_expenses_category", sql`${t.category} IN ('utilities', 'repairs', 'supplies', 'cleaning', 'staff', 'pool_garden', 'internet', 'other')`),
+    check("recurring_expenses_months", sql`extract(day from ${t.startMonth}) = 1 AND (${t.endMonth} IS NULL OR (extract(day from ${t.endMonth}) = 1 AND ${t.endMonth} >= ${t.startMonth}))`),
+    index("recurring_expenses_property_idx").on(t.propertyId),
+  ],
+);
+
+/** A locked monthly statement for one owner at one property; the figures are frozen in `data`. */
+export const ownerStatements = pgTable(
+  "owner_statements",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerId: uuid("owner_id")
+      .notNull()
+      .references(() => owners.id),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id),
+    /** First day of the month. */
+    month: date("month", { mode: "string" }).notNull(),
+    status: text("status").notNull().default("locked"),
+    roomRevenue: bigint("room_revenue", { mode: "number" }).notNull(),
+    commission: bigint("commission", { mode: "number" }).notNull(),
+    managementFee: bigint("management_fee", { mode: "number" }).notNull(),
+    expenses: bigint("expenses", { mode: "number" }).notNull(),
+    payout: bigint("payout", { mode: "number" }).notNull(),
+    data: jsonb("data").$type<OwnerStatementData>().notNull(),
+    lockedAt: timestamp("locked_at", { withTimezone: true }).notNull(),
+    lockedBy: text("locked_by").notNull(),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    paidBy: text("paid_by"),
+    paidReference: text("paid_reference"),
+    ...timestamps,
+  },
+  (t) => [
+    unique("owner_statements_owner_property_month_key").on(t.ownerId, t.propertyId, t.month),
+    check("owner_statements_status", sql`${t.status} IN ('locked', 'paid')`),
+    check("owner_statements_month_first_day", sql`extract(day from ${t.month}) = 1`),
+    index("owner_statements_property_month_idx").on(t.propertyId, t.month),
   ],
 );

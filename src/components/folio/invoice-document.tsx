@@ -29,7 +29,8 @@ function Seller({ property, t }: { property: Invoice["property"]; t: Dictionary[
   );
 }
 
-function Shell({ toolbar, children }: { toolbar: ReactNode; children: ReactNode }) {
+/** Printable page frame: toolbar hidden when printing. */
+export function Shell({ toolbar, children }: { toolbar: ReactNode; children: ReactNode }) {
   return (
     <div className="min-h-full bg-sand/40 print:bg-white">
       <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2 px-4 py-4 print:hidden">{toolbar}</div>

@@ -100,6 +100,35 @@ export type PriceSnapshot = {
   taxRateBp: number;
 };
 
+/** Commission paid to sales channels, in basis points of room revenue, by booking source (e.g. { ota: 1500, agent: 1000 }). */
+export type CommissionRates = Partial<Record<"website" | "direct" | "walk_in" | "ota" | "agent", number>>;
+
+export const EXPENSE_CATEGORIES = ["utilities", "repairs", "supplies", "cleaning", "staff", "pool_garden", "internet", "other", "adjustment"] as const;
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
+
+/** A locked owner statement, frozen so later changes never alter what the owner was sent. */
+export type OwnerStatementData = {
+  owner: { fullName: string; email: string | null };
+  property: { name: string; slug: string };
+  month: string;
+  units: Array<{
+    unitId: string;
+    code: string;
+    typeName: string;
+    feeBp: number;
+    ownedNights: number;
+    soldNights: number;
+    roomRevenue: number;
+    commission: number;
+    fee: number;
+    expenses: Array<{ date: string; category: string; description: string; amount: number; source: "manual" | "maintenance" | "recurring" }>;
+    expenseTotal: number;
+    payout: number;
+    stays: Array<{ code: string; source: string; checkIn: string; checkOut: string; nights: number; revenue: number; commission: number }>;
+  }>;
+  totals: { ownedNights: number; soldNights: number; roomRevenue: number; commission: number; fee: number; expenses: number; payout: number };
+};
+
 /** Policy terms frozen onto a reservation when it is created. */
 export type PolicySnapshot = {
   cancellationTiers: CancellationTier[];

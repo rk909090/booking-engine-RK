@@ -94,6 +94,7 @@ async function Board({ lang, dict, searchParams }: { lang: Locale; dict: Diction
       me={staff.staffId}
       canWork={can(staff.actor, "tasks.work", r.task.propertyId).allowed}
       canAssign={can(staff.actor, "tasks.assign", r.task.propertyId).allowed}
+      canCost={can(staff.actor, "owners.expense", r.task.propertyId).allowed}
       people={staffByProperty.get(r.task.propertyId) ?? []}
       checklist={checklistOf(r)}
     />
@@ -207,6 +208,7 @@ function TaskCard({
   me,
   canWork,
   canAssign,
+  canCost,
   people,
   checklist,
 }: {
@@ -218,6 +220,8 @@ function TaskCard({
   me: string;
   canWork: boolean;
   canAssign: boolean;
+  /** May charge a ticket's cost to the villa's owner. */
+  canCost: boolean;
   people: Array<{ id: string; fullName: string }>;
   checklist: string[];
 }) {
@@ -349,6 +353,9 @@ function TaskCard({
           <form action={finishTaskAction} className="flex flex-1 gap-2">
             {hidden}
             <input name="note" maxLength={500} placeholder={t.noteOptional} className={`${input} py-1.5 text-xs`} />
+            {task.kind === "maintenance" && canCost && task.unitId ? (
+              <input name="cost" inputMode="numeric" maxLength={14} placeholder={t.costOptional} aria-label={t.costOptional} className={`${input} w-36 shrink-0 py-1.5 text-xs`} />
+            ) : null}
             <button type="submit" className="shrink-0 rounded-lg bg-lagoon px-3 py-1.5 text-xs font-medium text-ivory hover:bg-lagoon-deep">
               {task.kind === "maintenance" ? t.finishMaintenance : t.finishRequest}
             </button>

@@ -3,6 +3,7 @@ import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
 import { isIsoDate, todayIn } from "./dates";
 import { changeUnitState, createBlock, resolveBlock } from "./housekeeping";
+import { checkExpense, insertExpense } from "./owners";
 
 type AnyDb = PgDatabase<PgQueryResultHKT, typeof schema>;
 type Tx = Parameters<Parameters<AnyDb["transaction"]>[0]>[0];
@@ -40,7 +41,10 @@ export type TaskError =
   | "invalid_title"
   | "invalid_dates"
   | "blocked_dates_taken"
-  | "unit_state";
+  | "unit_state"
+  | "invalid_cost"
+  | "cost_no_owner"
+  | "cost_month_locked";
 
 type Result = { ok: true } | { ok: false; error: TaskError; codes?: string[] };
 
@@ -195,12 +199,26 @@ export async function reportMaintenance(
 }
 
 /** Finishes a maintenance ticket or a guest request. A ticket's block ends with it (the villa then needs an inspection). */
-export async function finishTask(db: AnyDb, input: { taskId: string; actor: Actor; note?: string | null; now?: Date }): Promise<Result> {
+/**
+ * Finishes a maintenance ticket or guest request. A maintenance ticket may
+ * carry its cost: it is then charged to the villa's owner (see domain/owners.ts).
+ */
+export async function finishTask(db: AnyDb, input: { taskId: string; actor: Actor; note?: string | null; cost?: number | null; now?: Date }): Promise<Result> {
   const now = input.now ?? new Date();
   const task = await loadTask(db, input.taskId);
   if (!task) return { ok: false, error: "not_found" };
   if (task.kind !== "maintenance" && task.kind !== "request") return { ok: false, error: "wrong_kind" };
   if (!(ACTIVE as readonly string[]).includes(task.status)) return { ok: false, error: "not_active" };
+  let expense: { input: Parameters<typeof insertExpense>[1]; propertyId: string } | null = null;
+  if (input.cost !== undefined && input.cost !== null) {
+    if (task.kind !== "maintenance" || !task.unitId || !Number.isSafeInteger(input.cost) || input.cost <= 0) return { ok: false, error: "invalid_cost" };
+    const [property] = await db.select({ timezone: schema.properties.timezone }).from(schema.properties).where(eq(schema.properties.id, task.propertyId));
+    const cost = { unitId: task.unitId, date: todayIn(property?.timezone ?? "Asia/Makassar", now), category: "repairs", description: task.title, amount: input.cost, source: "maintenance" as const, taskId: task.id, actor: input.actor };
+    const checked = await checkExpense(db, cost);
+    if (!checked.ok) return { ok: false, error: checked.error === "no_owner" ? "cost_no_owner" : checked.error === "month_locked" ? "cost_month_locked" : "invalid_cost" };
+    expense = { input: cost, propertyId: checked.propertyId };
+  }
+  if (expense) await insertExpense(db, expense.input, expense.propertyId);
   if (task.blockId) {
     const [block] = await db.select({ status: schema.unitBlocks.status }).from(schema.unitBlocks).where(eq(schema.unitBlocks.id, task.blockId));
     if (block?.status === "open") await resolveBlock(db, { blockId: task.blockId, actor: input.actor, now });

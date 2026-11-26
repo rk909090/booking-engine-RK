@@ -90,8 +90,18 @@ export async function finishInspectionAction(form: FormData) {
   });
 }
 
+/** A maintenance ticket's cost is charged to the villa's owner; only staff who may record owner expenses can give one. */
 export async function finishTaskAction(form: FormData) {
-  await withTask(form, "tasks.work", ({ taskId, actor }) => finishTask(getDb(), { taskId, actor, note: field(form, "note") || null }));
+  await withTask(form, "tasks.work", async ({ taskId, actor, task }) => {
+    const costRaw = field(form, "cost").replace(/[.,\s]/g, "");
+    let cost: number | null = null;
+    if (costRaw) {
+      const staff = await requireStaff(hasLocale(field(form, "lang")) ? (field(form, "lang") as Locale) : "id");
+      if (!can(staff.actor, "owners.expense", task.propertyId).allowed) return { ok: false, error: "role" };
+      cost = /^\d+$/.test(costRaw) ? Number(costRaw) : NaN;
+    }
+    return finishTask(getDb(), { taskId, actor, note: field(form, "note") || null, cost });
+  });
 }
 
 export async function cancelTaskAction(form: FormData) {
