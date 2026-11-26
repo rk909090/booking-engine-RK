@@ -11,6 +11,7 @@ import { cancelLateCheckoutAsGuest, requestLateCheckoutAsGuest } from "@/domain/
 import { savePreCheckin, type PreCheckinError } from "@/domain/pre-checkin";
 import { sealGuestData } from "@/lib/crypto/guest-data";
 import { isCountryCode } from "@/lib/countries";
+import { deliverSoon } from "@/lib/notifications/deliver";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { closeCheckouts, openCheckouts } from "@/lib/payments/checkouts";
 import { getPaymentProvider, simulatorEnabled } from "@/lib/payments/provider";
@@ -133,6 +134,7 @@ export async function approveSimulatedPayment(form: FormData) {
       paidAt: new Date(),
       raw: { simulated: true },
     });
+    deliverSoon();
   }
   redirect(bookingPath(lang, row.code));
 }
@@ -174,7 +176,10 @@ export async function cancelBookingAsGuest(form: FormData) {
   if (reservation) {
     const links = await openCheckouts(reservation.id);
     const result = await cancelReservation(getDb(), { reservationId: reservation.id, actor: { type: "guest" }, reason: "Cancelled by guest" });
-    if (result.ok) await closeCheckouts(reservation.id, links);
+    if (result.ok) {
+      await closeCheckouts(reservation.id, links);
+      deliverSoon();
+    }
   }
   redirect(bookingPath(lang, code));
 }

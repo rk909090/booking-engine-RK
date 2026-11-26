@@ -73,8 +73,8 @@ describe("staff bookings with money received", () => {
     const actions = await db.select().from(schema.auditEvents).where(eq(schema.auditEvents.entityId, result.reservation.id));
     expect(actions.find((a) => a.action === "reservation.held")?.actorId).toBe("fo-1");
     expect(actions.find((a) => a.action === "payment.received_manual")?.actorId).toBe("fo-1");
-    // No email: nothing to send.
-    expect(await db.select().from(schema.notificationOutbox)).toHaveLength(0);
+    // No email, but a phone number: the confirmation goes by WhatsApp only.
+    expect((await db.select().from(schema.notificationOutbox)).map((m) => [m.kind, m.channel])).toEqual([["booking_confirmed", "whatsapp"]]);
   });
 
   it("accepts the deposit for a later stay and leaves the balance due", async () => {

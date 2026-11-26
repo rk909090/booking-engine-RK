@@ -904,5 +904,83 @@
     "revealHint": "Setiap kali ditampilkan, tercatat di log aktivitas.",
     "roleNotAllowed": "Peran Anda tidak dapat melihat nomor dokumen.",
     "rulesAccepted": "Aturan vila disetujui {time}"
+  },
+  "messages": {
+    "greeting": "Halo {name},",
+    "signoff": "Salam hangat,\n{brand}",
+    "viewBooking": "Lihat pesanan Anda",
+    "footer": "Pesan ini dikirim otomatis terkait pesanan {code}. Balas email ini bila ada pertanyaan.",
+    "details": {
+      "code": "Kode pesanan",
+      "villa": "Vila",
+      "dates": "Tanggal",
+      "times": "Jam",
+      "timesValue": "Check-in mulai {checkIn}, check-out paling lambat {checkOut}",
+      "guests": "Tamu",
+      "total": "Total",
+      "paid": "Sudah dibayar",
+      "balance": "Sisa tagihan"
+    },
+    "confirmed": {
+      "subject": "Pesanan {code} terkonfirmasi",
+      "intro": "Terima kasih! Pesanan Anda di {property} sudah terkonfirmasi.",
+      "payBy": "Mohon lakukan pembayaran {amount} paling lambat {date}.",
+      "precheckin": "Anda bisa mengisi pre-check-in online dari halaman pesanan agar check-in lebih cepat."
+    },
+    "modified": {
+      "subject": "Perubahan pesanan {code}",
+      "intro": "Pesanan Anda sudah diubah. Berikut rincian terbarunya."
+    },
+    "cancelled": {
+      "subject": "Pesanan {code} dibatalkan",
+      "intro": "Pesanan Anda sudah dibatalkan.",
+      "refund": "Refund sebesar {amount} akan kami proses.",
+      "noRefund": "Sesuai kebijakan pembatalan, tidak ada refund untuk pembatalan ini."
+    },
+    "lateCheckout": {
+      "subject": "Permintaan late check-out {code}",
+      "approved": "Late check-out sampai pukul {time} sudah disetujui.",
+      "approvedFee": "Late check-out sampai pukul {time} sudah disetujui, dengan biaya {amount} yang ditambahkan ke tagihan Anda.",
+      "declined": "Maaf, late check-out sampai pukul {time} tidak dapat kami penuhi."
+    },
+    "earlyCheckin": {
+      "subject": "Permintaan early check-in {code}",
+      "approved": "Early check-in mulai pukul {time} sudah disetujui.",
+      "approvedFee": "Early check-in mulai pukul {time} sudah disetujui, dengan biaya {amount} yang ditambahkan ke tagihan Anda.",
+      "declined": "Maaf, early check-in mulai pukul {time} tidak dapat kami penuhi."
+    },
+    "precheckin": {
+      "subject": "Siapkan kedatangan Anda · {code}",
+      "intro": "Kedatangan Anda di {property} tinggal {days} hari lagi. Isi pre-check-in online agar check-in lebih cepat."
+    },
+    "payment": {
+      "subject": "Pengingat pembayaran · {code}",
+      "intro": "Pengingat: pembayaran {amount} jatuh tempo pada {date}. Abaikan pesan ini bila sudah membayar."
+    }
+  },
+  "messageLog": {
+    "title": "Pesan ke tamu",
+    "none": "Belum ada pesan untuk pesanan ini.",
+    "channels": {
+      "email": "Email",
+      "whatsapp": "WhatsApp"
+    },
+    "status": {
+      "pending": "Menunggu",
+      "sending": "Sedang dikirim",
+      "sent": "Terkirim",
+      "failed": "Gagal",
+      "skipped": "Tidak dikirim"
+    },
+    "kinds": {
+      "booking_confirmed": "Konfirmasi pesanan",
+      "booking_modified": "Perubahan pesanan",
+      "booking_cancelled": "Pembatalan",
+      "late_checkout_decided": "Keputusan late check-out",
+      "early_checkin_decided": "Keputusan early check-in",
+      "precheckin_reminder": "Pengingat pre-check-in",
+      "payment_reminder": "Pengingat pembayaran"
+    },
+    "inactive": "{channels} belum aktif: pesan menunggu sampai kuncinya diisi di hPanel, dan dilewati bila belum terkirim dalam 48 jam."
   }
 }

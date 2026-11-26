@@ -15,6 +15,7 @@ import { hasLocale, type Locale } from "@/i18n/config";
 import { requireStaff } from "@/lib/auth/current-staff";
 import { can, type Action, type Actor } from "@/lib/authz/permissions";
 import { closeCheckouts, openCheckouts } from "@/lib/payments/checkouts";
+import { deliverSoon } from "@/lib/notifications/deliver";
 import { parseDiscountInput } from "./discount-input";
 
 /*
@@ -56,6 +57,8 @@ async function run(
   if (!decision.allowed) back(decision.reason === "outside_property_scope" ? "error=not_found" : "error=role");
 
   const result = await op({ reservationId: r.id, propertyId: r.propertyId, unitId: r.unitId, staffId: staff.staffId, actor: staff.actor });
+  // Messages the change queued for the guest go out right after the response.
+  if (result.ok) deliverSoon();
   back(result.ok ? "done=1" : `${keepOnError ? `${keepOnError}&` : ""}error=${result.error}`);
 }
 

@@ -1,5 +1,6 @@
 import { getDb } from "@/db/client";
 import { verifyXenditCallbackToken, xenditProvider } from "@/lib/payments/provider";
+import { deliverSoon } from "@/lib/notifications/deliver";
 import { processXenditSessionEvent } from "@/lib/payments/xendit-webhook";
 
 /**
@@ -22,5 +23,6 @@ export async function POST(request: Request) {
     return new Response("bad request", { status: 400 });
   }
   const result = await processXenditSessionEvent(getDb(), xendit, payload);
+  deliverSoon();
   return Response.json(result.body, { status: result.status });
 }

@@ -20,6 +20,9 @@ import { changeability, previewStayChange } from "@/domain/modify";
 import { loadStayFacts, stayActions, type ActionState } from "@/domain/operations";
 import { balanceDue } from "@/domain/pricing";
 import { getDb } from "@/db/client";
+import * as schema from "@/db/schema";
+import { desc, eq } from "drizzle-orm";
+import { channelStatus } from "@/lib/notifications/providers";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { format } from "@/i18n/format";
 import { formatDate, formatDateRange, formatMoney } from "@/i18n/formatters";
@@ -111,6 +114,13 @@ async function Detail({
   // Document numbers past their retention are erased before the page shows anything.
   await eraseExpiredDocuments(getDb(), facts.today);
   const pre = await preCheckinView(getDb(), r.id);
+  const messages = await getDb()
+    .select()
+    .from(schema.notificationOutbox)
+    .where(eq(schema.notificationOutbox.reservationId, r.id))
+    .orderBy(desc(schema.notificationOutbox.createdAt));
+  const channels = channelStatus();
+  const inactiveChannels = (["email", "whatsapp"] as const).filter((c) => !channels[c]).map((c) => dict.messageLog.channels[c]);
   const regionName = new Intl.DisplayNames([lang === "id" ? "id-ID" : "en-GB"], { type: "region" });
   const ageAt = (birth: string, on: string) => Math.floor(diffDays(birth, on) / 365.25);
   const errorCode = typeof sp.error === "string" ? sp.error : null;
@@ -344,6 +354,35 @@ async function Detail({
                         {formatMoney(p.amount, lang)}
                       </span>
                       <span className="block text-xs text-stone">{t.paymentStatus[p.status]}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card title={dict.messageLog.title}>
+            {inactiveChannels.length ? (
+              <p className="mb-2 text-xs text-stone">{format(dict.messageLog.inactive, { channels: inactiveChannels.join(" & ") })}</p>
+            ) : null}
+            {messages.length === 0 ? (
+              <p className="text-sm text-stone">{dict.messageLog.none}</p>
+            ) : (
+              <ul className="divide-y divide-line/60 text-sm">
+                {messages.map((m) => (
+                  <li key={m.id} className="flex flex-wrap justify-between gap-2 py-2">
+                    <span className="text-ink">
+                      {(dict.messageLog.kinds as Record<string, string>)[m.kind] ?? m.kind}
+                      <span className="block text-xs text-stone">
+                        {dict.messageLog.channels[m.channel as "email" | "whatsapp"] ?? m.channel} · {m.recipient}
+                      </span>
+                      {m.lastError && m.status !== "sent" ? <span className="block max-w-md truncate text-xs text-danger">{m.lastError}</span> : null}
+                    </span>
+                    <span className="text-right text-xs">
+                      <span className={m.status === "sent" ? "text-lagoon" : m.status === "failed" ? "text-danger" : "text-stone"}>
+                        {(dict.messageLog.status as Record<string, string>)[m.status] ?? m.status}
+                      </span>
+                      <span className="block text-stone">{fmt.format(m.sentAt ?? m.createdAt)}</span>
                     </span>
                   </li>
                 ))}

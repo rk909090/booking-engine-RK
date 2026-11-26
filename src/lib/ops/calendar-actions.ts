@@ -7,6 +7,7 @@ import { applyStayChange, previewStayChange, type StayChangeResult } from "@/dom
 import { hasLocale, type Locale } from "@/i18n/config";
 import { requireStaff } from "@/lib/auth/current-staff";
 import { can } from "@/lib/authz/permissions";
+import { deliverSoon } from "@/lib/notifications/deliver";
 
 /*
  * Drag and drop on the calendar. The browser sends what was dropped; the
@@ -77,5 +78,6 @@ export async function applyCalendarMove(move: CalendarMove & { expectedTotal: nu
     expectedTotal: move.expectedTotal,
     actor: { type: "staff", id: loaded.staffId },
   });
+  if (result.ok) deliverSoon();
   return result.ok ? { ok: true } : { ok: false, error: result.error };
 }

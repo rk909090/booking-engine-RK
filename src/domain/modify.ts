@@ -1,6 +1,7 @@
 import { and, asc, eq, inArray, lte, ne, sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
+import { queueGuestMessage } from "./notifications";
 import type { PriceSnapshot } from "@/domain/types";
 import { EXCLUSION_VIOLATION, loadUnitTypes, sqlState, unitIsFree } from "./booking";
 import { addDays, diffDays, isIsoDate, todayIn } from "./dates";
@@ -360,15 +361,8 @@ export async function applyStayChange(
           .where(and(eq(schema.earlyCheckinRequests.reservationId, r.id), inArray(schema.earlyCheckinRequests.status, ["requested", "approved"])));
       }
 
-      const [guest] = await tx.select({ email: schema.guests.email }).from(schema.guests).where(eq(schema.guests.id, r.guestId));
-      if (guest?.email && (plan.checkIn !== r.checkIn || plan.checkOut !== r.checkOut || plan.difference !== 0)) {
-        await tx.insert(schema.notificationOutbox).values({
-          kind: "booking_modified",
-          channel: "email",
-          recipient: guest.email,
-          reservationId: r.id,
-          payload: { code: r.code, locale: r.locale },
-        });
+      if (plan.checkIn !== r.checkIn || plan.checkOut !== r.checkOut || plan.difference !== 0) {
+        await queueGuestMessage(tx, { reservationId: r.id, kind: "booking_modified", payload: { difference: plan.difference }, now });
       }
       return result;
     });

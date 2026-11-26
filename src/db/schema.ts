@@ -378,12 +378,21 @@ export const notificationOutbox = pgTable(
     attempts: integer("attempts").notNull().default(0),
     lastError: text("last_error"),
     sentAt: timestamp("sent_at", { withTimezone: true }),
+    /** Not before this time (retry backoff). */
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }),
+    /** When a worker took it for sending (a stale claim is retried). */
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    /** Id returned by the provider (Resend email id, WhatsApp message id). */
+    providerRef: text("provider_ref"),
+    /** Makes reminders idempotent, e.g. "precheckin_reminder:<reservation>:email". */
+    dedupeKey: text("dedupe_key").unique(),
     ...timestamps,
   },
   (t) => [
     check("notification_outbox_channel", sql`${t.channel} IN ('email', 'whatsapp')`),
-    check("notification_outbox_status", sql`${t.status} IN ('pending', 'sent', 'failed', 'skipped')`),
+    check("notification_outbox_status", sql`${t.status} IN ('pending', 'sending', 'sent', 'failed', 'skipped')`),
     index("notification_outbox_pending_idx").on(t.status, t.createdAt),
+    index("notification_outbox_reservation_idx").on(t.reservationId),
   ],
 );
 

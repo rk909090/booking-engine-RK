@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
+import { queueGuestMessage } from "./notifications";
 import { todayIn } from "./dates";
 
 type AnyDb = PgDatabase<PgQueryResultHKT, typeof schema>;
@@ -222,6 +223,7 @@ export async function decideLateCheckout(
         .set({ status: "declined", decisionNote: note, decidedBy: input.actor.id, decidedAt: now, updatedAt: now })
         .where(eq(schema.lateCheckoutRequests.id, request.id));
       await audit(tx, r, input.actor, "late_checkout.declined", { time, note }, now);
+      await queueGuestMessage(tx, { reservationId: r.id, kind: "late_checkout_decided", payload: { approved: false, time }, now });
       return { ok: true } as const;
     }
 
@@ -246,6 +248,7 @@ export async function decideLateCheckout(
         .where(eq(schema.reservations.id, r.id));
     }
     await audit(tx, r, input.actor, "late_checkout.approved", { time, fee, note }, now);
+    await queueGuestMessage(tx, { reservationId: r.id, kind: "late_checkout_decided", payload: { approved: true, time, fee }, now });
     return { ok: true } as const;
   });
 }

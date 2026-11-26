@@ -904,5 +904,83 @@
     "revealHint": "Each time they are shown, it is recorded in the activity log.",
     "roleNotAllowed": "Your role cannot see document numbers.",
     "rulesAccepted": "House rules accepted {time}"
+  },
+  "messages": {
+    "greeting": "Hello {name},",
+    "signoff": "Warm regards,\n{brand}",
+    "viewBooking": "View your booking",
+    "footer": "This message was sent automatically about booking {code}. Reply to this email if you have any questions.",
+    "details": {
+      "code": "Booking code",
+      "villa": "Villa",
+      "dates": "Dates",
+      "times": "Times",
+      "timesValue": "Check-in from {checkIn}, check-out by {checkOut}",
+      "guests": "Guests",
+      "total": "Total",
+      "paid": "Paid",
+      "balance": "Balance due"
+    },
+    "confirmed": {
+      "subject": "Booking {code} confirmed",
+      "intro": "Thank you! Your booking at {property} is confirmed.",
+      "payBy": "Please pay {amount} by {date}.",
+      "precheckin": "You can complete the online pre-check-in from your booking page for a quicker check-in."
+    },
+    "modified": {
+      "subject": "Your booking {code} has changed",
+      "intro": "Your booking has been changed. Here are the latest details."
+    },
+    "cancelled": {
+      "subject": "Booking {code} cancelled",
+      "intro": "Your booking has been cancelled.",
+      "refund": "We will process a refund of {amount}.",
+      "noRefund": "Under the cancellation policy, no refund is due for this cancellation."
+    },
+    "lateCheckout": {
+      "subject": "Late check-out request {code}",
+      "approved": "Late check-out until {time} is confirmed.",
+      "approvedFee": "Late check-out until {time} is confirmed, with a fee of {amount} added to your bill.",
+      "declined": "Sorry, we cannot offer late check-out until {time}."
+    },
+    "earlyCheckin": {
+      "subject": "Early check-in request {code}",
+      "approved": "Early check-in from {time} is confirmed.",
+      "approvedFee": "Early check-in from {time} is confirmed, with a fee of {amount} added to your bill.",
+      "declined": "Sorry, we cannot offer early check-in from {time}."
+    },
+    "precheckin": {
+      "subject": "Get ready for your stay · {code}",
+      "intro": "Your stay at {property} starts in {days} days. Complete the online pre-check-in for a quicker check-in."
+    },
+    "payment": {
+      "subject": "Payment reminder · {code}",
+      "intro": "Reminder: a payment of {amount} is due on {date}. Please ignore this if you have already paid."
+    }
+  },
+  "messageLog": {
+    "title": "Messages to the guest",
+    "none": "No messages for this booking yet.",
+    "channels": {
+      "email": "Email",
+      "whatsapp": "WhatsApp"
+    },
+    "status": {
+      "pending": "Waiting",
+      "sending": "Sending",
+      "sent": "Sent",
+      "failed": "Failed",
+      "skipped": "Not sent"
+    },
+    "kinds": {
+      "booking_confirmed": "Booking confirmation",
+      "booking_modified": "Booking change",
+      "booking_cancelled": "Cancellation",
+      "late_checkout_decided": "Late check-out decision",
+      "early_checkin_decided": "Early check-in decision",
+      "precheckin_reminder": "Pre-check-in reminder",
+      "payment_reminder": "Payment reminder"
+    },
+    "inactive": "{channels} not active yet: messages wait until the keys are set in hPanel, and are skipped if not sent within 48 hours."
   }
 }

@@ -3,6 +3,7 @@ import { and, asc, eq, inArray, lte, sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import { brand } from "@/config/brand";
 import * as schema from "@/db/schema";
+import { queueGuestMessage } from "./notifications";
 import type { Locale } from "@/i18n/config";
 import { todayIn } from "./dates";
 import { cancellationOutcome, quoteStay, type PricingRules, type Quote, type QuoteError } from "./pricing";
@@ -483,16 +484,7 @@ export async function recordPaymentPaid(
         return { kind: "needs_refund", reservationId: reservation.id, reason: "unit_taken_after_expiry" } as const;
       }
       await audit("reservation.confirmed", { paymentId: payment.id, amount: payment.amount });
-      const [guest] = await tx.select().from(schema.guests).where(eq(schema.guests.id, reservation.guestId));
-      if (guest?.email) {
-        await tx.insert(schema.notificationOutbox).values({
-          kind: "booking_confirmed",
-          channel: "email",
-          recipient: guest.email,
-          reservationId: reservation.id,
-          payload: { code: reservation.code, locale: reservation.locale },
-        });
-      }
+      await queueGuestMessage(tx, { reservationId: reservation.id, kind: "booking_confirmed", now: input.paidAt });
       return { kind: "confirmed", reservationId: reservation.id } as const;
     }
 
@@ -564,6 +556,10 @@ export async function cancelReservation(
       after: { status: "cancelled", refund: outcome.refund, fee: outcome.fee, reason: input.reason ?? null },
       occurredAt: now,
     });
+    // A hold was never confirmed to the guest, so there is nothing to tell them.
+    if (r.status === "confirmed") {
+      await queueGuestMessage(tx, { reservationId: r.id, kind: "booking_cancelled", payload: { refund: outcome.refund, fee: outcome.fee }, now });
+    }
     return { ok: true, refund: outcome.refund, fee: outcome.fee } as const;
   });
 }

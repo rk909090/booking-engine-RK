@@ -13,6 +13,7 @@ import { requireStaff } from "@/lib/auth/current-staff";
 import { can } from "@/lib/authz/permissions";
 import { appUrl, bookingAccessToken } from "@/lib/booking/access";
 import { getPaymentProvider } from "@/lib/payments/provider";
+import { deliverSoon } from "@/lib/notifications/deliver";
 import { parseDiscountInput } from "./discount-input";
 
 export type StaffBookingFormError =
@@ -153,5 +154,6 @@ export async function createStaffBookingAction(_prev: StaffBookingFormState, for
       return fail("payment");
     }
   }
+  if (result.confirmed) deliverSoon();
   redirect(`/${lang}/ops/reservations/${r.code}?created=${result.confirmed ? "1" : "link"}`);
 }
