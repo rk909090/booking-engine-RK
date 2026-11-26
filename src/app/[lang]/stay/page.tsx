@@ -12,6 +12,7 @@ import { hasLocale, type Locale } from "@/i18n/config";
 import { format } from "@/i18n/format";
 import { formatDateRange, formatMoney } from "@/i18n/formatters";
 import { getDictionary, type Dictionary } from "@/i18n/get-dictionary";
+import { offerLabel } from "@/lib/pricing-labels";
 import { listProperties } from "@/lib/site/queries";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/stay">): Promise<Metadata> {
@@ -144,7 +145,9 @@ function ResultCard({
           ? format(t.maxStay, { nights: e.maxNights })
           : e.kind === "check_in_in_past"
             ? t.pastDate
-            : t.invalidDates;
+            : e.kind === "closed_to_arrival"
+              ? t.closedToArrival
+              : t.invalidDates;
   } else if (result.freeUnits === 0) problem = t.soldOut;
 
   return (
@@ -178,6 +181,11 @@ function ResultCard({
               <p className="text-xs text-stone">
                 {format(t.perNight, { amount: formatMoney(Math.round(quote.quote.subtotal / quote.quote.nightsCount), lang) })}
               </p>
+              {quote.quote.offer ? (
+                <p className="text-xs font-medium text-success">
+                  {format(dict.pricing.saved, { offer: offerLabel(dict.pricing, quote.quote.offer), amount: formatMoney(quote.quote.offer.amount, lang) })}
+                </p>
+              ) : null}
               <Link
                 href={`/${lang}/book?unitType=${unitType.id}&${qs}`}
                 className="mt-1 rounded-lg bg-lagoon px-4 py-2 text-sm font-medium text-ivory hover:bg-lagoon-deep"

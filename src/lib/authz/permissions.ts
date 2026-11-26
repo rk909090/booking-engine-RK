@@ -37,6 +37,7 @@ export const actions = [
   "team.view",
   "settings.view",
   "channels.manage",
+  "rates.manage",
   "tasks.view",
   "tasks.work",
   "tasks.assign",
@@ -81,6 +82,8 @@ const matrix: Record<Action, readonly Role[]> = {
   "settings.view": R.all,
   /** Connect villas to Airbnb/Booking.com calendars (iCal); see domain/ical.ts. */
   "channels.manage": R.managers,
+  /** Rates, seasons, closed-to-arrival dates, rate plans, automatic discounts and promo codes (domain/rates.ts). */
+  "rates.manage": R.managers,
   /** Housekeeping, maintenance and guest-request tasks (domain/tasks.ts). */
   "tasks.view": ["branch_manager", "front_office", "housekeeping"],
   /** Claim, start and finish tasks; report maintenance. */

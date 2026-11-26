@@ -42,6 +42,7 @@ import {
   refundAction,
 } from "@/lib/ops/actions";
 import { getReservationForStaff, sameTypeUnits } from "@/lib/ops/queries";
+import { offerLabel } from "@/lib/pricing-labels";
 
 type Props = PageProps<"/[lang]/ops/reservations/[code]">;
 
@@ -96,6 +97,8 @@ async function Detail({
   const facts = await loadStayFacts(getDb(), r, property.timezone, now);
   const actions = stayActions(facts);
   const balance = balanceDue(r);
+  // The discount split as priced: plan and offer are shown on their own lines; what remains was given by staff.
+  const staffDiscount = r.discountAmount - (r.priceSnapshot?.planDiscount ?? 0) - (r.priceSnapshot?.offer?.amount ?? 0);
   const fmt = timeFmt(lang, property.timezone);
   const holdLive = r.status === "hold" && r.holdExpiresAt !== null && r.holdExpiresAt > now;
   const openLink = holdLive ? data.payments.find((p) => p.status === "pending" && p.checkoutUrl && (!p.expiresAt || p.expiresAt > now)) : undefined;
@@ -307,10 +310,14 @@ async function Detail({
 
           <Card title={t.money}>
             <dl className="space-y-1 text-sm">
+              <Line label={t.ratePlan} value={dict.pricing.plans[(r.ratePlan as keyof Dictionary["pricing"]["plans"]) ?? "standard"] ?? r.ratePlan} />
               <Line label={t.subtotal} value={formatMoney(r.subtotalAmount, lang)} />
-              {r.discountAmount ? (
-                <Line label={r.discount?.reason ? `${t.discountLine} (${r.discount.reason})` : t.discountLine} value={`−${formatMoney(r.discountAmount, lang)}`} />
+              {r.priceSnapshot?.planDiscount ? <Line label={dict.pricing.planDiscount} value={`−${formatMoney(r.priceSnapshot.planDiscount, lang)}`} /> : null}
+              {r.priceSnapshot?.offer ? <Line label={offerLabel(dict.pricing, r.priceSnapshot.offer)} value={`−${formatMoney(r.priceSnapshot.offer.amount, lang)}`} /> : null}
+              {staffDiscount ? (
+                <Line label={r.discount?.reason ? `${t.discountLine} (${r.discount.reason})` : t.discountLine} value={`−${formatMoney(staffDiscount, lang)}`} />
               ) : null}
+              {r.breakfastAmount ? <Line label={format(dict.pricing.breakfastLine, { count: r.priceSnapshot?.nights.length ?? 0 })} value={formatMoney(r.breakfastAmount, lang)} /> : null}
               {r.serviceAmount ? <Line label={t.service} value={formatMoney(r.serviceAmount, lang)} /> : null}
               {r.taxAmount ? <Line label={t.tax} value={formatMoney(r.taxAmount, lang)} /> : null}
               {r.extrasAmount ? <Line label={t.extras} value={formatMoney(r.extrasAmount, lang)} /> : null}

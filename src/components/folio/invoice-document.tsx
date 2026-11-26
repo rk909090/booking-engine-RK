@@ -5,6 +5,7 @@ import type { Locale } from "@/i18n/config";
 import { format } from "@/i18n/format";
 import { formatDate, formatDateRange, formatMoney } from "@/i18n/formatters";
 import type { Dictionary } from "@/i18n/get-dictionary";
+import { offerLabel } from "@/lib/pricing-labels";
 import { PrintButton } from "./print-button";
 
 type Invoice = NonNullable<Awaited<ReturnType<typeof invoiceData>>>;
@@ -51,6 +52,12 @@ export function InvoiceDocument({ lang, dict, data, toolbar }: { lang: Locale; d
         return l.quantity ? format(t.lines.nights, { villa: l.label, count: l.quantity }) : l.label;
       case "discount":
         return l.label ? format(t.lines.discountReason, { reason: l.label }) : t.lines.discount;
+      case "plan_discount":
+        return dict.pricing.planDiscount;
+      case "offer":
+        return offerLabel(dict.pricing, { kind: l.variant ?? "", code: l.label });
+      case "breakfast":
+        return format(dict.pricing.breakfastLine, { count: l.quantity ?? 0 });
       case "service":
         return t.lines.service;
       case "tax":

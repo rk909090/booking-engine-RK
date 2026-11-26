@@ -12,10 +12,22 @@ import { parseDiscountInput } from "@/lib/ops/discount-input";
 type Props = {
   lang: Locale;
   dict: Pick<Dictionary, "newBooking"> & { methods: Dictionary["resDetail"]["methods"]; sources: Dictionary["resList"]["sources"] };
-  stay: { unitTypeId: string; checkIn: string; checkOut: string; adults: number; children: number };
+  stay: { unitTypeId: string; checkIn: string; checkOut: string; adults: number; children: number; ratePlan: string; promo: string };
   units: Array<{ id: string; code: string }>;
-  /** The undiscounted price, with what is needed to recompute it after a discount (same rules as the server). */
-  quote: { subtotal: number; total: number; dueNow: number; serviceRateBp: number; taxRateBp: number; depositRateBp: number; payInFull: boolean };
+  /** The price without a staff discount, with what is needed to recompute it after one (same rules as the server). */
+  quote: {
+    subtotal: number;
+    planDiscount: number;
+    /** The automatic or promo discount already applied. */
+    offerAmount: number;
+    breakfast: number;
+    total: number;
+    dueNow: number;
+    serviceRateBp: number;
+    taxRateBp: number;
+    depositRateBp: number;
+    payInFull: boolean;
+  };
   /** This staff member's discount ceiling in basis points. */
   limitBp: number;
   /** Whether this staff member may confirm without a deposit. */
@@ -26,14 +38,20 @@ type Props = {
 
 const bp = (amount: number, rate: number) => Math.round((amount * rate) / 10_000);
 
-/** Mirrors domain/pricing: discount on the nights, then service, then tax; deposit on the total. */
+/**
+ * Mirrors domain/pricing: the plan's price, then the larger of the offer
+ * already applied and the staff discount (only one counts), breakfast on top,
+ * then service, then tax; deposit on the total.
+ */
 function priced(quote: Props["quote"], kind: string, value: string) {
   const d = parseDiscountInput(kind, value);
-  const off = !d ? 0 : Math.max(0, Math.min(quote.subtotal, d.kind === "percent" ? bp(quote.subtotal, d.bp || 0) : d.amount));
-  const net = quote.subtotal - off;
+  const base = quote.subtotal - quote.planDiscount;
+  const staffOff = !d ? 0 : Math.max(0, Math.min(base, d.kind === "percent" ? bp(base, d.bp || 0) : d.amount));
+  const staffWins = staffOff > quote.offerAmount;
+  const net = base - (staffWins ? staffOff : quote.offerAmount) + quote.breakfast;
   const service = bp(net, quote.serviceRateBp);
   const total = net + service + bp(net + service, quote.taxRateBp);
-  return { off, total, dueNow: quote.payInFull ? total : bp(total, quote.depositRateBp) };
+  return { off: staffWins ? staffOff : 0, staffLoses: Boolean(d) && staffOff > 0 && !staffWins, total, dueNow: quote.payInFull ? total : bp(total, quote.depositRateBp) };
 }
 
 const box = "w-full rounded-lg border border-line bg-white px-3 py-2.5 text-ink outline-none focus:border-lagoon focus:ring-2 focus:ring-lagoon/20";
@@ -83,6 +101,8 @@ function Fields({
       <input type="hidden" name="checkOut" value={stay.checkOut} />
       <input type="hidden" name="adults" value={stay.adults} />
       <input type="hidden" name="children" value={stay.children} />
+      <input type="hidden" name="ratePlan" value={stay.ratePlan} />
+      <input type="hidden" name="promo" value={stay.promo} />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t.fullName} name="fullName" required maxLength={120} defaultValue={v.fullName} autoComplete="off" />
@@ -142,6 +162,7 @@ function Fields({
           <p className="text-xs text-stone">
             {format(t.discountLimit, { limit })}
             {now.off > 0 ? ` ${format(t.afterDiscount, { total: money(now.total), dueNow: money(now.dueNow) })}` : ""}
+            {now.staffLoses ? ` ${t.discountSmallerThanOffer}` : ""}
           </p>
         </fieldset>
       ) : null}

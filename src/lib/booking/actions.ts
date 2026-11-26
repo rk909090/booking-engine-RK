@@ -9,6 +9,7 @@ import * as schema from "@/db/schema";
 import { cancelReservation, createHold, createPendingPayment, findGuestReservation, recordPaymentPaid } from "@/domain/booking";
 import { cancelLateCheckoutAsGuest, requestLateCheckoutAsGuest } from "@/domain/late-checkout";
 import { savePreCheckin, type PreCheckinError } from "@/domain/pre-checkin";
+import { RATE_PLANS, type RatePlan } from "@/domain/types";
 import { sealGuestData } from "@/lib/crypto/guest-data";
 import { isCountryCode } from "@/lib/countries";
 import { deliverSoon } from "@/lib/notifications/deliver";
@@ -24,6 +25,7 @@ export type StartBookingError =
   | "invalid_guest"
   | "unknown_unit_type"
   | "quote"
+  | "promo"
   | "agree"
   | "payment"
   | "rate_limited";
@@ -67,6 +69,8 @@ export async function startBooking(_prev: StartBookingState, form: FormData): Pr
     specialRequests: text(form, "requests").slice(0, 2000) || null,
     locale: lang,
     source: "website",
+    ratePlan: (RATE_PLANS as readonly string[]).includes(text(form, "ratePlan")) ? (text(form, "ratePlan") as RatePlan) : "standard",
+    promoCode: text(form, "promo").slice(0, 20) || null,
   });
   if (!held.ok) return { error: held.error.kind };
 

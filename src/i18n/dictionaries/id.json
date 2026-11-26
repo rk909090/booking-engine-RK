@@ -120,7 +120,8 @@
     "perNight": "rata-rata {amount} / malam",
     "select": "Pilih vila ini",
     "details": "Detail vila",
-    "noResults": "Tidak ada vila untuk pencarian ini."
+    "noResults": "Tidak ada vila untuk pencarian ini.",
+    "closedToArrival": "Tidak menerima kedatangan pada tanggal ini"
   },
   "villa": {
     "bedrooms": "{count} kamar tidur",
@@ -187,8 +188,28 @@
       "quote": "Tanggal ini tidak bisa dipesan. Periksa minimal lama menginap.",
       "agree": "Setujui kebijakan pembatalan untuk melanjutkan.",
       "payment": "Pembayaran belum bisa dibuat. Coba lagi sebentar lagi.",
-      "rate_limited": "Terlalu banyak percobaan. Tunggu beberapa menit lalu coba lagi."
-    }
+      "rate_limited": "Terlalu banyak percobaan. Tunggu beberapa menit lalu coba lagi.",
+      "promo": "Kode promo tidak bisa dipakai lagi. Hapus kode atau coba lagi."
+    },
+    "planTitle": "Pilih tarif",
+    "planChosen": "Dipilih",
+    "promoTitle": "Kode promo",
+    "promoLabel": "Kode",
+    "promoApply": "Pakai",
+    "promoRemove": "Hapus kode",
+    "promoApplied": "Kode {code} dipakai.",
+    "promoIgnored": "Kode {code} berlaku, tetapi sudah ada diskon yang lebih besar ({offer}). Satu booking hanya memakai satu diskon.",
+    "promoErrors": {
+      "promo_not_found": "Kode ini tidak ada atau sudah tidak aktif.",
+      "promo_not_started": "Kode ini belum berlaku.",
+      "promo_ended": "Kode ini sudah kedaluwarsa.",
+      "promo_stay_dates": "Kode ini tidak berlaku untuk tanggal kedatangan ini.",
+      "promo_min_nights": "Kode ini memerlukan masa menginap lebih lama.",
+      "promo_villa": "Kode ini tidak berlaku untuk vila ini.",
+      "promo_used_up": "Kuota kode ini sudah habis."
+    },
+    "nonRefundableNote": "Non-refundable: seluruh tagihan dibayar sekarang dan tidak dikembalikan bila Anda batal.",
+    "policyNonRefundable": "Tarif non-refundable: tidak ada refund bila dibatalkan, kapan pun."
   },
   "pay": {
     "simulatedTitle": "Pembayaran simulasi",
@@ -263,7 +284,8 @@
       "rate_limited": "Terlalu banyak percobaan. Coba lagi beberapa menit lagi.",
       "not_found": "Pesanan tidak ditemukan."
     },
-    "balanceOutstanding": "Sisa tagihan {amount}, dibayar paling lambat saat check-out."
+    "balanceOutstanding": "Sisa tagihan {amount}, dibayar paling lambat saat check-out.",
+    "ratePlan": "Tarif"
   },
   "footer": {
     "tagline": "Vila privat di Bali, dirawat oleh tim lokal.",
@@ -278,7 +300,8 @@
     "newBooking": "Reservasi baru",
     "reports": "Laporan",
     "channels": "Kanal",
-    "tasks": "Tugas"
+    "tasks": "Tugas",
+    "rates": "Tarif"
   },
   "resList": {
     "title": "Reservasi",
@@ -424,7 +447,8 @@
       "folio_reason_required": "Tulis alasan pembatalan.",
       "folio_invalid_amount": "Jumlah melebihi sisa tagihan pihak ini.",
       "folio_invalid_method": "Metode pembayaran tidak valid.",
-      "folio_invalid_name": "Tulis nama pihak."
+      "folio_invalid_name": "Tulis nama pihak.",
+      "discount_smaller_than_offer": "Booking ini sudah mendapat diskon yang lebih besar (promo, early-bird, atau menginap lama). Hanya satu diskon yang berlaku, jadi diskon ini tidak akan terhitung."
     },
     "activityTitle": "Aktivitas",
     "noActivity": "Belum ada aktivitas.",
@@ -505,7 +529,8 @@
     "guaranteeOpen": "Dikonfirmasi tanpa deposit: {amount} belum dibayar, tenggat {date}.",
     "guaranteeOverdue": "Lewat tenggat: {amount} seharusnya dibayar paling lambat {date}.",
     "guaranteeReasonLine": "Alasan: {reason}",
-    "payBySubmit": "Ubah tenggat"
+    "payBySubmit": "Ubah tenggat",
+    "ratePlan": "Tarif"
   },
   "opsCalendar": {
     "title": "Kalender",
@@ -697,7 +722,9 @@
       "guarantee_reason_required": "Tulis alasan konfirmasi tanpa deposit.",
       "guarantee_invalid_pay_by": "Tenggat bayar harus antara hari ini dan tanggal check-out.",
       "guarantee_failed": "Konfirmasi tanpa deposit gagal dan vila sudah dilepas. Coba lagi.",
-      "guarantee_role": "Peran Anda tidak dapat mengonfirmasi tanpa deposit."
+      "guarantee_role": "Peran Anda tidak dapat mengonfirmasi tanpa deposit.",
+      "smaller_than_offer": "Diskon Anda lebih kecil dari promo atau diskon otomatis yang sudah berlaku. Satu booking hanya memakai satu diskon.",
+      "promo": "Kode promo tidak bisa dipakai lagi untuk masa menginap ini. Perbarui harga lalu coba lagi."
     },
     "modeReceivedHintFull": "Booking langsung terkonfirmasi. Kedatangan sudah dekat, jadi harus lunas: {amount}.",
     "discountTitle": "Diskon (opsional)",
@@ -712,7 +739,13 @@
     "modeGuarantee": "Konfirmasi tanpa deposit (garansi)",
     "modeGuaranteeHint": "Booking langsung terkonfirmasi tanpa pembayaran. Jumlah yang biasanya dibayar saat booking ({amount}) harus diterima paling lambat tanggal yang Anda pilih; lewat tenggat, booking ditandai untuk ditagih (tidak batal otomatis).",
     "guaranteeReason": "Alasan (mis. tamu langganan, agen, bayar saat datang)",
-    "guaranteePayBy": "Deposit dibayar paling lambat"
+    "guaranteePayBy": "Deposit dibayar paling lambat",
+    "ratePlan": "Tarif",
+    "promoCode": "Kode promo",
+    "applyPricing": "Perbarui harga",
+    "offerApplies": "{offer} berlaku: −{amount}.",
+    "noOffer": "Tidak ada diskon otomatis atau promo untuk masa menginap ini.",
+    "discountSmallerThanOffer": "Diskon ini lebih kecil dari diskon yang sudah berlaku, jadi tidak akan terhitung (satu booking hanya satu diskon)."
   },
   "lateCheckout": {
     "title": "Late check-out",
@@ -1208,6 +1241,122 @@
       "invalid_dates": "Tanggal blokir tidak valid.",
       "blocked_dates_taken": "Vila tidak bisa diblokir: ada booking pada tanggal itu. Pindahkan dulu",
       "unit_state": "Status vila tidak sesuai (mis. tamu masih menginap atau sudah diubah orang lain)."
+    }
+  },
+  "pricing": {
+    "plans": {
+      "standard": "Tarif standar",
+      "non_refundable": "Non-refundable",
+      "breakfast": "Termasuk sarapan"
+    },
+    "planHints": {
+      "standard": "Bayar deposit sekarang, sisanya sebelum kedatangan. Pembatalan mengikuti kebijakan.",
+      "non_refundable": "Hemat {percent}% dari harga malam. Bayar penuh sekarang; tidak ada refund bila batal.",
+      "breakfast": "Sarapan untuk setiap tamu, {amount} per tamu per malam."
+    },
+    "offers": {
+      "promo": "Promo {code}",
+      "early_bird": "Diskon early-bird",
+      "long_stay": "Diskon menginap lama"
+    },
+    "planDiscount": "Tarif non-refundable",
+    "breakfastLine": "Sarapan · {count} malam",
+    "staffDiscount": "Diskon",
+    "saved": "{offer} · hemat {amount}"
+  },
+  "rates": {
+    "title": "Tarif & promo",
+    "intro": "Tarif per tipe vila, musim, tarif akhir pekan, tanggal tutup kedatangan, paket tarif, diskon otomatis, dan kode promo. Perubahan berlaku untuk booking baru; booking yang sudah ada tetap memakai harganya.",
+    "tabRates": "Tarif & penawaran",
+    "tabPromos": "Kode promo",
+    "saved": "Tersimpan.",
+    "offersTitle": "Paket tarif & diskon otomatis",
+    "offersIntro": "Berlaku untuk semua tipe vila di properti ini, di website maupun booking oleh staf.",
+    "nonRefundablePercent": "Diskon (%)",
+    "nonRefundableHint": "Dibayar penuh saat booking; tidak ada refund bila dibatalkan.",
+    "breakfastPrice": "Harga per tamu per malam (Rp)",
+    "breakfastHint": "Ditambahkan ke harga malam untuk setiap tamu (dewasa dan anak). Dikenai service dan pajak.",
+    "earlyBirdDays": "Booking minimal (hari sebelumnya)",
+    "percent": "Diskon (%)",
+    "longStayHint": "Maksimal tiga tingkat, misalnya 7 malam 10%, 14 malam 15%. Tingkat tertinggi yang tercapai yang berlaku.",
+    "tierNights": "Mulai (malam)",
+    "stackRule": "Satu booking hanya memakai satu diskon: yang terbesar dari kode promo, early-bird, menginap lama, atau diskon staf. Diskon non-refundable dihitung lebih dulu dan selalu digabung.",
+    "saveOffers": "Simpan paket & diskon",
+    "typeIntro": "Tarif dasar {base} · malam Jumat dan Sabtu {weekend}",
+    "sameAsBase": "sama dengan tarif dasar",
+    "sameAsNightly": "sama dengan tarif per malam",
+    "baseRate": "Tarif dasar per malam (Rp)",
+    "weekendRate": "Tarif akhir pekan (malam Jum & Sab)",
+    "minStay": "Min. malam",
+    "maxStay": "Maks. malam",
+    "minStaySeason": "Min. malam untuk kedatangan",
+    "save": "Simpan",
+    "seasonsTitle": "Musim",
+    "seasonName": "Musim",
+    "seasonNamePlaceholder": "mis. High season",
+    "seasonDates": "Tanggal",
+    "nightlyRate": "Tarif per malam (Rp)",
+    "noSeasons": "Belum ada musim: semua malam memakai tarif dasar.",
+    "addSeason": "Tambah musim",
+    "from": "Dari",
+    "untilExclusive": "Sampai (tidak termasuk)",
+    "remove": "Hapus",
+    "closuresTitle": "Tutup kedatangan",
+    "closuresIntro": "Tamu tidak bisa tiba pada tanggal ini (tetap bisa menginap melewatinya). Berguna untuk Nyepi atau menjaga masa inap panjang di tanggal ramai.",
+    "noClosures": "Tidak ada tanggal yang ditutup untuk kedatangan.",
+    "allTypes": "Semua tipe vila",
+    "villaType": "Tipe vila",
+    "note": "Catatan",
+    "closureNotePlaceholder": "mis. Nyepi",
+    "closeArrivals": "Tutup kedatangan",
+    "reopen": "Buka lagi",
+    "promosTitle": "Kode promo",
+    "promosIntro": "Kode yang diketik tamu saat checkout (staf juga bisa memakainya). Kode tidak pernah dihapus; nonaktifkan saja.",
+    "promoCode": "Kode",
+    "promoValue": "Diskon",
+    "promoKind": "Jenis",
+    "kindPercent": "Persen dari harga malam",
+    "kindAmount": "Nominal rupiah",
+    "bookWindow": "Tanggal booking",
+    "stayWindow": "Tanggal kedatangan",
+    "conditions": "Syarat",
+    "usesTitle": "Terpakai",
+    "status": "Status",
+    "promoStatus": {
+      "active": "Aktif",
+      "scheduled": "Belum mulai",
+      "ended": "Berakhir",
+      "usedUp": "Habis",
+      "off": "Nonaktif"
+    },
+    "deactivate": "Nonaktifkan",
+    "activate": "Aktifkan",
+    "noPromos": "Belum ada kode promo.",
+    "newPromo": "Kode promo baru",
+    "newPromoIntro": "Kosongkan kolom bila tidak dibatasi. Tanggal bersifat inklusif.",
+    "bookFrom": "Bisa dibooking dari",
+    "bookUntil": "Bisa dibooking sampai",
+    "stayFrom": "Kedatangan dari",
+    "stayUntil": "Kedatangan sampai",
+    "minNights": "Min. malam",
+    "maxUses": "Maks. booking",
+    "unlimited": "Tanpa batas",
+    "villaTypes": "Tipe vila",
+    "villaTypesHint": "Tidak dicentang = semua tipe vila.",
+    "promoNotePlaceholder": "mis. Kampanye Instagram Desember",
+    "createPromo": "Buat kode",
+    "fromDate": "mulai {date}",
+    "untilDate": "sampai {date}",
+    "anyDate": "kapan saja",
+    "minNightsShort": "min. {count} malam",
+    "errors": {
+      "not_found": "Tidak ditemukan atau sudah tidak tersedia.",
+      "role": "Hanya manajer cabang properti ini yang bisa mengubah tarif.",
+      "invalid": "Periksa angkanya: tarif dan nominal harus rupiah bulat di atas 0, persentase antara 0,01 dan 90.",
+      "dates": "Periksa tanggalnya: tanggal akhir harus setelah tanggal mulai.",
+      "overlap": "Musim ini bertumpuk dengan musim lain pada tipe vila yang sama.",
+      "code_taken": "Kode ini sudah ada di properti ini.",
+      "tiers": "Periksa tingkat menginap lama: minimal 2 malam, jumlah malam berbeda, dan persentase antara 0,01 dan 90."
     }
   }
 }

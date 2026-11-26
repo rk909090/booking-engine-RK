@@ -120,7 +120,8 @@
     "perNight": "average {amount} / night",
     "select": "Choose this villa",
     "details": "Villa details",
-    "noResults": "No villas match this search."
+    "noResults": "No villas match this search.",
+    "closedToArrival": "No arrivals on this date"
   },
   "villa": {
     "bedrooms": "{count} bedrooms",
@@ -187,8 +188,28 @@
       "quote": "These dates cannot be booked. Please check the minimum stay.",
       "agree": "Please agree to the cancellation policy to continue.",
       "payment": "We could not start the payment. Please try again shortly.",
-      "rate_limited": "Too many attempts. Please wait a few minutes and try again."
-    }
+      "rate_limited": "Too many attempts. Please wait a few minutes and try again.",
+      "promo": "The promo code can no longer be used. Remove it or try again."
+    },
+    "planTitle": "Choose your rate",
+    "planChosen": "Selected",
+    "promoTitle": "Promo code",
+    "promoLabel": "Code",
+    "promoApply": "Apply",
+    "promoRemove": "Remove code",
+    "promoApplied": "Code {code} applied.",
+    "promoIgnored": "Code {code} is valid, but a larger discount already applies ({offer}). Only one discount is used per booking.",
+    "promoErrors": {
+      "promo_not_found": "This code does not exist or is no longer active.",
+      "promo_not_started": "This code is not valid yet.",
+      "promo_ended": "This code has expired.",
+      "promo_stay_dates": "This code is not valid for this arrival date.",
+      "promo_min_nights": "This code needs a longer stay.",
+      "promo_villa": "This code is not valid for this villa.",
+      "promo_used_up": "This code has been fully used."
+    },
+    "nonRefundableNote": "Non-refundable: the full amount is paid now and is not refunded if you cancel.",
+    "policyNonRefundable": "Non-refundable rate: no refund if you cancel, whenever you cancel."
   },
   "pay": {
     "simulatedTitle": "Simulated payment",
@@ -263,7 +284,8 @@
       "rate_limited": "Too many attempts. Please try again in a few minutes.",
       "not_found": "Booking not found."
     },
-    "balanceOutstanding": "Balance due {amount}, payable by check-out at the latest."
+    "balanceOutstanding": "Balance due {amount}, payable by check-out at the latest.",
+    "ratePlan": "Rate"
   },
   "footer": {
     "tagline": "Private villas in Bali, looked after by a local team.",
@@ -278,7 +300,8 @@
     "newBooking": "New booking",
     "reports": "Reports",
     "channels": "Channels",
-    "tasks": "Tasks"
+    "tasks": "Tasks",
+    "rates": "Rates"
   },
   "resList": {
     "title": "Reservations",
@@ -424,7 +447,8 @@
       "folio_reason_required": "Write a reason for voiding.",
       "folio_invalid_amount": "The amount is more than this party owes.",
       "folio_invalid_method": "The payment method is not valid.",
-      "folio_invalid_name": "Write the party name."
+      "folio_invalid_name": "Write the party name.",
+      "discount_smaller_than_offer": "The booking already has a larger discount (promo, early-bird or long-stay). Only one discount applies, so this one would not count."
     },
     "activityTitle": "Activity",
     "noActivity": "No activity yet.",
@@ -505,7 +529,8 @@
     "guaranteeOpen": "Confirmed without deposit: {amount} unpaid, due {date}.",
     "guaranteeOverdue": "Overdue: {amount} was due by {date}.",
     "guaranteeReasonLine": "Reason: {reason}",
-    "payBySubmit": "Change due date"
+    "payBySubmit": "Change due date",
+    "ratePlan": "Rate"
   },
   "opsCalendar": {
     "title": "Calendar",
@@ -697,7 +722,9 @@
       "guarantee_reason_required": "Write the reason for confirming without a deposit.",
       "guarantee_invalid_pay_by": "The due date must be between today and the check-out date.",
       "guarantee_failed": "Confirming without a deposit failed and the villa was released. Please try again.",
-      "guarantee_role": "Your role cannot confirm without a deposit."
+      "guarantee_role": "Your role cannot confirm without a deposit.",
+      "smaller_than_offer": "Your discount is smaller than the promo or automatic discount already applied. Only one discount counts per booking.",
+      "promo": "The promo code can no longer be used for this stay. Update the price and try again."
     },
     "modeReceivedHintFull": "The booking is confirmed at once. Arrival is close, so payment in full is due: {amount}.",
     "discountTitle": "Discount (optional)",
@@ -712,7 +739,13 @@
     "modeGuarantee": "Confirm without deposit (guarantee)",
     "modeGuaranteeHint": "The booking is confirmed at once without payment. The amount normally paid at booking ({amount}) is due by the date you choose; after that the booking is flagged for follow-up (never cancelled automatically).",
     "guaranteeReason": "Reason (e.g. repeat guest, agent, pays on arrival)",
-    "guaranteePayBy": "Deposit due by"
+    "guaranteePayBy": "Deposit due by",
+    "ratePlan": "Rate",
+    "promoCode": "Promo code",
+    "applyPricing": "Update price",
+    "offerApplies": "{offer} applies: −{amount}.",
+    "noOffer": "No automatic discount or promo applies to this stay.",
+    "discountSmallerThanOffer": "This discount is smaller than the one already applied, so it would not count (only one discount per booking)."
   },
   "lateCheckout": {
     "title": "Late check-out",
@@ -1208,6 +1241,122 @@
       "invalid_dates": "The block date is not valid.",
       "blocked_dates_taken": "The villa cannot be blocked: there are bookings on those dates. Move them first",
       "unit_state": "The villa is not in the expected state (e.g. a guest is still in, or someone changed it)."
+    }
+  },
+  "pricing": {
+    "plans": {
+      "standard": "Standard rate",
+      "non_refundable": "Non-refundable",
+      "breakfast": "Breakfast included"
+    },
+    "planHints": {
+      "standard": "Pay a deposit now and the rest before arrival. Cancellation follows the policy.",
+      "non_refundable": "{percent}% off the nights. Paid in full now; no refund if you cancel.",
+      "breakfast": "Breakfast for every guest, {amount} per guest per night."
+    },
+    "offers": {
+      "promo": "Promo {code}",
+      "early_bird": "Early-bird discount",
+      "long_stay": "Long-stay discount"
+    },
+    "planDiscount": "Non-refundable rate",
+    "breakfastLine": "Breakfast · {count} nights",
+    "staffDiscount": "Discount",
+    "saved": "{offer} · save {amount}"
+  },
+  "rates": {
+    "title": "Rates & promos",
+    "intro": "Rates per villa type, seasons, weekend rates, dates closed to arrival, rate plans, automatic discounts and promo codes. Changes apply to new bookings; existing bookings keep their price.",
+    "tabRates": "Rates & offers",
+    "tabPromos": "Promo codes",
+    "saved": "Saved.",
+    "offersTitle": "Rate plans & automatic discounts",
+    "offersIntro": "Offered to every villa type of this property, on the website and for staff bookings.",
+    "nonRefundablePercent": "Discount (%)",
+    "nonRefundableHint": "Paid in full at booking; nothing is refunded on cancellation.",
+    "breakfastPrice": "Price per guest per night (Rp)",
+    "breakfastHint": "Added to the nights' price for every guest (adults and children). Service and tax apply.",
+    "earlyBirdDays": "Booked at least (days ahead)",
+    "percent": "Discount (%)",
+    "longStayHint": "Up to three tiers, e.g. 7 nights 10%, 14 nights 15%. The highest tier the stay reaches applies.",
+    "tierNights": "From (nights)",
+    "stackRule": "Only one discount applies per booking: the largest of promo code, early-bird, long-stay or a staff discount. The non-refundable discount comes first and is always combined.",
+    "saveOffers": "Save plans & discounts",
+    "typeIntro": "Base rate {base} · Friday and Saturday nights {weekend}",
+    "sameAsBase": "same as base rate",
+    "sameAsNightly": "same as nightly rate",
+    "baseRate": "Base rate per night (Rp)",
+    "weekendRate": "Weekend rate (Fri & Sat nights)",
+    "minStay": "Min. nights",
+    "maxStay": "Max. nights",
+    "minStaySeason": "Min. nights for arrivals",
+    "save": "Save",
+    "seasonsTitle": "Seasons",
+    "seasonName": "Season",
+    "seasonNamePlaceholder": "e.g. High season",
+    "seasonDates": "Dates",
+    "nightlyRate": "Rate per night (Rp)",
+    "noSeasons": "No seasons: every night uses the base rate.",
+    "addSeason": "Add season",
+    "from": "From",
+    "untilExclusive": "Until (not included)",
+    "remove": "Remove",
+    "closuresTitle": "Closed to arrival",
+    "closuresIntro": "Guests cannot arrive on these dates (they can still stay over them). Useful for Nyepi or for keeping long stays over peak dates.",
+    "noClosures": "No dates are closed to arrival.",
+    "allTypes": "All villa types",
+    "villaType": "Villa type",
+    "note": "Note",
+    "closureNotePlaceholder": "e.g. Nyepi",
+    "closeArrivals": "Close arrivals",
+    "reopen": "Reopen",
+    "promosTitle": "Promo codes",
+    "promosIntro": "Codes guests type at checkout (staff can use them too). A code is never deleted; switch it off instead.",
+    "promoCode": "Code",
+    "promoValue": "Discount",
+    "promoKind": "Type",
+    "kindPercent": "Percent of the nights",
+    "kindAmount": "Rupiah amount",
+    "bookWindow": "Booking dates",
+    "stayWindow": "Arrival dates",
+    "conditions": "Conditions",
+    "usesTitle": "Used",
+    "status": "Status",
+    "promoStatus": {
+      "active": "Active",
+      "scheduled": "Not started",
+      "ended": "Ended",
+      "usedUp": "Used up",
+      "off": "Off"
+    },
+    "deactivate": "Switch off",
+    "activate": "Switch on",
+    "noPromos": "No promo codes yet.",
+    "newPromo": "New promo code",
+    "newPromoIntro": "Leave a field empty for no limit. Dates are inclusive.",
+    "bookFrom": "Bookable from",
+    "bookUntil": "Bookable until",
+    "stayFrom": "Arrivals from",
+    "stayUntil": "Arrivals until",
+    "minNights": "Min. nights",
+    "maxUses": "Max. bookings",
+    "unlimited": "Unlimited",
+    "villaTypes": "Villa types",
+    "villaTypesHint": "None ticked = every villa type.",
+    "promoNotePlaceholder": "e.g. Instagram campaign December",
+    "createPromo": "Create code",
+    "fromDate": "from {date}",
+    "untilDate": "until {date}",
+    "anyDate": "any date",
+    "minNightsShort": "min. {count} nights",
+    "errors": {
+      "not_found": "Not found or no longer available.",
+      "role": "Only the branch manager of this property can change rates.",
+      "invalid": "Check the numbers: rates and amounts must be whole rupiah above 0, percentages between 0.01 and 90.",
+      "dates": "Check the dates: the end must be after the start.",
+      "overlap": "This season overlaps another season of the same villa type.",
+      "code_taken": "This code already exists at this property.",
+      "tiers": "Check the long-stay tiers: at least 2 nights each, different nights, and a percentage between 0.01 and 90."
     }
   }
 }

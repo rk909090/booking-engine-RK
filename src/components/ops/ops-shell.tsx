@@ -23,7 +23,7 @@ export function OpsShell({ lang, dict, children }: { lang: Locale; dict: Diction
   );
 }
 
-type NavKey = "home" | "reservations" | "calendar" | "villaStatus" | "tasks" | "reports" | "channels";
+type NavKey = "home" | "reservations" | "calendar" | "villaStatus" | "tasks" | "reports" | "rates" | "channels";
 const items: Array<{ key: NavKey; href: string; action: Action }> = [
   { key: "home", href: "", action: "dashboard.view" },
   { key: "reservations", href: "/reservations", action: "reservation.view" },
@@ -31,6 +31,7 @@ const items: Array<{ key: NavKey; href: string; action: Action }> = [
   { key: "villaStatus", href: "/villa-status", action: "villa_status.view" },
   { key: "tasks", href: "/tasks", action: "tasks.view" },
   { key: "reports", href: "/reports", action: "performance.view" },
+  { key: "rates", href: "/rates", action: "rates.manage" },
   { key: "channels", href: "/channels", action: "channels.manage" },
 ];
 

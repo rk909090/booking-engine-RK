@@ -6,6 +6,7 @@ import { todayIn } from "./dates";
 import { recordManualPayment, type ManualPaymentError, type PaymentMethod } from "./operations";
 import { discountLimitBp, withinLimit } from "./discount";
 import { confirmWithoutDeposit, validPayBy, type GuaranteeError } from "./guarantee";
+import { checkPromo } from "./promos";
 import { quoteStay, validDiscount } from "./pricing";
 import type { Discount, DiscountTerms } from "./types";
 
@@ -45,6 +46,7 @@ export type StaffBookingError =
   | HoldError
   | { kind: "invalid_amount"; dueNow: number; total: number }
   | { kind: "invalid_discount" }
+  | { kind: "smaller_than_offer" }
   | { kind: "over_limit"; limitBp: number }
   | { kind: "payment"; error: ManualPaymentError }
   | { kind: "guarantee"; error: GuaranteeError };
@@ -71,11 +73,25 @@ export async function createStaffBooking(db: AnyDb, input: StaffBookingInput): P
   // Check the price, the discount ceiling and the amount before holding anything.
   const loaded = (await loadUnitTypes(db, [input.unitTypeId])).get(input.unitTypeId);
   if (!loaded) return { ok: false, error: { kind: "unknown_unit_type" } };
-  const quote = quoteStay(loaded.rules, { checkIn: input.checkIn, checkOut: input.checkOut, today: todayIn(loaded.property.timezone, now) }, discount);
+  const today = todayIn(loaded.property.timezone, now);
+  let promo = null;
+  if (input.promoCode?.trim()) {
+    const checked = await checkPromo(db, { propertyId: loaded.property.id, unitTypeId: input.unitTypeId, code: input.promoCode, checkIn: input.checkIn, checkOut: input.checkOut, today, now });
+    if (!checked.ok) return { ok: false, error: { kind: "promo", error: checked.error } };
+    promo = checked.promo;
+  }
+  const quote = quoteStay(loaded.rules, { checkIn: input.checkIn, checkOut: input.checkOut, today }, discount, {
+    plan: input.ratePlan ?? "standard",
+    guests: input.adults + input.children,
+    promo,
+  });
   if (!quote.ok) return { ok: false, error: { kind: "quote", error: quote.error } };
   if (discount) {
+    // Only one discount applies besides the plan: a staff discount must beat the best offer.
+    const staffOff = quote.quote.staffDiscount ?? 0;
+    if (staffOff === 0) return { ok: false, error: { kind: "smaller_than_offer" } };
     const limitBp = discountLimitBp(loaded.property, input.role);
-    if (!withinLimit(quote.quote.discount ?? 0, quote.quote.subtotal, limitBp)) return { ok: false, error: { kind: "over_limit", limitBp } };
+    if (!withinLimit(staffOff, quote.quote.subtotal, limitBp)) return { ok: false, error: { kind: "over_limit", limitBp } };
   }
   if (payment.kind === "guarantee") {
     if (!payment.reason.trim()) return { ok: false, error: { kind: "guarantee", error: "reason_required" } };

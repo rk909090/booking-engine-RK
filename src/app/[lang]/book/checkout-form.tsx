@@ -15,7 +15,7 @@ export function CheckoutForm({
 }: {
   lang: Locale;
   t: Dictionary["checkout"];
-  stay: { unitTypeId: string; checkIn: string; checkOut: string; adults: number; children: number };
+  stay: { unitTypeId: string; checkIn: string; checkOut: string; adults: number; children: number; ratePlan: string; promo: string };
   holdMinutes: number;
 }) {
   const [state, action, pending] = useActionState<StartBookingState, FormData>(startBooking, {});
@@ -28,6 +28,8 @@ export function CheckoutForm({
       <input type="hidden" name="checkOut" value={stay.checkOut} />
       <input type="hidden" name="adults" value={stay.adults} />
       <input type="hidden" name="children" value={stay.children} />
+      <input type="hidden" name="ratePlan" value={stay.ratePlan} />
+      <input type="hidden" name="promo" value={stay.promo} />
 
       <Field label={t.fullName} name="fullName" autoComplete="name" required maxLength={120} />
       <Field label={t.email} name="email" type="email" autoComplete="email" required hint={t.emailHint} maxLength={200} />
@@ -53,6 +55,7 @@ export function CheckoutForm({
         <span>{t.agree}</span>
       </label>
       <ErrorNote>{state.error ? t.errors[state.error] : null}</ErrorNote>
+      {/* A choice made above (plan, promo) re-renders this form with new hidden values. */}
       <p className="text-xs text-stone">{format(t.holdNotice, { minutes: holdMinutes })}</p>
       <PrimaryButton type="submit" disabled={pending}>
         {pending ? t.working : t.submit}

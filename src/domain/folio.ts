@@ -299,7 +299,7 @@ export async function issueInvoice(
   });
 }
 
-export type InvoiceLine = { kind: "nights" | "discount" | "service" | "tax" | "late" | "early" | "charge" | "other"; label: string; quantity?: number; unitPrice?: number; amount: number; date?: string };
+export type InvoiceLine = { kind: "nights" | "plan_discount" | "offer" | "discount" | "breakfast" | "service" | "tax" | "late" | "early" | "charge" | "other"; label: string; variant?: string; quantity?: number; unitPrice?: number; amount: number; date?: string };
 
 /**
  * Everything an invoice shows, for the guest (partyId null) or a party: lines
@@ -353,7 +353,15 @@ export async function invoiceData(db: AnyDb, input: { reservationId: string; par
   if (!party) {
     const nights = r.priceSnapshot?.nights.length ?? 0;
     lines.push({ kind: "nights", label: `${row.typeName} · ${row.unitCode}`, quantity: nights || undefined, amount: r.subtotalAmount });
-    if (r.discountAmount) lines.push({ kind: "discount", label: r.discount?.reason ?? "", amount: -r.discountAmount });
+    // The discount split as it was priced: plan, the one offer that applied, then a staff discount.
+    const snap = r.priceSnapshot;
+    const planOff = snap?.planDiscount ?? 0;
+    const offerOff = snap?.offer?.amount ?? 0;
+    if (planOff) lines.push({ kind: "plan_discount", label: "", amount: -planOff });
+    if (offerOff) lines.push({ kind: "offer", label: snap!.offer!.code ?? "", variant: snap!.offer!.kind, amount: -offerOff });
+    const otherOff = r.discountAmount - planOff - offerOff;
+    if (otherOff) lines.push({ kind: "discount", label: r.discount?.reason ?? "", amount: -otherOff });
+    if (r.breakfastAmount) lines.push({ kind: "breakfast", label: "", quantity: nights || undefined, amount: r.breakfastAmount });
     if (r.serviceAmount) lines.push({ kind: "service", label: "", amount: r.serviceAmount });
     if (r.taxAmount) lines.push({ kind: "tax", label: "", amount: r.taxAmount });
     const [late, early] = await Promise.all([

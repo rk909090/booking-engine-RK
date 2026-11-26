@@ -5,12 +5,15 @@ import { Suspense } from "react";
 import { SiteShell } from "@/components/site/site-shell";
 import { getDb } from "@/db/client";
 import { searchAvailability } from "@/domain/booking";
-import { isIsoDate } from "@/domain/dates";
-import type { CancellationTier } from "@/domain/types";
+import { isIsoDate, todayIn } from "@/domain/dates";
+import { availablePlans, quoteStay, type Quote } from "@/domain/pricing";
+import { checkPromo, cleanPromoCode } from "@/domain/promos";
+import { RATE_PLANS, type CancellationTier, type RatePlan } from "@/domain/types";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { format } from "@/i18n/format";
 import { formatDate, formatDateRange, formatMoney } from "@/i18n/formatters";
 import { getDictionary, type Dictionary } from "@/i18n/get-dictionary";
+import { offerLabel } from "@/lib/pricing-labels";
 import { getUnitTypeById } from "@/lib/site/queries";
 import { CheckoutForm } from "./checkout-form";
 
@@ -89,22 +92,122 @@ async function Checkout({
   if (!result.quote.ok) return backToSearch(t.errors.quote);
   if (result.freeUnits === 0) return backToSearch(t.errors.sold_out);
 
-  const q = result.quote.quote;
   const property = result.property;
+  const p = dict.pricing;
+  const today = todayIn(property.timezone);
+  // Rate plan and promo code travel in the URL (no personal data), so each choice re-prices on the server.
+  const planRaw = one(sp.plan);
+  const wantedPlan: RatePlan = (RATE_PLANS as readonly string[]).includes(planRaw ?? "") ? (planRaw as RatePlan) : "standard";
+  const promoCode = cleanPromoCode(one(sp.promo) ?? "").slice(0, 20);
+  const promoCheck = promoCode
+    ? await checkPromo(getDb(), { propertyId: property.id, unitTypeId, code: promoCode, checkIn, checkOut, today, now: new Date() })
+    : null;
+  const promo = promoCheck?.ok ? promoCheck.promo : null;
+  const options = availablePlans(result.rules)
+    .map((plan) => ({ plan, priced: quoteStay(result.rules, { checkIn, checkOut, today }, null, { plan, guests: adults + children, promo }) }))
+    .flatMap((o) => (o.priced.ok ? [{ plan: o.plan, quote: o.priced.quote }] : []));
+  const chosen = options.find((o) => o.plan === wantedPlan) ?? options[0];
+  if (!chosen) return backToSearch(t.errors.quote);
+  const q: Quote = chosen.quote;
+  const href = (changes: { plan?: RatePlan; promo?: string | null }) => {
+    const next = new URLSearchParams({ unitType: unitTypeId, checkIn, checkOut, adults: String(adults), children: String(children) });
+    const plan = changes.plan ?? chosen.plan;
+    if (plan !== "standard") next.set("plan", plan);
+    const code = changes.promo === undefined ? (promo ? promo.code : "") : (changes.promo ?? "");
+    if (code) next.set("promo", code);
+    return `/${lang}/book?${next.toString()}`;
+  };
+  const planHint = (plan: RatePlan) =>
+    plan === "non_refundable"
+      ? format(p.planHints.non_refundable, { percent: (property.nonRefundableBp ?? 0) / 100 })
+      : plan === "breakfast"
+        ? format(p.planHints.breakfast, { amount: formatMoney(property.breakfastPerGuest ?? 0, lang) })
+        : p.planHints.standard;
   const tiers = [...property.cancellationTiers].sort((a, b) => b.minDaysBefore - a.minDaysBefore);
+  const nonRefundable = q.ratePlan === "non_refundable";
 
   return (
     <div className="mt-6 grid gap-10 lg:grid-cols-[1fr_380px]">
-      <section aria-labelledby="guest-heading">
-        <h2 id="guest-heading" className="mb-4 font-display text-xl text-lagoon">
-          {t.guestDetails}
-        </h2>
-        <CheckoutForm
-          lang={lang}
-          t={t}
-          stay={{ unitTypeId, checkIn, checkOut, adults, children }}
-          holdMinutes={property.holdMinutes}
-        />
+      <section aria-labelledby="guest-heading" className="space-y-8">
+        {options.length > 1 ? (
+          <div>
+            <h2 className="mb-3 font-display text-xl text-lagoon">{t.planTitle}</h2>
+            <ul className="grid gap-3">
+              {options.map((o) => {
+                const active = o.plan === chosen.plan;
+                return (
+                  <li key={o.plan}>
+                    <Link
+                      href={href({ plan: o.plan })}
+                      scroll={false}
+                      aria-current={active ? "true" : undefined}
+                      className={`flex items-start justify-between gap-4 rounded-xl border p-4 ${active ? "border-lagoon bg-lagoon-soft/50 ring-2 ring-lagoon/20" : "border-line bg-white/70 hover:border-lagoon"}`}
+                    >
+                      <span>
+                        <span className="block font-medium text-ink">
+                          {p.plans[o.plan]} {active ? <span className="ml-2 rounded-full bg-lagoon px-2 py-0.5 text-xs text-ivory">{t.planChosen}</span> : null}
+                        </span>
+                        <span className="mt-1 block text-sm text-stone">{planHint(o.plan)}</span>
+                      </span>
+                      <span className="shrink-0 text-right font-medium text-ink">{formatMoney(o.quote.total, lang)}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : null}
+
+        <div>
+          <h2 className="mb-3 font-display text-xl text-lagoon">{t.promoTitle}</h2>
+          <form method="get" action={`/${lang}/book`} className="flex flex-wrap items-end gap-3">
+            <input type="hidden" name="unitType" value={unitTypeId} />
+            <input type="hidden" name="checkIn" value={checkIn} />
+            <input type="hidden" name="checkOut" value={checkOut} />
+            <input type="hidden" name="adults" value={adults} />
+            <input type="hidden" name="children" value={children} />
+            {chosen.plan !== "standard" ? <input type="hidden" name="plan" value={chosen.plan} /> : null}
+            <label className="space-y-1.5 text-sm font-medium text-ink">
+              <span className="block">{t.promoLabel}</span>
+              <input
+                name="promo"
+                defaultValue={promoCode}
+                maxLength={20}
+                autoComplete="off"
+                className="w-48 rounded-lg border border-line bg-white px-3 py-2.5 uppercase text-ink outline-none focus:border-lagoon focus:ring-2 focus:ring-lagoon/20"
+              />
+            </label>
+            <button type="submit" className="rounded-lg border border-lagoon px-4 py-2.5 text-sm font-medium text-lagoon hover:bg-lagoon-soft">
+              {t.promoApply}
+            </button>
+            {promoCode ? (
+              <Link href={href({ promo: null })} scroll={false} className="py-2.5 text-sm text-stone underline-offset-4 hover:underline">
+                {t.promoRemove}
+              </Link>
+            ) : null}
+          </form>
+          {promoCheck && !promoCheck.ok ? (
+            <p role="alert" className="mt-2 text-sm text-danger">
+              {t.promoErrors[promoCheck.error]}
+            </p>
+          ) : promo && q.promoIgnored ? (
+            <p className="mt-2 text-sm text-stone">{format(t.promoIgnored, { code: promo.code, offer: q.offer ? offerLabel(p, q.offer) : p.staffDiscount })}</p>
+          ) : promo ? (
+            <p className="mt-2 text-sm text-success">{format(t.promoApplied, { code: promo.code })}</p>
+          ) : null}
+        </div>
+
+        <div>
+          <h2 id="guest-heading" className="mb-4 font-display text-xl text-lagoon">
+            {t.guestDetails}
+          </h2>
+          <CheckoutForm
+            lang={lang}
+            t={t}
+            stay={{ unitTypeId, checkIn, checkOut, adults, children, ratePlan: chosen.plan, promo: promo && !q.promoIgnored ? promo.code : "" }}
+            holdMinutes={property.holdMinutes}
+          />
+        </div>
       </section>
 
       <aside className="space-y-6">
@@ -117,28 +220,34 @@ async function Checkout({
           <p className="text-sm text-stone">
             {format(dict.search.nights, { count: q.nightsCount })} · {format(dict.search.guests, { count: adults + children })}
           </p>
+          <p className="mt-1 text-sm font-medium text-ink">{p.plans[q.ratePlan]}</p>
 
           <h3 className="mt-5 text-sm font-semibold uppercase tracking-[0.15em] text-terracotta-deep">{t.priceTitle}</h3>
           <dl className="mt-2 space-y-1 text-sm">
             <Row label={format(t.nightsLine, { nights: format(dict.search.nights, { count: q.nightsCount }), amount: formatMoney(Math.round(q.subtotal / q.nightsCount), lang) })} value={formatMoney(q.subtotal, lang)} />
+            {q.planDiscount ? <Row label={p.planDiscount} value={`−${formatMoney(q.planDiscount, lang)}`} /> : null}
+            {q.offer ? <Row label={offerLabel(p, q.offer)} value={`−${formatMoney(q.offer.amount, lang)}`} /> : null}
+            {q.breakfast ? <Row label={format(p.breakfastLine, { count: q.nightsCount })} value={formatMoney(q.breakfast, lang)} /> : null}
             {q.service ? <Row label={t.service} value={formatMoney(q.service, lang)} /> : null}
             {q.tax ? <Row label={t.tax} value={formatMoney(q.tax, lang)} /> : null}
             <Row label={t.total} value={formatMoney(q.total, lang)} strong />
             <Row label={t.dueNow} value={formatMoney(q.dueNow, lang)} strong />
           </dl>
           <p className="mt-2 text-xs text-stone">
-            {q.payInFull
-              ? format(t.payInFull, { days: property.balanceDueDays })
-              : `${format(t.depositNote, { percent: property.depositRateBp / 100 })} ${format(t.balance, {
-                  amount: formatMoney(q.balance, lang),
-                  date: formatDate(q.balanceDueDate!, lang),
-                })}`}
+            {nonRefundable
+              ? t.nonRefundableNote
+              : q.payInFull
+                ? format(t.payInFull, { days: property.balanceDueDays })
+                : `${format(t.depositNote, { percent: property.depositRateBp / 100 })} ${format(t.balance, {
+                    amount: formatMoney(q.balance, lang),
+                    date: formatDate(q.balanceDueDate!, lang),
+                  })}`}
           </p>
         </div>
 
         <div className="rounded-2xl border border-line bg-white/80 p-5">
           <h2 className="font-display text-xl text-lagoon">{t.policyTitle}</h2>
-          <PolicyList tiers={tiers} t={t} />
+          {nonRefundable ? <p className="mt-2 text-sm text-ink">{t.policyNonRefundable}</p> : <PolicyList tiers={tiers} t={t} />}
         </div>
       </aside>
     </div>

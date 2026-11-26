@@ -27,8 +27,10 @@ import {
   type CancellationTier,
   type DiscountTerms,
   type Guarantee,
+  type LongStayTier,
   type PolicySnapshot,
   type PriceSnapshot,
+  type PricingTerms,
   type PropertyContent,
   type UnitTypeContent,
 } from "@/domain/types";
@@ -102,8 +104,20 @@ export const properties = pgTable("properties", {
   discountLimitManagerBp: integer("discount_limit_manager_bp").notNull().default(5000),
   cancellationTiers: jsonb("cancellation_tiers").$type<CancellationTier[]>().notNull().default(SAMPLE_CANCELLATION_TIERS),
   content: jsonb("content").$type<PropertyContent>().notNull().default({}),
+  /** Non-refundable plan: share off the nights' price; null = plan not offered. */
+  nonRefundableBp: integer("non_refundable_bp"),
+  /** Breakfast plan: price per guest per night, before service and tax; null = not offered. */
+  breakfastPerGuest: bigint("breakfast_per_guest", { mode: "number" }),
+  /** Early-bird: bookings made at least this many days ahead get this share off. Both or neither. */
+  earlyBirdDays: smallint("early_bird_days"),
+  earlyBirdBp: integer("early_bird_bp"),
+  longStayTiers: jsonb("long_stay_tiers").$type<LongStayTier[]>().notNull().default([]),
   ...timestamps,
 }, (t) => [
+  check("properties_non_refundable_bp_range", sql`${t.nonRefundableBp} IS NULL OR ${t.nonRefundableBp} BETWEEN 1 AND 9000`),
+  check("properties_breakfast_positive", sql`${t.breakfastPerGuest} IS NULL OR ${t.breakfastPerGuest} > 0`),
+  check("properties_early_bird_pair", sql`(${t.earlyBirdDays} IS NULL) = (${t.earlyBirdBp} IS NULL)`),
+  check("properties_early_bird_range", sql`${t.earlyBirdDays} IS NULL OR (${t.earlyBirdDays} BETWEEN 1 AND 365 AND ${t.earlyBirdBp} BETWEEN 1 AND 9000)`),
   check("properties_tax_rate_range", sql`${t.taxRateBp} BETWEEN 0 AND 10000`),
   check("properties_turnover_minutes_range", sql`${t.turnoverMinutes} BETWEEN 0 AND 720`),
   check("properties_discount_limits_range", sql`${t.discountLimitFrontOfficeBp} BETWEEN 0 AND 10000 AND ${t.discountLimitManagerBp} BETWEEN 0 AND 10000`),
@@ -125,6 +139,8 @@ export const unitTypes = pgTable(
     bedrooms: smallint("bedrooms").notNull(),
     maxGuests: smallint("max_guests").notNull(),
     baseRate: bigint("base_rate", { mode: "number" }).notNull(),
+    /** Friday and Saturday nights outside seasons; null = base rate. */
+    weekendRate: bigint("weekend_rate", { mode: "number" }),
     minStayNights: smallint("min_stay_nights").notNull().default(1),
     maxStayNights: smallint("max_stay_nights").notNull().default(30),
     content: jsonb("content").$type<UnitTypeContent>().notNull().default({}),
@@ -140,6 +156,7 @@ export const unitTypes = pgTable(
     check("unit_types_bedrooms_positive", sql`${t.bedrooms} > 0`),
     check("unit_types_max_guests_positive", sql`${t.maxGuests} > 0`),
     check("unit_types_base_rate_non_negative", sql`${t.baseRate} >= 0`),
+    check("unit_types_weekend_rate_non_negative", sql`${t.weekendRate} IS NULL OR ${t.weekendRate} >= 0`),
     check("unit_types_stay_range", sql`${t.minStayNights} >= 1 AND ${t.maxStayNights} >= ${t.minStayNights}`),
   ],
 );
@@ -248,6 +265,13 @@ export const reservations = pgTable(
     discountAmount: bigint("discount_amount", { mode: "number" }).notNull().default(0),
     /** How the discount was given, so it can be re-applied when the dates change. */
     discount: jsonb("discount").$type<DiscountTerms>(),
+    ratePlan: text("rate_plan").notNull().default("standard"),
+    /** Plan and offers the booking was priced with (see domain/pricing.ts). */
+    pricingTerms: jsonb("pricing_terms").$type<PricingTerms>(),
+    /** The promo code whose discount applied; counts towards its limit. */
+    promoCodeId: uuid("promo_code_id").references((): AnyPgColumn => promoCodes.id),
+    /** Breakfast plan: breakfast price for the stay, before service and tax (included in total_amount). */
+    breakfastAmount: bigint("breakfast_amount", { mode: "number" }).notNull().default(0),
     /** Set when staff confirmed the booking without the deposit (see domain/guarantee.ts). */
     guarantee: jsonb("guarantee").$type<Guarantee>(),
     balanceDueDate: date("balance_due_date", { mode: "string" }),
@@ -270,6 +294,8 @@ export const reservations = pgTable(
     check("reservations_total_non_negative", sql`${t.totalAmount} >= 0`),
     check("reservations_amount_paid_non_negative", sql`${t.amountPaid} >= 0`),
     check("reservations_discount_non_negative", sql`${t.discountAmount} >= 0`),
+    check("reservations_rate_plan_known", sql`${t.ratePlan} IN ('standard', 'non_refundable', 'breakfast')`),
+    index("reservations_promo_code_idx").on(t.promoCodeId),
     check(
       "reservations_hold_has_expiry",
       sql`${t.status} <> 'hold' OR ${t.holdExpiresAt} IS NOT NULL`,
@@ -316,13 +342,15 @@ export const rateSeasons = pgTable(
     startDate: date("start_date", { mode: "string" }).notNull(),
     endDate: date("end_date", { mode: "string" }).notNull(),
     nightlyRate: bigint("nightly_rate", { mode: "number" }).notNull(),
+    /** Friday and Saturday nights in this season; null = the season's nightly rate. */
+    weekendRate: bigint("weekend_rate", { mode: "number" }),
     /** Minimum stay for arrivals inside this season; null falls back to the villa type. */
     minStayNights: smallint("min_stay_nights"),
     ...timestamps,
   },
   (t) => [
     check("rate_seasons_dates_ordered", sql`${t.endDate} > ${t.startDate}`),
-    check("rate_seasons_rate_non_negative", sql`${t.nightlyRate} >= 0`),
+    check("rate_seasons_rate_non_negative", sql`${t.nightlyRate} >= 0 AND (${t.weekendRate} IS NULL OR ${t.weekendRate} >= 0)`),
     check("rate_seasons_min_stay_positive", sql`${t.minStayNights} IS NULL OR ${t.minStayNights} >= 1`),
     index("rate_seasons_type_idx").on(t.unitTypeId, t.startDate),
   ],
@@ -776,5 +804,73 @@ export const tasks = pgTable(
     uniqueIndex("tasks_one_request_idx").on(t.reservationId, t.source).where(sql`${t.kind} = 'request' AND ${t.status} IN ('open', 'in_progress')`),
     index("tasks_property_status_idx").on(t.propertyId, t.status),
     index("tasks_assignee_idx").on(t.assigneeId, t.status),
+  ],
+);
+
+/**
+ * Dates guests may not arrive on (closed to arrival), [start_date, end_date).
+ * A null villa type closes arrivals for every type of the property.
+ */
+export const arrivalClosures = pgTable(
+  "arrival_closures",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id),
+    unitTypeId: uuid("unit_type_id").references(() => unitTypes.id, { onDelete: "cascade" }),
+    startDate: date("start_date", { mode: "string" }).notNull(),
+    endDate: date("end_date", { mode: "string" }).notNull(),
+    note: text("note"),
+    createdBy: text("created_by").notNull(),
+    ...timestamps,
+  },
+  (t) => [check("arrival_closures_dates_ordered", sql`${t.endDate} > ${t.startDate}`), index("arrival_closures_property_idx").on(t.propertyId, t.startDate)],
+);
+
+/**
+ * Promo codes (decided with the owner, 26 Nov 2026): a share or a rupiah
+ * amount off the nights' price, limited by booking dates, arrival dates,
+ * minimum nights, villa types and a total number of uses. Codes are stored
+ * upper case and never deleted (bookings point to them); they are switched off.
+ */
+export const promoCodes = pgTable(
+  "promo_codes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id),
+    code: text("code").notNull(),
+    kind: text("kind").notNull(),
+    valueBp: integer("value_bp"),
+    amount: bigint("amount", { mode: "number" }),
+    /** Bookings made on these dates (inclusive); null = no limit. */
+    bookFrom: date("book_from", { mode: "string" }),
+    bookUntil: date("book_until", { mode: "string" }),
+    /** Arrivals on these dates (inclusive); null = no limit. */
+    stayFrom: date("stay_from", { mode: "string" }),
+    stayUntil: date("stay_until", { mode: "string" }),
+    minNights: smallint("min_nights"),
+    /** Empty = every villa type of the property. */
+    unitTypeIds: uuid("unit_type_ids").array().notNull().default(sql`'{}'::uuid[]`),
+    /** Total bookings that may use it; null = unlimited. */
+    maxUses: integer("max_uses"),
+    isActive: boolean("is_active").notNull().default(true),
+    note: text("note"),
+    createdBy: text("created_by").notNull(),
+    ...timestamps,
+  },
+  (t) => [
+    unique("promo_codes_property_code_key").on(t.propertyId, t.code),
+    check("promo_codes_code_format", sql`${t.code} ~ '^[A-Z0-9]{3,20}$'`),
+    check(
+      "promo_codes_value",
+      sql`(${t.kind} = 'percent' AND ${t.valueBp} BETWEEN 1 AND 9000 AND ${t.amount} IS NULL) OR (${t.kind} = 'amount' AND ${t.amount} > 0 AND ${t.valueBp} IS NULL)`,
+    ),
+    check("promo_codes_min_nights_positive", sql`${t.minNights} IS NULL OR ${t.minNights} >= 1`),
+    check("promo_codes_max_uses_positive", sql`${t.maxUses} IS NULL OR ${t.maxUses} >= 1`),
+    check("promo_codes_book_window", sql`${t.bookFrom} IS NULL OR ${t.bookUntil} IS NULL OR ${t.bookUntil} >= ${t.bookFrom}`),
+    check("promo_codes_stay_window", sql`${t.stayFrom} IS NULL OR ${t.stayUntil} IS NULL OR ${t.stayUntil} >= ${t.stayFrom}`),
   ],
 );

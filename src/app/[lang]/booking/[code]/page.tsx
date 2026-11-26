@@ -22,6 +22,7 @@ import { formatDate, formatDateRange, formatMoney } from "@/i18n/formatters";
 import { getDictionary, type Dictionary } from "@/i18n/get-dictionary";
 import { verifyBookingAccessToken } from "@/lib/booking/access";
 import { cancelBookingAsGuest, cancelLateCheckoutFromPortal, requestLateCheckoutFromPortal } from "@/lib/booking/actions";
+import { offerLabel } from "@/lib/pricing-labels";
 import { latestCheckoutUrl } from "@/lib/site/queries";
 
 type Props = PageProps<"/[lang]/booking/[code]">;
@@ -90,6 +91,7 @@ async function BookingDetails({
     .limit(1);
   if (!row) notFound();
   const r = row.reservation;
+  const otherDiscount = r.discountAmount - (r.priceSnapshot?.planDiscount ?? 0) - (r.priceSnapshot?.offer?.amount ?? 0);
   const checkoutUrl = r.status === "hold" ? await latestCheckoutUrl(r.id) : null;
   const balance = balanceDue(r);
   const depositDue = guaranteeDue(r, todayIn(row.timezone));
@@ -166,7 +168,12 @@ async function BookingDetails({
         <Item label={t.dates} value={formatDateRange(r.checkIn, r.checkOut, lang)} />
         <Item label={t.guests} value={format(dict.search.guests, { count: r.adults + r.children })} />
         <Item label={dict.home.statusLabel} value={t.status[r.status]} />
-        {r.discountAmount ? <Item label={t.discount} value={`−${formatMoney(r.discountAmount, lang)}`} /> : null}
+        {r.ratePlan !== "standard" ? <Item label={t.ratePlan} value={dict.pricing.plans[r.ratePlan as "non_refundable" | "breakfast"] ?? r.ratePlan} /> : null}
+        {/* The discount split as it was priced: plan, the one offer that applied, then a staff discount. */}
+        {r.priceSnapshot?.planDiscount ? <Item label={dict.pricing.planDiscount} value={`−${formatMoney(r.priceSnapshot.planDiscount, lang)}`} /> : null}
+        {r.priceSnapshot?.offer ? <Item label={offerLabel(dict.pricing, r.priceSnapshot.offer)} value={`−${formatMoney(r.priceSnapshot.offer.amount, lang)}`} /> : null}
+        {otherDiscount > 0 ? <Item label={t.discount} value={`−${formatMoney(otherDiscount, lang)}`} /> : null}
+        {r.breakfastAmount ? <Item label={format(dict.pricing.breakfastLine, { count: r.priceSnapshot?.nights.length ?? 0 })} value={formatMoney(r.breakfastAmount, lang)} /> : null}
         <Item label={t.total} value={formatMoney(r.totalAmount, lang)} />
         <Item label={t.paid} value={formatMoney(r.amountPaid, lang)} />
         {depositDue ? (

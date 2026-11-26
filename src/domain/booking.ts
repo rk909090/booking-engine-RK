@@ -7,8 +7,9 @@ import { queueGuestMessage } from "./notifications";
 import { cancelReservationTasks, syncRequestTask } from "./tasks";
 import type { Locale } from "@/i18n/config";
 import { todayIn } from "./dates";
-import { cancellationOutcome, quoteStay, type PricingRules, type Quote, type QuoteError } from "./pricing";
-import type { DiscountTerms } from "./types";
+import { cancellationOutcome, NON_REFUNDABLE_TIERS, quoteStay, snapshotOf, type PricingRules, type PromoOffer, type Quote, type QuoteError } from "./pricing";
+import { checkPromo, type PromoError } from "./promos";
+import type { DiscountTerms, RatePlan } from "./types";
 
 type AnyDb = PgDatabase<PgQueryResultHKT, typeof schema>;
 type Tx = Parameters<Parameters<AnyDb["transaction"]>[0]>[0];
@@ -77,6 +78,10 @@ export async function loadUnitTypes(db: Executor, unitTypeIds: string[]): Promis
     .from(schema.rateSeasons)
     .where(inArray(schema.rateSeasons.unitTypeId, unitTypeIds))
     .orderBy(asc(schema.rateSeasons.startDate));
+  const propertyIds = [...new Set(rows.map((r) => r.property.id))];
+  const closures = propertyIds.length
+    ? await db.select().from(schema.arrivalClosures).where(inArray(schema.arrivalClosures.propertyId, propertyIds))
+    : [];
 
   return new Map(
     rows.map(({ type, property }) => [
@@ -86,6 +91,7 @@ export async function loadUnitTypes(db: Executor, unitTypeIds: string[]): Promis
         property,
         rules: {
           baseRate: type.baseRate,
+          weekendRate: type.weekendRate,
           minStayNights: type.minStayNights,
           maxStayNights: type.maxStayNights,
           seasons: seasons
@@ -95,12 +101,18 @@ export async function loadUnitTypes(db: Executor, unitTypeIds: string[]): Promis
               startDate: s.startDate,
               endDate: s.endDate,
               nightlyRate: s.nightlyRate,
+              weekendRate: s.weekendRate,
               minStayNights: s.minStayNights,
             })),
+          arrivalClosures: closures
+            .filter((c) => c.propertyId === property.id && (c.unitTypeId === null || c.unitTypeId === type.id))
+            .map((c) => ({ startDate: c.startDate, endDate: c.endDate })),
           taxRateBp: property.taxRateBp,
           serviceRateBp: property.serviceRateBp,
           depositRateBp: property.depositRateBp,
           balanceDueDays: property.balanceDueDays,
+          plans: { nonRefundableBp: property.nonRefundableBp, breakfastPerGuest: property.breakfastPerGuest },
+          offers: { earlyBirdDays: property.earlyBirdDays, earlyBirdBp: property.earlyBirdBp, longStayTiers: property.longStayTiers },
         },
       },
     ]),
@@ -122,7 +134,10 @@ export type SearchResult = {
   totalUnits: number;
   freeUnits: number;
   fitsGuests: boolean;
+  /** Standard rate with the automatic offers (no promo code). */
   quote: { ok: true; quote: Quote } | { ok: false; error: QuoteError };
+  /** The rules behind the quote, to price other plans or a promo code. */
+  rules: PricingRules;
 };
 
 /** Every published villa type (optionally of one property) with availability and price for the dates. */
@@ -164,6 +179,7 @@ export async function searchAvailability(db: AnyDb, input: SearchInput): Promise
         totalUnits: count?.total ?? 0,
         freeUnits: count?.free ?? 0,
         fitsGuests: input.adults + input.children <= type.maxGuests,
+        rules,
         quote: quoteStay(rules, {
           checkIn: input.checkIn,
           checkOut: input.checkOut,
@@ -195,6 +211,8 @@ export type HoldInput = {
   actorId?: string;
   /** Staff bookings only: a discount on the nights' price (limits are checked by the caller). */
   discount?: DiscountTerms | null;
+  ratePlan?: RatePlan;
+  promoCode?: string | null;
 };
 
 export type HoldError =
@@ -202,6 +220,7 @@ export type HoldError =
   | { kind: "too_many_guests"; maxGuests: number }
   | { kind: "invalid_guest" }
   | { kind: "sold_out" }
+  | { kind: "promo"; error: PromoError }
   | ({ kind: "quote" } & { error: QuoteError });
 
 export type HoldResult =
@@ -240,13 +259,21 @@ export async function createHold(db: AnyDb, input: HoldInput): Promise<HoldResul
       return { ok: false, error: { kind: "too_many_guests", maxGuests: type.maxGuests } } as const;
     }
     const discount = input.source === "website" ? null : (input.discount ?? null);
-    const priced = quoteStay(
-      rules,
-      { checkIn: input.checkIn, checkOut: input.checkOut, today: todayIn(property.timezone, now) },
-      discount,
-    );
+    const today = todayIn(property.timezone, now);
+    let promo: PromoOffer | null = null;
+    if (input.promoCode?.trim()) {
+      const checked = await checkPromo(tx, { propertyId: property.id, unitTypeId: type.id, code: input.promoCode, checkIn: input.checkIn, checkOut: input.checkOut, today, now, lock: true });
+      if (!checked.ok) return { ok: false, error: { kind: "promo", error: checked.error } } as const;
+      promo = checked.promo;
+    }
+    const priced = quoteStay(rules, { checkIn: input.checkIn, checkOut: input.checkOut, today }, discount, {
+      plan: input.ratePlan ?? "standard",
+      guests: input.adults + input.children,
+      promo,
+    });
     if (!priced.ok) return { ok: false, error: { kind: "quote", error: priced.error } } as const;
     const quote = priced.quote;
+    const nonRefundable = quote.ratePlan === "non_refundable";
 
     await tx
       .update(schema.reservations)
@@ -325,7 +352,11 @@ export async function createHold(db: AnyDb, input: HoldInput): Promise<HoldResul
               totalAmount: quote.total,
               subtotalAmount: quote.subtotal,
               discountAmount: quote.discount ?? 0,
-              discount: discount && (quote.discount ?? 0) > 0 ? discount : null,
+              discount: discount && quote.staffDiscount ? discount : null,
+              ratePlan: quote.ratePlan,
+              pricingTerms: quote.terms,
+              promoCodeId: quote.offer?.kind === "promo" ? promo?.promoCodeId : null,
+              breakfastAmount: quote.breakfast ?? 0,
               serviceAmount: quote.service,
               taxAmount: quote.tax,
               depositAmount: quote.dueNow,
@@ -335,19 +366,11 @@ export async function createHold(db: AnyDb, input: HoldInput): Promise<HoldResul
               estimatedArrival: input.estimatedArrival || null,
               specialRequests: input.specialRequests?.trim() || null,
               locale: input.locale,
-              priceSnapshot: {
-                nights: quote.nights,
-                subtotal: quote.subtotal,
-                discount: quote.discount ?? 0,
-                service: quote.service,
-                tax: quote.tax,
-                total: quote.total,
-                serviceRateBp: quote.serviceRateBp,
-                taxRateBp: quote.taxRateBp,
-              },
+              priceSnapshot: snapshotOf(quote),
+              // Non-refundable: paid in full, and the whole stay is charged whenever it is cancelled.
               policySnapshot: {
-                cancellationTiers: property.cancellationTiers,
-                depositRateBp: property.depositRateBp,
+                cancellationTiers: nonRefundable ? NON_REFUNDABLE_TIERS : property.cancellationTiers,
+                depositRateBp: nonRefundable ? 10_000 : property.depositRateBp,
                 balanceDueDays: property.balanceDueDays,
               },
               createdAt: now,

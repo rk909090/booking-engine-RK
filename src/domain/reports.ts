@@ -36,6 +36,8 @@ export type ReportReservation = {
   subtotalAmount: number;
   discountAmount: number;
   extrasAmount: number;
+  /** Breakfast plan: reported with the extras, not as room revenue. */
+  breakfastAmount?: number;
   amountPaid: number;
   refundAmount: number | null;
   priceSnapshot: PriceSnapshot | null;
@@ -135,9 +137,10 @@ export function performance(input: {
     }
     // Extras belong to the last night (a late check-out fee is charged on departure).
     const lastNight = addDays(r.checkOut, -1);
-    if (r.extrasAmount > 0 && inRange(lastNight)) {
-      unit(r.unitId).extras += r.extrasAmount;
-      bucket(lastNight).extras += r.extrasAmount;
+    const extras = r.extrasAmount + (r.breakfastAmount ?? 0);
+    if (extras > 0 && inRange(lastNight)) {
+      unit(r.unitId).extras += extras;
+      bucket(lastNight).extras += extras;
     }
   }
 
@@ -286,6 +289,7 @@ export async function loadReportData(db: AnyDb, input: { propertyIds: string[]; 
         subtotalAmount: schema.reservations.subtotalAmount,
         discountAmount: schema.reservations.discountAmount,
         extrasAmount: schema.reservations.extrasAmount,
+        breakfastAmount: schema.reservations.breakfastAmount,
         amountPaid: schema.reservations.amountPaid,
         refundAmount: schema.reservations.refundAmount,
         priceSnapshot: schema.reservations.priceSnapshot,

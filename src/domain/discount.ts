@@ -32,7 +32,7 @@ export function withinLimit(discountAmount: number, nightsSubtotal: number, limi
   return discountAmount * 10_000 <= nightsSubtotal * limitBp;
 }
 
-export type DiscountError = "not_found" | "not_allowed" | "invalid_discount" | "reason_required" | "over_limit";
+export type DiscountError = "not_found" | "not_allowed" | "invalid_discount" | "reason_required" | "over_limit" | "smaller_than_offer";
 
 export type DiscountResult =
   | { ok: true; total: number; discountAmount: number }
@@ -73,10 +73,13 @@ export async function setDiscount(
     const loaded = (await loadUnitTypes(tx, [r.unitTypeId])).get(r.unitTypeId);
     if (!loaded) return { ok: false, error: "not_found" } as const;
     const terms: DiscountTerms | null = input.discount ? { ...input.discount, reason, givenBy: input.actor.id, givenAt: now.toISOString() } : null;
-    const price = repriceStay(loaded.rules, r.priceSnapshot ?? null, r.checkIn, r.checkOut, terms);
+    const price = repriceStay(loaded.rules, r.priceSnapshot ?? null, r.checkIn, r.checkOut, terms, r.pricingTerms ?? null);
     const off = price.discount ?? 0;
+    // Only one discount applies besides the plan: a staff discount must beat the booking's best offer.
+    const staffOff = price.staffDiscount ?? 0;
+    if (terms && staffOff === 0) return { ok: false, error: "smaller_than_offer" } as const;
     const limitBp = discountLimitBp(property, input.role);
-    if (terms && !withinLimit(off, price.subtotal, limitBp)) return { ok: false, error: "over_limit", limitBp } as const;
+    if (terms && !withinLimit(staffOff, price.subtotal, limitBp)) return { ok: false, error: "over_limit", limitBp } as const;
 
     const total = price.total + r.extrasAmount;
     const paidOut = await refundsPaid(tx, r.id);
@@ -89,7 +92,7 @@ export async function setDiscount(
         serviceAmount: price.service,
         taxAmount: price.tax,
         discountAmount: off,
-        discount: terms && off > 0 ? terms : null,
+        discount: terms && staffOff > 0 ? terms : null,
         priceSnapshot: price,
         refundAmount: refundAmount > 0 ? refundAmount : null,
         updatedAt: now,

@@ -13,6 +13,10 @@ import { getDictionary, type Dictionary } from "@/i18n/get-dictionary";
 import { requireStaff } from "@/lib/auth/current-staff";
 import { can } from "@/lib/authz/permissions";
 import { discountLimitBp } from "@/domain/discount";
+import { availablePlans, quoteStay } from "@/domain/pricing";
+import { checkPromo, cleanPromoCode } from "@/domain/promos";
+import { RATE_PLANS, type RatePlan } from "@/domain/types";
+import { offerLabel } from "@/lib/pricing-labels";
 import { freeUnitsOfType, visibleProperties } from "@/lib/ops/queries";
 import { StaffBookingForm } from "./booking-form";
 
@@ -83,6 +87,17 @@ async function NewBooking({
   const query = (type?: string) =>
     new URLSearchParams({ property: property.slug, checkIn, checkOut, adults: String(adults), children: String(children), ...(type ? { type } : {}) }).toString();
 
+  // Rate plan and promo code for the chosen villa type, priced on the server like the website.
+  const planRaw = one(sp.plan) ?? "";
+  const promoCode = cleanPromoCode(one(sp.promo) ?? "").slice(0, 20);
+  const promoCheck =
+    chosen && promoCode ? await checkPromo(getDb(), { propertyId: property.id, unitTypeId: chosen.unitType.id, code: promoCode, checkIn, checkOut, today, now }) : null;
+  const promo = promoCheck?.ok ? promoCheck.promo : null;
+  const plans = chosen ? availablePlans(chosen.rules) : [];
+  const ratePlan: RatePlan = plans.includes(planRaw as RatePlan) && (RATE_PLANS as readonly string[]).includes(planRaw) ? (planRaw as RatePlan) : "standard";
+  const priced = chosen ? quoteStay(chosen.rules, { checkIn, checkOut, today }, null, { plan: ratePlan, guests: adults + children, promo }) : null;
+  const p = dict.pricing;
+
   const why = (x: (typeof results)[number]): string | null => {
     if (!x.quote.ok) {
       const e = x.quote.error;
@@ -92,7 +107,9 @@ async function NewBooking({
           ? format(r.maxStay, { nights: e.maxNights })
           : e.kind === "check_in_in_past"
             ? r.pastDate
-            : r.invalidDates;
+            : e.kind === "closed_to_arrival"
+              ? r.closedToArrival
+              : r.invalidDates;
     }
     if (!x.fitsGuests) return format(r.tooManyGuests, { max: x.unitType.maxGuests });
     if (x.freeUnits === 0) return r.soldOut;
@@ -190,25 +207,58 @@ async function NewBooking({
         </section>
       ) : null}
 
-      {chosen && bookable(chosen) && chosen.quote.ok ? (
+      {chosen && bookable(chosen) && priced?.ok ? (
         <section className="mt-6 max-w-3xl rounded-xl border border-line bg-white/70 p-5">
           <h2 className="mb-4 font-display text-xl text-lagoon">
             {t.formTitle} · {chosen.unitType.name}
           </h2>
+          <form method="get" className="mb-5 grid gap-3 rounded-xl border border-line bg-white p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+            {Object.entries({ property: property.slug, checkIn, checkOut, adults: String(adults), children: String(children), type: chosen.unitType.id }).map(([k, v]) => (
+              <input key={k} type="hidden" name={k} value={v} />
+            ))}
+            <label className="space-y-1 text-xs text-stone">
+              <span>{t.ratePlan}</span>
+              <select name="plan" defaultValue={ratePlan} className={input}>
+                {plans.map((plan) => (
+                  <option key={plan} value={plan}>
+                    {p.plans[plan]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-1 text-xs text-stone">
+              <span>{t.promoCode}</span>
+              <input name="promo" defaultValue={promoCode} maxLength={20} autoComplete="off" className={`${input} uppercase`} />
+            </label>
+            <button type="submit" className="rounded-lg border border-lagoon px-4 py-2 text-sm text-lagoon hover:bg-lagoon-soft">
+              {t.applyPricing}
+            </button>
+            <p className="text-xs text-stone sm:col-span-3">
+              {promoCheck && !promoCheck.ok
+                ? dict.checkout.promoErrors[promoCheck.error]
+                : priced.quote.offer
+                  ? format(t.offerApplies, { offer: offerLabel(p, priced.quote.offer), amount: formatMoney(priced.quote.offer.amount, lang) })
+                  : t.noOffer}
+              {promo && priced.quote.promoIgnored ? ` ${format(dict.checkout.promoIgnored, { code: promo.code, offer: priced.quote.offer ? offerLabel(p, priced.quote.offer) : p.staffDiscount })}` : ""}
+            </p>
+          </form>
           <StaffBookingForm
-            key={query(chosen.unitType.id)}
+            key={`${query(chosen.unitType.id)}&plan=${ratePlan}&promo=${promo?.code ?? ""}`}
             lang={lang}
             dict={{ newBooking: t, methods: dict.resDetail.methods, sources: dict.resList.sources }}
-            stay={{ unitTypeId: chosen.unitType.id, checkIn, checkOut, adults, children }}
+            stay={{ unitTypeId: chosen.unitType.id, checkIn, checkOut, adults, children, ratePlan, promo: promo && !priced.quote.promoIgnored ? promo.code : "" }}
             units={units}
             quote={{
-              subtotal: chosen.quote.quote.subtotal,
-              total: chosen.quote.quote.total,
-              dueNow: chosen.quote.quote.dueNow,
-              serviceRateBp: chosen.quote.quote.serviceRateBp,
-              taxRateBp: chosen.quote.quote.taxRateBp,
+              subtotal: priced.quote.subtotal,
+              planDiscount: priced.quote.planDiscount ?? 0,
+              offerAmount: priced.quote.offer?.amount ?? 0,
+              breakfast: priced.quote.breakfast ?? 0,
+              total: priced.quote.total,
+              dueNow: priced.quote.dueNow,
+              serviceRateBp: priced.quote.serviceRateBp,
+              taxRateBp: priced.quote.taxRateBp,
               depositRateBp: chosen.property.depositRateBp,
-              payInFull: chosen.quote.quote.payInFull,
+              payInFull: priced.quote.payInFull,
             }}
             limitBp={can(staff.actor, "reservation.discount", property.id).allowed ? discountLimitBp(property, staff.actor.role) : 0}
             canGuarantee={can(staff.actor, "reservation.guarantee", property.id).allowed}

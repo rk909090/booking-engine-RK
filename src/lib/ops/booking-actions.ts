@@ -8,6 +8,7 @@ import * as schema from "@/db/schema";
 import { createPendingPayment } from "@/domain/booking";
 import { PAYMENT_METHODS, type PaymentMethod } from "@/domain/operations";
 import { createStaffBooking, LINK_HOLD_HOURS, STAFF_SOURCES, type StaffSource } from "@/domain/staff-booking";
+import { RATE_PLANS, type RatePlan } from "@/domain/types";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { requireStaff } from "@/lib/auth/current-staff";
 import { can } from "@/lib/authz/permissions";
@@ -26,6 +27,8 @@ export type StaffBookingFormError =
   | "payment"
   | "role"
   | "invalid_discount"
+  | "smaller_than_offer"
+  | "promo"
   | "over_limit"
   | "guarantee_reason_required"
   | "guarantee_invalid_pay_by"
@@ -90,6 +93,8 @@ export async function createStaffBookingAction(_prev: StaffBookingFormState, for
     estimatedArrival: /^\d{2}:\d{2}$/.test(text(form, "arrival")) ? text(form, "arrival") : null,
     specialRequests: text(form, "requests").slice(0, 2000) || null,
     locale: lang,
+    ratePlan: (RATE_PLANS as readonly string[]).includes(text(form, "ratePlan")) ? (text(form, "ratePlan") as RatePlan) : "standard",
+    promoCode: text(form, "promo").slice(0, 20) || null,
     source: (STAFF_SOURCES as readonly string[]).includes(source) ? (source as StaffSource) : "direct",
     actorId: staff.staffId,
     role: staff.actor.role,

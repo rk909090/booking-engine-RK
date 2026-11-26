@@ -50,13 +50,49 @@ export type DiscountTerms = Discount & { reason: string; givenBy: string | null;
  */
 export type Guarantee = { reason: string; payBy: string; givenBy: string; givenAt: string };
 
+/**
+ * Rate plans (decided with the owner, 26 Nov 2026): the standard rate
+ * (deposit, usual cancellation policy), non-refundable (a share off, paid in
+ * full, no refund) and breakfast included (a price per guest per night).
+ */
+export const RATE_PLANS = ["standard", "non_refundable", "breakfast"] as const;
+export type RatePlan = (typeof RATE_PLANS)[number];
+
+/** Long-stay discount: stays of at least `minNights` get `bp` off the nights' price. */
+export type LongStayTier = { minNights: number; bp: number };
+
+export type OfferKind = "promo" | "early_bird" | "long_stay";
+
+/** A discount a booking qualified for. Only the largest one applies (with a staff discount competing too). */
+export type OfferTerms = { kind: OfferKind; discount: Discount; minNights?: number; code?: string; promoCodeId?: string };
+
+/** The plan and offers a booking was priced with, re-applied when its dates change. */
+export type PricingTerms = {
+  ratePlan: RatePlan;
+  /** Non-refundable: share off the nights' price. */
+  planBp?: number;
+  /** Breakfast plan: price per guest per night, for this many guests. */
+  breakfastPerGuest?: number;
+  guests?: number;
+  offers?: OfferTerms[];
+};
+
 /** Price breakdown frozen onto a reservation when it is created. */
 export type PriceSnapshot = {
   nights: Array<{ date: string; rate: number; season: string | null }>;
   /** The nights' price before any discount. */
   subtotal: number;
-  /** Discount on the nights' price; service and tax are charged on what remains. */
+  /** All discounts on the nights' price (plan, plus the one best offer or staff discount); service and tax are charged on what remains. */
   discount?: number;
+  ratePlan?: RatePlan;
+  /** Part of `discount` from the non-refundable plan. */
+  planDiscount?: number;
+  /** Part of `discount` from the offer that applied. */
+  offer?: { kind: OfferKind; code?: string; amount: number };
+  /** Part of `discount` given by staff (when it beat every offer). */
+  staffDiscount?: number;
+  /** Breakfast plan: added to the nights' price (before service and tax). */
+  breakfast?: number;
   service: number;
   tax: number;
   total: number;
