@@ -12,7 +12,15 @@ import "server-only";
 export type SendResult = { ok: true; providerRef: string | null } | { ok: false; error: string; permanent: boolean };
 type Fetch = typeof fetch;
 
-export type EmailMessage = { to: string; subject: string; html: string; text: string; idempotencyKey: string };
+export type EmailMessage = {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  idempotencyKey: string;
+  /** Files sent with the email (content base64-encoded), e.g. report workbooks. */
+  attachments?: Array<{ filename: string; content: string }>;
+};
 export type WhatsAppMessage = { to: string; template: string; language: string; params: string[] };
 
 export type EmailSender = { send(message: EmailMessage): Promise<SendResult> };
@@ -44,6 +52,7 @@ export function createResendSender(config: { apiKey: string; from: string; reply
             subject: m.subject,
             html: m.html,
             text: m.text,
+            ...(m.attachments?.length ? { attachments: m.attachments } : {}),
             ...(config.replyTo ? { reply_to: config.replyTo } : {}),
           }),
         });

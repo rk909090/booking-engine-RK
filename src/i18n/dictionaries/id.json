@@ -909,7 +909,51 @@
     "stly": "Tahun lalu, titik yang sama",
     "vsStly": "Pendapatan vs tahun lalu",
     "lyFinal": "Hasil akhir tahun lalu",
-    "paceLimit": "Catatan: booking yang tanggalnya diubah dihitung pada tanggal dan harga saat ini; malam tersedia memakai status vila saat ini."
+    "paceLimit": "Catatan: booking yang tanggalnya diubah dihitung pada tanggal dan harga saat ini; malam tersedia memakai status vila saat ini.",
+    "xlsx": "Unduh Excel",
+    "tabSchedules": "Laporan terjadwal",
+    "schedulesIntro": "Laporan dikirim lewat email mulai pukul {hour} waktu properti: harian (kemarin dan hari ini), mingguan tiap Senin (7 hari terakhir dan pace, dengan file Excel), dan bulanan tiap tanggal 1 (bulan lalu, dengan file Excel). Pilih siapa penerima masing-masing.",
+    "emailNotConfigured": "Email belum aktif (kunci Resend): laporan menunggu dan dilewati setelah 3 hari. Pratinjau tetap bisa dilihat di sini.",
+    "scheduleKinds": {
+      "daily": {
+        "title": "Harian",
+        "intro": "Tiap pagi: okupansi, pendapatan, dan booking kemarin, serta kedatangan, keberangkatan, dan permintaan menunggu hari ini."
+      },
+      "weekly": {
+        "title": "Mingguan",
+        "intro": "Tiap Senin: 7 hari terakhir dibanding tahun lalu, dan pace 3 bulan ke depan. Dengan lampiran Excel."
+      },
+      "monthly": {
+        "title": "Bulanan",
+        "intro": "Tiap tanggal 1: bulan lalu lengkap dibanding tahun lalu. Dengan lampiran Excel."
+      }
+    },
+    "preview": "Pratinjau",
+    "noRecipients": "Belum ada penerima.",
+    "otherAddress": "alamat lain",
+    "otherAddressOption": "Alamat email lain…",
+    "recipient": "Penerima",
+    "emailIfOther": "Email (untuk alamat lain)",
+    "language": "Bahasa",
+    "addRecipient": "Tambah",
+    "removeRecipient": "Hapus",
+    "scheduleSaved": "Tersimpan.",
+    "runsTitle": "Pengiriman terakhir",
+    "noRuns": "Belum ada yang dikirim.",
+    "recipientsCount": "{count} penerima",
+    "runStatus": {
+      "pending": "Menunggu",
+      "sent": "Terkirim",
+      "failed": "Gagal",
+      "skipped": "Dilewati"
+    },
+    "scheduleErrors": {
+      "not_found": "Tidak ditemukan.",
+      "role": "Hanya manajer cabang yang bisa memilih penerima.",
+      "invalid": "Pilih staf, atau isi alamat email yang valid untuk penerima lain.",
+      "duplicate": "Penerima ini sudah menerima laporan itu.",
+      "not_eligible": "Hanya direktur dan manajer cabang properti ini yang bisa dipilih; tambahkan yang lain lewat alamat email."
+    }
   },
   "preCheckin": {
     "title": "Pre-check-in online",
@@ -1776,5 +1820,31 @@
     "staffDeclineReason": "Alasan (dikirim ke tamu)",
     "staffDecline": "Tolak",
     "staffHint": "Menyetujui menerapkan aturan ubah tanggal biasa dengan harga hari ini dan mengabari tamu."
+  },
+  "reportMail": {
+    "subjects": {
+      "daily": "Laporan harian · {property} · {period}",
+      "weekly": "Laporan mingguan · {property} · {period}",
+      "monthly": "Laporan bulanan · {property} · {period}"
+    },
+    "periodTitle": "{period}",
+    "todayTitle": "Hari ini, {date}",
+    "paceTitle": "On the books, 3 bulan ke depan",
+    "occupancy": "Okupansi",
+    "nightsSold": "Malam terjual",
+    "roomRevenue": "Pendapatan kamar",
+    "adr": "Rata-rata harga per malam",
+    "bookingsMade": "Booking dibuat",
+    "cancellations": "Pembatalan",
+    "arrivals": "Kedatangan",
+    "departures": "Keberangkatan",
+    "inHouse": "Sedang menginap",
+    "requestsPending": "Permintaan menunggu",
+    "depositsOverdue": "Deposit lewat tempo",
+    "lastYear": "tahun lalu {value}",
+    "pickup": "+{nights} malam dalam 7 hari",
+    "attached": "Angka lengkap ada di file Excel terlampir.",
+    "open": "Buka laporan",
+    "footer": "Dikirim otomatis oleh {brand}. Minta manajer cabang Anda untuk mengubah penerimanya."
   }
 }

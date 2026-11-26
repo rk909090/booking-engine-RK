@@ -68,6 +68,7 @@ async function ReservationList({
     refund: one(sp.refund),
     page: Number(one(sp.page)) || 1,
   });
+  const exportHref = `/api/ops/reservations/export?${new URLSearchParams({ ...(Object.fromEntries(Object.entries(data.applied).filter(([, v]) => v)) as Record<string, string>), ...(one(sp.deposit) ? { deposit: one(sp.deposit)! } : {}), ...(one(sp.requests) ? { requests: one(sp.requests)! } : {}), today })}`;
   const pageHref = (page: number) => {
     const qs = new URLSearchParams(Object.entries(data.applied).filter(([, v]) => v) as [string, string][]);
     qs.set("page", String(page));
@@ -82,6 +83,9 @@ async function ReservationList({
           <h1 className="font-display text-3xl text-lagoon">{t.title}</h1>
           <p className="mt-1 text-sm text-stone">{t.intro}</p>
         </div>
+        <a href={exportHref} className="rounded-lg border border-lagoon px-3 py-1.5 text-sm text-lagoon hover:bg-lagoon-soft">
+          {dict.reports.xlsx}
+        </a>
         {can(staff.actor, "reservation.create").allowed ? (
           <Link href={`/${lang}/ops/reservations/new`} className="rounded-lg bg-lagoon px-4 py-2 text-sm font-medium text-ivory hover:bg-lagoon-deep">
             + {dict.opsNav.newBooking}

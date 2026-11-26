@@ -3,9 +3,12 @@ import { requireStaff } from "@/lib/auth/current-staff";
 import { can } from "@/lib/authz/permissions";
 import { CSV_SECTIONS, paceCsv, reportCsv, type CsvSection } from "@/lib/ops/report-csv";
 import { buildPace, buildReport } from "@/lib/ops/reports";
+import { paceXlsx, reportXlsx } from "@/lib/ops/report-xlsx";
+import { xlsxHeaders } from "@/lib/xlsx";
 
 /**
- * Report tables as CSV: /api/ops/reports?section=villas|series|bookings|lost|pace
+ * Report tables as CSV: /api/ops/reports?section=villas|series|bookings|lost|pace,
+ * or a whole report as Excel with format=xlsx (section=pace for the pace report),
  * with the same property/from/to as the report page. Directors and branch
  * managers only, limited to their properties.
  */
@@ -20,9 +23,15 @@ export async function GET(request: Request) {
     "content-disposition": `attachment; filename="${name}"`,
     "cache-control": "private, no-store",
   });
+  const xlsx = url.searchParams.get("format") === "xlsx";
   if (section === "pace") {
     const pace = await buildPace(staff.actor, { property: url.searchParams.get("property") ?? undefined, months: url.searchParams.get("months") ?? undefined });
+    if (xlsx) return new Response(Buffer.from(paceXlsx(pace)), { headers: xlsxHeaders(`pace-${pace.property?.slug ?? "all"}-${pace.from}-${pace.to}.xlsx`) });
     return new Response(paceCsv(pace), { headers: headers(`report-pace-${pace.property?.slug ?? "all"}-${pace.from}-${pace.to}.csv`) });
+  }
+  if (xlsx) {
+    const report = await buildReport(staff.actor, { property: url.searchParams.get("property") ?? undefined, from: url.searchParams.get("from") ?? undefined, to: url.searchParams.get("to") ?? undefined });
+    return new Response(Buffer.from(reportXlsx(report)), { headers: xlsxHeaders(`report-${report.property?.slug ?? "all"}-${report.from}-${report.to}.xlsx`) });
   }
   if (!(CSV_SECTIONS as readonly string[]).includes(section)) return new Response("Unknown section", { status: 400 });
 

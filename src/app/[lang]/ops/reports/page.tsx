@@ -93,7 +93,12 @@ async function Report({ lang, dict, searchParams }: { lang: Locale; dict: Dictio
       <OpsNav lang={lang} dict={dict} staff={staff} current="reports" />
       <h1 className="font-display text-3xl text-lagoon">{t.title}</h1>
       <ReportTabs lang={lang} dict={dict} current="period" property={report.property?.slug ?? null} />
-      <p className="mt-3 max-w-3xl text-sm text-stone">{t.intro}</p>
+      <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+        <p className="max-w-3xl text-sm text-stone">{t.intro}</p>
+        <a href={`/api/ops/reports?${qs({ format: "xlsx" })}`} className="rounded-lg border border-lagoon px-3 py-1.5 text-sm text-lagoon hover:bg-lagoon-soft">
+          {t.xlsx}
+        </a>
+      </div>
 
       <form method="get" className="mt-5 grid gap-3 rounded-xl border border-line bg-white/70 p-4 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_auto] lg:items-end">
         <label className="space-y-1 text-xs text-stone">

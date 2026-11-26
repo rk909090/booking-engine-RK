@@ -909,7 +909,51 @@
     "stly": "Same time last year",
     "vsStly": "Revenue vs last year",
     "lyFinal": "Last year final",
-    "paceLimit": "Note: bookings whose dates changed are counted on their current dates and price; available nights use the current villa status."
+    "paceLimit": "Note: bookings whose dates changed are counted on their current dates and price; available nights use the current villa status.",
+    "xlsx": "Download Excel",
+    "tabSchedules": "Scheduled reports",
+    "schedulesIntro": "Reports sent by email from {hour} property time: daily (yesterday and today), weekly on Monday (last 7 days and pace, with Excel files) and monthly on the 1st (last month, with an Excel file). Choose who receives each one.",
+    "emailNotConfigured": "Email is not set up yet (Resend keys): reports wait and are skipped after 3 days. You can still preview them here.",
+    "scheduleKinds": {
+      "daily": {
+        "title": "Daily",
+        "intro": "Every morning: yesterday's occupancy, revenue and bookings, and today's arrivals, departures and pending requests."
+      },
+      "weekly": {
+        "title": "Weekly",
+        "intro": "Every Monday: the last 7 days compared with last year, and the pace of the next 3 months. Excel files attached."
+      },
+      "monthly": {
+        "title": "Monthly",
+        "intro": "On the 1st: last month in full compared with last year. Excel file attached."
+      }
+    },
+    "preview": "Preview",
+    "noRecipients": "No recipients yet.",
+    "otherAddress": "other address",
+    "otherAddressOption": "Other email address…",
+    "recipient": "Recipient",
+    "emailIfOther": "Email (for another address)",
+    "language": "Language",
+    "addRecipient": "Add",
+    "removeRecipient": "Remove",
+    "scheduleSaved": "Saved.",
+    "runsTitle": "Recent sends",
+    "noRuns": "Nothing sent yet.",
+    "recipientsCount": "{count} recipients",
+    "runStatus": {
+      "pending": "Waiting",
+      "sent": "Sent",
+      "failed": "Failed",
+      "skipped": "Skipped"
+    },
+    "scheduleErrors": {
+      "not_found": "Not found.",
+      "role": "Only the branch manager can choose recipients.",
+      "invalid": "Choose a staff member, or enter a valid email address for another recipient.",
+      "duplicate": "This recipient already receives that report.",
+      "not_eligible": "Only directors and branch managers of this property can be chosen; add others by email address."
+    }
   },
   "preCheckin": {
     "title": "Online pre-check-in",
@@ -1776,5 +1820,31 @@
     "staffDeclineReason": "Reason (sent to the guest)",
     "staffDecline": "Decline",
     "staffHint": "Approving applies the usual date-change rules at today's price and tells the guest."
+  },
+  "reportMail": {
+    "subjects": {
+      "daily": "Daily report · {property} · {period}",
+      "weekly": "Weekly report · {property} · {period}",
+      "monthly": "Monthly report · {property} · {period}"
+    },
+    "periodTitle": "{period}",
+    "todayTitle": "Today, {date}",
+    "paceTitle": "On the books, next 3 months",
+    "occupancy": "Occupancy",
+    "nightsSold": "Nights sold",
+    "roomRevenue": "Room revenue",
+    "adr": "Average daily rate",
+    "bookingsMade": "Bookings made",
+    "cancellations": "Cancellations",
+    "arrivals": "Arrivals",
+    "departures": "Departures",
+    "inHouse": "In house",
+    "requestsPending": "Requests waiting",
+    "depositsOverdue": "Deposits overdue",
+    "lastYear": "last year {value}",
+    "pickup": "+{nights} nights in 7 days",
+    "attached": "The full figures are in the attached Excel files.",
+    "open": "Open the reports",
+    "footer": "Sent automatically by {brand}. Ask your branch manager to change who receives it."
   }
 }

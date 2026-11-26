@@ -1150,3 +1150,61 @@ export const dateChangeRequests = pgTable(
     uniqueIndex("date_change_requests_one_open_idx").on(t.reservationId).where(sql`${t.status} = 'requested'`),
   ],
 );
+
+/*
+ * Scheduled reports by email (decided with the owner, 26 Nov 2026): daily
+ * (yesterday's figures and today's movements), weekly on Monday (last 7 days
+ * and pace, with Excel) and monthly on the 1st (last month, with Excel).
+ * Branch managers choose the recipients per property and report: staff
+ * members or other email addresses (an accountant, the business owner).
+ */
+export const REPORT_KINDS = ["daily", "weekly", "monthly"] as const;
+
+export const reportSubscriptions = pgTable(
+  "report_subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id),
+    kind: text("kind").notNull(),
+    staffId: uuid("staff_id").references(() => staffMembers.id, { onDelete: "cascade" }),
+    email: text("email"),
+    /** Language of the email (id or en). */
+    locale: text("locale").notNull().default("id"),
+    createdBy: text("created_by").notNull(),
+    ...timestamps,
+  },
+  (t) => [
+    check("report_subscriptions_kind", sql`${t.kind} IN ('daily', 'weekly', 'monthly')`),
+    check("report_subscriptions_one_recipient", sql`(${t.staffId} IS NULL) <> (${t.email} IS NULL)`),
+    check("report_subscriptions_locale", sql`${t.locale} IN ('id', 'en')`),
+    uniqueIndex("report_subscriptions_recipient_key").on(t.propertyId, t.kind, sql`coalesce(${t.staffId}::text, lower(${t.email}))`),
+  ],
+);
+
+/** One scheduled report for one property and period; sent once to every recipient. */
+export const reportRuns = pgTable(
+  "report_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id),
+    kind: text("kind").notNull(),
+    /** The day it is for (daily, weekly) or the month reported (monthly). */
+    periodKey: text("period_key").notNull(),
+    /** pending, sent, failed, skipped */
+    status: text("status").notNull().default("pending"),
+    recipients: smallint("recipients").notNull().default(0),
+    attempts: smallint("attempts").notNull().default(0),
+    lastError: text("last_error"),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    unique("report_runs_period_key").on(t.propertyId, t.kind, t.periodKey),
+    check("report_runs_status", sql`${t.status} IN ('pending', 'sent', 'failed', 'skipped')`),
+    index("report_runs_status_idx").on(t.status, t.createdAt),
+  ],
+);

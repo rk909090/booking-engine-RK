@@ -111,6 +111,9 @@ async function Pace({ lang, dict, searchParams }: { lang: Locale; dict: Dictiona
           <a href={`/api/ops/reports?${qs({ lang, section: "pace" })}`} className="rounded-lg border border-line px-3 py-1.5 text-sm text-ink hover:bg-sand">
             {t.csv}
           </a>
+          <a href={`/api/ops/reports?${qs({ section: "pace", format: "xlsx" })}`} className="rounded-lg border border-lagoon px-3 py-1.5 text-sm text-lagoon hover:bg-lagoon-soft">
+            {t.xlsx}
+          </a>
         </div>
         <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Tile label={t.otbNights} value={`${num(otb.sold)} · ${pct(ratios(otb).occupancy)}`} sub={format(t.stlyValue, { value: `${num(stly.sold)} · ${pct(ratios(stly).occupancy)}` })} />

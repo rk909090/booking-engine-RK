@@ -61,7 +61,12 @@ async function Statement({ lang, dict, params, searchParams }: { lang: Locale; d
           <Link href={`/${lang}/ops/owners?property=${property.slug}&month=${month}`} className="text-sm text-lagoon hover:underline">
             ← {t.backToStatements}
           </Link>
-          <PrintButton label={dict.invoice.print} />
+          <span className="flex gap-2">
+            <a href={`/api/ops/owners/statement?owner=${ownerId}&property=${property.slug}&month=${month}`} className="rounded-lg border border-lagoon px-4 py-2 text-sm text-lagoon hover:bg-lagoon-soft">
+              {dict.reports.xlsx}
+            </a>
+            <PrintButton label={dict.invoice.print} />
+          </span>
         </>
       }
     >

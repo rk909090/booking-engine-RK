@@ -36,6 +36,8 @@ export type ReservationFilters = {
   /** Today's date, for "overdue". */
   today?: string;
   page?: number;
+  /** Rows per page (exports ask for many at once). */
+  pageSize?: number;
 };
 
 function scope(actor: Actor): SQL | undefined {
@@ -141,8 +143,8 @@ export async function listReservations(actor: Actor, filters: ReservationFilters
   const [rows, [{ total }]] = await Promise.all([
     base
       .orderBy(desc(schema.reservations.checkIn), desc(schema.reservations.createdAt))
-      .limit(PAGE_SIZE)
-      .offset((page - 1) * PAGE_SIZE),
+      .limit(filters.pageSize ?? PAGE_SIZE)
+      .offset((page - 1) * (filters.pageSize ?? PAGE_SIZE)),
     db
       .select({ total: count() })
       .from(schema.reservations)

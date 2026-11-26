@@ -111,7 +111,7 @@ describe("report maths", () => {
     };
     const villas = reportCsv(report, "villas");
     expect(villas.startsWith("﻿property,villa_type,villa,available_nights")).toBe(true);
-    expect(villas).toContain("'=HYPERLINK(1),T1,V1,2,2,100.0,269,135,135,0");
+    expect(villas).toContain("'=HYPERLINK(1),T1,V1,2,2,100,269,135,135,0");
     expect(reportCsv(report, "bookings")).toContain("A,'=HYPERLINK(1),V1,2027-01-20,direct,2027-02-10,2027-02-12,2,21,269,31,confirmed");
   });
 });

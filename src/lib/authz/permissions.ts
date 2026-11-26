@@ -43,6 +43,7 @@ export const actions = [
   "settings.view",
   "channels.manage",
   "rates.manage",
+  "reports.schedule",
   "owners.view",
   "owners.manage",
   "owners.expense",
@@ -101,6 +102,8 @@ const matrix: Record<Action, readonly Role[]> = {
   "channels.manage": R.managers,
   /** Rates, seasons, closed-to-arrival dates, rate plans, automatic discounts and promo codes (domain/rates.ts). */
   "rates.manage": R.managers,
+  /** Choose who receives the scheduled report emails (domain/report-schedule.ts). */
+  "reports.schedule": R.managers,
   /** Villa owners and monthly owner statements (domain/owners.ts). */
   "owners.view": ["director", "branch_manager"],
   /** Owners, villa ownership, commission rates, recurring costs; lock statements and record payouts. */

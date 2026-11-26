@@ -61,6 +61,6 @@ describe("on the books", () => {
     const stly = onTheBooks({ asOf: "2026-03-01", from: "2026-03-01", to: "2026-04-30", units, blocks: [], reservations: [] });
     const csv = paceCsv({ current: now, weekAgo, stly, lyFinal });
     expect(csv).toContain("2027-03,62,2,3.2,200,100,-2,-200,0,0,1,90");
-    expect(csv).toContain("2027-04,60,3,5.0,300,100,3,300,0,0,0,0");
+    expect(csv).toContain("2027-04,60,3,5,300,100,3,300,0,0,0,0");
   });
 });

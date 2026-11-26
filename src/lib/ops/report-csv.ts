@@ -10,7 +10,7 @@ import { ratios, rollup, type Perf, type ReportReservation, type ReportUnit } fr
 export const CSV_SECTIONS = ["villas", "series", "bookings", "lost"] as const;
 export type CsvSection = (typeof CSV_SECTIONS)[number];
 
-type Report = {
+export type Report = {
   units: ReportUnit[];
   current: {
     perf: { byUnit: Map<string, Perf>; series: Array<{ key: string } & Perf>; totals: Perf };
@@ -27,7 +27,8 @@ export function cell(value: string | number): string {
 }
 
 export const csv = (rows: Array<Array<string | number>>) => "﻿" + rows.map((r) => r.map(cell).join(",")).join("\r\n") + "\r\n";
-const pct = (x: number) => (x * 100).toFixed(1);
+/** Percentage with one decimal, as a number (so spreadsheets can sum and chart it). */
+const pct = (x: number) => Math.round(x * 1000) / 10;
 
 function perfRow(p: Perf) {
   const r = ratios(p);
@@ -36,7 +37,10 @@ function perfRow(p: Perf) {
 
 const PERF_HEAD = ["available_nights", "sold_nights", "occupancy_pct", "room_revenue", "adr", "revpar", "extras"];
 
-export function reportCsv(report: Report, section: CsvSection): string {
+export type Rows = Array<Array<string | number>>;
+
+/** The rows of one report table (header first). */
+export function reportRows(report: Report, section: CsvSection): Rows {
   const { units, current } = report;
   const unit = (id: string) => units.find((u) => u.id === id);
   if (section === "villas") {
@@ -50,13 +54,13 @@ export function reportCsv(report: Report, section: CsvSection): string {
       rows.push([u.propertyName, u.typeName, "(all)", ...perfRow(p)]);
     }
     rows.push(["(all)", "(all)", "(all)", ...perfRow(current.perf.totals)]);
-    return csv(rows);
+    return rows;
   }
   if (section === "series") {
-    return csv([["period", ...PERF_HEAD], ...current.perf.series.map((s) => [s.key, ...perfRow(s)])]);
+    return [["period", ...PERF_HEAD], ...current.perf.series.map((s) => [s.key, ...perfRow(s)])];
   }
   if (section === "bookings") {
-    return csv([
+    return [
       ["code", "property", "villa", "booked_on", "source", "check_in", "check_out", "nights", "lead_days", "room_value", "discount", "status"],
       ...current.made.rows.map((r) => [
         r.code,
@@ -72,19 +76,29 @@ export function reportCsv(report: Report, section: CsvSection): string {
         r.discountAmount,
         r.status,
       ]),
-    ]);
+    ];
   }
-  return csv([
+  return [
     ["code", "property", "villa", "kind", "date", "check_in", "room_value", "kept_after_refund"],
     ...current.lost.cancelled.rows.map((r) => [r.code, unit(r.unitId)?.propertyName ?? "", unit(r.unitId)?.code ?? "", "cancelled", r.cancelledDate ?? "", r.checkIn, current.lost.valueOf(r), current.lost.keptOf(r)]),
     ...current.lost.noShows.rows.map((r) => [r.code, unit(r.unitId)?.propertyName ?? "", unit(r.unitId)?.code ?? "", "no_show", r.checkIn, r.checkIn, current.lost.valueOf(r), current.lost.keptOf(r)]),
-  ]);
+  ];
+}
+
+export function reportCsv(report: Report, section: CsvSection): string {
+  return csv(reportRows(report, section));
 }
 
 type PaceSeries = Array<{ key: string } & Perf>;
 
 /** The pace table: per stay month, on the books now, a week ago, at the same point last year, and last year's final result. */
-export function paceCsv(pace: { current: { series: PaceSeries }; weekAgo: { series: PaceSeries }; stly: { series: PaceSeries }; lyFinal: { series: PaceSeries } }): string {
+export type PaceInput = { current: { series: PaceSeries }; weekAgo: { series: PaceSeries }; stly: { series: PaceSeries }; lyFinal: { series: PaceSeries } };
+
+export function paceCsv(pace: PaceInput): string {
+  return csv(paceRows(pace));
+}
+
+export function paceRows(pace: PaceInput): Rows {
   const lyKey = (key: string) => `${Number(key.slice(0, 4)) - 1}${key.slice(4)}`;
   const find = (series: PaceSeries, key: string) => series.find((s) => s.key === key);
   const rows: Array<Array<string | number>> = [
@@ -123,5 +137,5 @@ export function paceCsv(pace: { current: { series: PaceSeries }; weekAgo: { seri
       final?.revenue ?? 0,
     ]);
   }
-  return csv(rows);
+  return rows;
 }

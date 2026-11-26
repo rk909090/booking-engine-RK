@@ -7,13 +7,16 @@ import { syncDueFeeds } from "@/domain/ical";
 import { queueReminders } from "@/domain/notifications";
 import { eraseExpiredDocuments } from "@/domain/pre-checkin";
 import { deliverPending } from "@/lib/notifications/deliver";
+import { queueDueReports } from "@/domain/report-schedule";
+import { deliverReports } from "@/lib/ops/report-delivery";
 import { channelStatus } from "@/lib/notifications/providers";
 
 /**
  * Scheduled job, called every few minutes by a Hostinger cron job:
  *   curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://<domain>/api/cron/tick
  * Releases expired holds, reads the other channels' calendars (iCal), erases
- * expired guest document numbers, queues reminders, and sends waiting messages. Disabled until CRON_SECRET is set.
+ * expired guest document numbers, queues reminders, sends waiting messages,
+ * and sends the scheduled reports that are due. Disabled until CRON_SECRET is set.
  */
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -29,5 +32,7 @@ export async function GET(request: Request) {
   const documentsErased = await eraseExpiredDocuments(db, todayIn(brand.timezone, now), now);
   const reminders = await queueReminders(db, now);
   const delivery = await deliverPending(db, { now, limit: 50 });
-  return Response.json({ ok: true, holdsExpired, calendars, documentsErased, reminders, delivery, channels: channelStatus() }, { headers: { "cache-control": "no-store" } });
+  const reportsQueued = await queueDueReports(db, now);
+  const reports = await deliverReports(db, { now });
+  return Response.json({ ok: true, holdsExpired, calendars, documentsErased, reminders, delivery, reports: { queued: reportsQueued, ...reports }, channels: channelStatus() }, { headers: { "cache-control": "no-store" } });
 }

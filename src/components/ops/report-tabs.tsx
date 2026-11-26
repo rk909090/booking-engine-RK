@@ -3,11 +3,12 @@ import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
 
 /** Switches between the period report and the pace (on the books) report, keeping the property. */
-export function ReportTabs({ lang, dict, current, property }: { lang: Locale; dict: Dictionary; current: "period" | "pace"; property: string | null }) {
+export function ReportTabs({ lang, dict, current, property }: { lang: Locale; dict: Dictionary; current: "period" | "pace" | "schedules"; property: string | null }) {
   const qs = property ? `?property=${encodeURIComponent(property)}` : "";
   const tabs = [
     { key: "period", href: `/${lang}/ops/reports${qs}`, label: dict.reports.tabPeriod },
     { key: "pace", href: `/${lang}/ops/reports/pace${qs}`, label: dict.reports.tabPace },
+    { key: "schedules", href: `/${lang}/ops/reports/schedules${qs}`, label: dict.reports.tabSchedules },
   ] as const;
   return (
     <nav aria-label={dict.reports.title} className="mt-4 flex gap-1 border-b border-line">
