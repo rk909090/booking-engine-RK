@@ -88,7 +88,7 @@ export async function apoaReportAction(form: FormData) {
     refresh();
     const params = new URLSearchParams();
     for (const k of ["property", "from", "to"]) if (field(form, k)) params.set(k, field(form, k));
-    redirect(`/${lang}/ops/guests/apoa?${params.toString()}&${query}`);
+    redirect(`/${lang}/ops/immigration?${params.toString()}&${query}`);
   };
   const staff = await requireStaff(lang);
   const ids = form.getAll("reservationId").filter((v): v is string => typeof v === "string" && UUID.test(v));

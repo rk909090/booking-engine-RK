@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ACTION_GROUPS } from "./action-groups";
 import { actions, authorize, can, ForbiddenError, rolesFor, type Actor, type Role } from "./permissions";
 
 const UBUD = "prop-ubud";
@@ -9,6 +10,12 @@ function actor(role: Role, overrides: Partial<Actor> = {}): Actor {
 }
 
 describe("permissions matrix", () => {
+  it("lists every action exactly once on the roles screen", () => {
+    const listed = ACTION_GROUPS.flatMap((g) => g.actions);
+    expect([...listed].sort()).toEqual([...actions].sort());
+    expect(new Set(listed).size).toBe(listed.length);
+  });
+
   it("defines at least one role for every action", () => {
     for (const action of actions) expect(rolesFor(action).length).toBeGreaterThan(0);
   });
@@ -22,7 +29,7 @@ describe("permissions matrix", () => {
       expect(can(director, action, UBUD)).toEqual({ allowed: false, reason: "role_not_permitted" });
     }
     expect(can(director, "reservation.view", CANGGU)).toEqual({ allowed: true });
-    expect(can(director, "portfolio.view")).toEqual({ allowed: true });
+    expect(can(director, "performance.view", CANGGU)).toEqual({ allowed: true });
   });
 
   it("lets directors look at tasks, villa status and rates without changing them", () => {

@@ -44,7 +44,9 @@ async function withTask(form: FormData, action: Action, op: (ctx: { taskId: stri
   const langRaw = field(form, "lang");
   const lang: Locale = hasLocale(langRaw) ? langRaw : "id";
   const taskId = field(form, "taskId");
-  const back = (query: string): never => backTo(`/${lang}/ops/tasks?${query}${UUID.test(taskId) ? `#task-${taskId}` : ""}`);
+  // From a task's own page (or panel), return there; from the board, to the board.
+  const back = (query: string): never =>
+    backTo(field(form, "returnTo") === "detail" && UUID.test(taskId) ? `/${lang}/ops/tasks/${taskId}?${query}` : `/${lang}/ops/tasks?${query}${UUID.test(taskId) ? `#task-${taskId}` : ""}`);
   const staff = await requireStaff(lang);
   if (!UUID.test(taskId)) back("error=not_found");
   const [task] = await getDb().select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).limit(1);

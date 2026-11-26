@@ -17,6 +17,8 @@
   --color-ink: #1c1f1e;
   --color-stone: #5d6461;
   --color-line: #e2ddd1;
+  /* Background of the staff working area, behind white cards. */
+  --color-canvas: #f4f1ea;
   --color-danger: #a4332a;
   --color-success: #2f6b4a;
 
@@ -35,6 +37,7 @@
   --color-ink: var(--color-ink);
   --color-stone: var(--color-stone);
   --color-line: var(--color-line);
+  --color-canvas: var(--color-canvas);
   --color-danger: var(--color-danger);
   --color-success: var(--color-success);
   --color-background: var(--background);

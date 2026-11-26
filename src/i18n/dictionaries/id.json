@@ -303,7 +303,22 @@
     "tasks": "Tugas",
     "rates": "Tarif",
     "owners": "Pemilik",
-    "guests": "Tamu"
+    "guests": "Tamu",
+    "users": "Pengguna",
+    "roles": "Peran & izin",
+    "settings": "Pengaturan",
+    "groups": {
+      "main": "Utama",
+      "operations": "Operasional",
+      "business": "Bisnis",
+      "admin": "Administrasi"
+    },
+    "collapse": "Ciutkan menu",
+    "expand": "Lebarkan menu",
+    "openMenu": "Buka menu",
+    "closeMenu": "Tutup menu",
+    "language": "English",
+    "account": "Akun"
   },
   "resList": {
     "title": "Reservasi",
@@ -1447,7 +1462,9 @@
     "guestTimesIntro": "Dari halaman booking, tamu bisa minta late check-out (setelah {checkOut}) atau early check-in (sebelum {checkIn}); staf tetap menyetujui setiap permintaan, dan jam di luar batas ini bisa diatur langsung di meja depan.",
     "lateLatest": "Late check-out paling lambat",
     "earlyEarliest": "Early check-in paling awal",
-    "readOnly": "Hanya-lihat: tarif, penawaran, add-on, dan kode promo diubah oleh Manajer Cabang."
+    "readOnly": "Hanya-lihat: tarif, penawaran, add-on, dan kode promo diubah oleh Manajer Cabang.",
+    "guestTimesMoved": "Jam check-in/check-out dan batas permintaan early/late tamu kini ada di Pengaturan › Properti & kebijakan.",
+    "guestTimesLink": "Buka pengaturan"
   },
   "owners": {
     "title": "Pemilik",
@@ -1846,5 +1863,541 @@
     "attached": "Angka lengkap ada di file Excel terlampir.",
     "open": "Buka laporan",
     "footer": "Dikirim otomatis oleh {brand}. Minta manajer cabang Anda untuk mengubah penerimanya."
+  },
+  "dash": {
+    "greeting": {
+      "morning": "Selamat pagi, {name}",
+      "afternoon": "Selamat siang, {name}",
+      "evening": "Selamat malam, {name}"
+    },
+    "allProperties": "Semua properti",
+    "newBooking": "Reservasi baru",
+    "tonight": "Okupansi malam ini",
+    "tonightSub": "{sold} dari {total} vila terisi",
+    "arrivals": "Tiba hari ini",
+    "arrivalsSub": "{done} sudah check-in",
+    "departures": "Berangkat hari ini",
+    "departuresSub": "{done} sudah check-out",
+    "inHouse": "Sedang menginap",
+    "inHouseSub": "Tamu yang sudah check-in",
+    "attention": "Perlu tindakan",
+    "allClear": "Semua beres: tidak ada yang menunggu.",
+    "attentionItems": {
+      "requests": "Permintaan tamu menunggu keputusan",
+      "depositOverdue": "Deposit lewat tenggat",
+      "refunds": "Refund belum dibayar",
+      "notReady": "Vila belum siap untuk tamu hari ini",
+      "tasksLate": "Tugas terlambat",
+      "tasksUnassigned": "Tugas belum ada petugas",
+      "conflicts": "Bentrok dengan kalender kanal",
+      "balanceToday": "Tiba hari ini dengan sisa tagihan"
+    },
+    "arrivalsTitle": "Kedatangan hari ini",
+    "departuresTitle": "Keberangkatan hari ini",
+    "noArrivals": "Tidak ada kedatangan hari ini.",
+    "noDepartures": "Tidak ada keberangkatan hari ini.",
+    "viewAll": "Lihat semua",
+    "arrived": "Sudah check-in",
+    "notArrived": "Belum tiba",
+    "departed": "Sudah check-out",
+    "staying": "Masih menginap",
+    "eta": "Tiba {time}",
+    "etaUnknown": "Jam tiba belum diketahui",
+    "balance": "Sisa {amount}",
+    "early": "Early check-in {time}",
+    "earlyPending": "Minta early check-in {time}",
+    "late": "Late check-out {time}",
+    "latePending": "Minta late check-out {time}",
+    "guests": "{count} tamu",
+    "villasTitle": "Status vila",
+    "villasLink": "Buka status vila",
+    "tasksTitle": "Tugas",
+    "tasksOpen": "{count} aktif",
+    "tasksDueToday": "Jatuh tempo hari ini",
+    "tasksLate": "Terlambat",
+    "tasksUnassigned": "Belum ada petugas",
+    "tasksLink": "Buka papan tugas",
+    "monthTitle": "Bulan ini · {month}",
+    "monthNote": "Termasuk malam yang sudah dipesan sampai akhir bulan, dibanding bulan yang sama tahun lalu.",
+    "occupancy": "Okupansi",
+    "revenue": "Pendapatan kamar",
+    "adr": "Rata-rata harga per malam",
+    "revpar": "RevPAR",
+    "bookingsMade": "Booking dibuat",
+    "lastYear": "Tahun lalu {value}",
+    "noLastYear": "Belum ada data tahun lalu",
+    "forwardTitle": "Okupansi 14 malam ke depan",
+    "forwardTable": "Okupansi per malam",
+    "forwardColumn": "Okupansi",
+    "reportsLink": "Buka laporan"
+  },
+  "panel": {
+    "close": "Tutup",
+    "openFull": "Buka halaman penuh",
+    "reservation": "Reservasi {code}",
+    "guest": "Profil tamu",
+    "task": "Tugas",
+    "user": "Pengguna",
+    "invite": "Undang pengguna"
+  },
+  "taskDetail": {
+    "title": "Tugas",
+    "back": "Semua tugas",
+    "notFound": "Tugas tidak ditemukan, atau bukan di properti Anda.",
+    "about": "Rincian",
+    "villa": "Vila",
+    "property": "Properti",
+    "booking": "Booking",
+    "created": "Dibuat",
+    "completed": "Selesai",
+    "by": "{when} oleh {name}",
+    "system": "sistem",
+    "guest": "tamu",
+    "history": "Riwayat",
+    "noHistory": "Belum ada perubahan tercatat.",
+    "actions": {
+      "task.assigned": "Ditugaskan",
+      "task.cancelled": "Dibatalkan",
+      "task.claimed": "Diambil",
+      "task.done": "Selesai",
+      "task.inspection_failed": "Inspeksi tidak lulus",
+      "task.inspection_passed": "Inspeksi lulus",
+      "task.maintenance_reported": "Tiket dilaporkan"
+    },
+    "due": "Tenggat"
+  },
+  "rbac": {
+    "title": "Peran & izin",
+    "intro": "Apa yang boleh dilakukan setiap peran. Dicentang = boleh. Perubahan langsung berlaku untuk semua orang dengan peran itu, di setiap halaman dan aksi (diperiksa oleh server).",
+    "role": "Izin",
+    "locked": "Tetap: mencegah sistem terkunci",
+    "changed": "Berbeda dari bawaan",
+    "save": "Simpan izin",
+    "saved": "Izin tersimpan ({count} berubah).",
+    "noChange": "Tidak ada yang berubah.",
+    "resetTitle": "Kembali ke bawaan",
+    "resetHint": "Batalkan semua perubahan dan pakai izin standar lagi.",
+    "resetConfirm": "Ya, kembalikan semua peran",
+    "reset": "Kembalikan ke bawaan",
+    "resetDone": "Semua peran kembali ke izin bawaan.",
+    "discountNote": "Batas diskon diatur per peran di Pengaturan; peran selain Manajer Cabang dan Front Office punya batas 0.",
+    "scopeNote": "Direktur bertindak di semua properti; peran lain hanya di properti yang ditugaskan di halaman Pengguna.",
+    "groups": {
+      "home": "Beranda & kalender",
+      "reservations": "Reservasi",
+      "money": "Pembayaran & tagihan",
+      "guests": "Tamu",
+      "operations": "Vila & tugas",
+      "business": "Tarif, laporan & pemilik",
+      "admin": "Administrasi"
+    },
+    "actions": {
+      "dashboard.view": {
+        "label": "Beranda",
+        "hint": "Melihat beranda operasional."
+      },
+      "calendar.view": {
+        "label": "Kalender",
+        "hint": "Melihat kalender pemesanan per vila."
+      },
+      "reservation.view": {
+        "label": "Lihat reservasi",
+        "hint": "Membuka daftar dan detail reservasi."
+      },
+      "reservation.create": {
+        "label": "Buat reservasi",
+        "hint": "Membuat booking dari meja depan (walk-in, telepon, agen)."
+      },
+      "reservation.modify": {
+        "label": "Ubah tanggal",
+        "hint": "Mengubah tanggal menginap dan menyetujui permintaan ubah tanggal."
+      },
+      "reservation.move": {
+        "label": "Pindah vila",
+        "hint": "Memindahkan booking ke vila lain dengan tipe yang sama."
+      },
+      "reservation.discount": {
+        "label": "Beri diskon",
+        "hint": "Memberi diskon staf, sampai batas per peran di Pengaturan."
+      },
+      "reservation.guarantee": {
+        "label": "Konfirmasi tanpa deposit",
+        "hint": "Mengonfirmasi booking dengan jaminan dan tenggat deposit."
+      },
+      "reservation.check_in": {
+        "label": "Check-in",
+        "hint": "Mencatat tamu tiba, termasuk early check-in."
+      },
+      "reservation.check_out": {
+        "label": "Check-out",
+        "hint": "Mencatat tamu pergi, termasuk late check-out."
+      },
+      "reservation.no_show": {
+        "label": "Catat no-show",
+        "hint": "Menandai tamu yang tidak datang."
+      },
+      "reservation.cancel": {
+        "label": "Batalkan reservasi",
+        "hint": "Membatalkan booking sesuai kebijakan pembatalan."
+      },
+      "payment.record": {
+        "label": "Catat pembayaran",
+        "hint": "Mencatat uang yang diterima di meja depan."
+      },
+      "payment.refund": {
+        "label": "Bayar refund",
+        "hint": "Mencatat refund yang sudah dibayarkan ke tamu."
+      },
+      "folio.charge": {
+        "label": "Tagihan & invoice",
+        "hint": "Menambah biaya, split bill, dan menerbitkan invoice."
+      },
+      "addon.manage": {
+        "label": "Kelola pesanan add-on",
+        "hint": "Mengonfirmasi, menolak, atau menambahkan add-on pada booking."
+      },
+      "guest.view": {
+        "label": "Lihat tamu",
+        "hint": "Membuka daftar dan profil tamu."
+      },
+      "guest.edit": {
+        "label": "Ubah profil tamu",
+        "hint": "Mengubah kontak, tag, dan catatan tamu."
+      },
+      "guest.merge": {
+        "label": "Gabung tamu",
+        "hint": "Menggabungkan dua profil tamu yang sama."
+      },
+      "guest.privacy": {
+        "label": "Privasi tamu (UU PDP)",
+        "hint": "Mengunduh data tamu dan menghapus data pribadinya."
+      },
+      "guest.apoa": {
+        "label": "Laporan imigrasi (APOA)",
+        "hint": "Mengunduh daftar tamu asing dan menandai sudah dilaporkan."
+      },
+      "villa_status.view": {
+        "label": "Lihat status vila",
+        "hint": "Membuka papan status kesiapan vila."
+      },
+      "housekeeping.update": {
+        "label": "Ubah status vila",
+        "hint": "Menandai vila kotor, perlu inspeksi, atau siap."
+      },
+      "unit.block": {
+        "label": "Blokir vila",
+        "hint": "Menutup vila untuk perawatan pada tanggal tertentu."
+      },
+      "tasks.view": {
+        "label": "Lihat tugas",
+        "hint": "Membuka papan tugas."
+      },
+      "tasks.work": {
+        "label": "Kerjakan tugas",
+        "hint": "Mengambil, menyelesaikan tugas, dan melaporkan maintenance."
+      },
+      "tasks.assign": {
+        "label": "Tugaskan",
+        "hint": "Memberikan tugas kepada staf dan membatalkannya."
+      },
+      "tasks.configure": {
+        "label": "Atur checklist",
+        "hint": "Mengubah checklist inspeksi per tipe vila."
+      },
+      "performance.view": {
+        "label": "Lihat laporan",
+        "hint": "Membuka laporan kinerja, pace, dan unduhan Excel."
+      },
+      "reports.schedule": {
+        "label": "Jadwal laporan",
+        "hint": "Memilih penerima laporan email terjadwal."
+      },
+      "rates.view": {
+        "label": "Lihat tarif",
+        "hint": "Melihat tarif, penawaran, add-on, dan kode promo."
+      },
+      "rates.manage": {
+        "label": "Ubah tarif",
+        "hint": "Mengubah tarif, musim, penawaran, add-on, dan kode promo."
+      },
+      "channels.manage": {
+        "label": "Kanal (iCal)",
+        "hint": "Menghubungkan kalender Airbnb/Booking.com."
+      },
+      "owners.view": {
+        "label": "Lihat pemilik",
+        "hint": "Melihat pemilik vila dan statement bulanan."
+      },
+      "owners.manage": {
+        "label": "Kelola pemilik",
+        "hint": "Mengatur kepemilikan, fee, komisi, mengunci dan membayar statement."
+      },
+      "owners.expense": {
+        "label": "Catat biaya pemilik",
+        "hint": "Mencatat biaya yang dibebankan ke pemilik vila."
+      },
+      "team.view": {
+        "label": "Lihat pengguna",
+        "hint": "Melihat daftar staf (Manajer Cabang: staf propertinya)."
+      },
+      "users.manage": {
+        "label": "Kelola pengguna",
+        "hint": "Mengundang staf, mengubah peran dan properti, menonaktifkan, reset 2FA."
+      },
+      "roles.manage": {
+        "label": "Atur peran & izin",
+        "hint": "Mengubah izin setiap peran di layar ini."
+      },
+      "settings.view": {
+        "label": "Lihat pengaturan",
+        "hint": "Membuka halaman Pengaturan."
+      },
+      "settings.manage": {
+        "label": "Ubah pengaturan",
+        "hint": "Mengubah pengaturan properti, konten, dan vila."
+      }
+    }
+  },
+  "users": {
+    "title": "Pengguna",
+    "intro": "Staf yang bisa masuk ke area operasional, perannya, dan properti yang ditangani.",
+    "invite": "Undang pengguna",
+    "search": "Cari nama atau email",
+    "allRoles": "Semua peran",
+    "allStatus": "Semua status",
+    "apply": "Saring",
+    "active": "Aktif",
+    "inactive": "Nonaktif",
+    "count": "{count} pengguna",
+    "columns": {
+      "name": "Nama",
+      "role": "Peran",
+      "properties": "Properti",
+      "twoFactor": "2FA",
+      "status": "Status",
+      "lastSeen": "Terakhir aktif"
+    },
+    "allProps": "Semua properti",
+    "twoFactorOn": "Aktif",
+    "twoFactorOff": "Belum dipasang",
+    "never": "Belum pernah masuk",
+    "noResults": "Tidak ada pengguna yang cocok.",
+    "readOnly": "Hanya Direktur yang dapat mengubah pengguna.",
+    "you": "Anda",
+    "profile": "Profil",
+    "fullName": "Nama lengkap",
+    "email": "Email",
+    "emailFixed": "Dipakai untuk masuk; tidak bisa diubah di sini.",
+    "roleLabel": "Peran",
+    "propertiesLabel": "Properti",
+    "propertiesHint": "Wajib untuk semua peran kecuali Direktur, yang menangani semua properti.",
+    "save": "Simpan perubahan",
+    "security": "Keamanan akun",
+    "twoFactorStatus": "Verifikasi dua langkah",
+    "created": "Ditambahkan {date}",
+    "newLink": "Link password baru",
+    "newLinkHint": "Untuk lupa password atau undangan yang kedaluwarsa. Link berlaku 24 jam; password lama tetap berlaku sampai link dipakai.",
+    "linkReady": "Link sekali pakai, berlaku 24 jam. Kirim secara pribadi (misalnya lewat WhatsApp) hanya kepada {name}.",
+    "linkEmailed": "Link juga sudah dikirim ke {email}.",
+    "linkNotEmailed": "Email belum aktif, jadi link hanya tampil di sini. Salin sekarang: link tidak akan ditampilkan lagi.",
+    "reset2fa": "Reset 2FA",
+    "reset2faHint": "Untuk HP yang hilang atau baru. {name} akan dikeluarkan dan memasang ulang autentikator saat masuk berikutnya.",
+    "deactivate": "Nonaktifkan",
+    "deactivateHint": "{name} langsung dikeluarkan dan tidak bisa masuk. Riwayat dan data tetap tersimpan; akun bisa diaktifkan kembali.",
+    "reactivate": "Aktifkan kembali",
+    "confirm": "Saya yakin",
+    "activity": "Aktivitas terakhir",
+    "noActivity": "Belum ada aktivitas.",
+    "changes": "Riwayat akun",
+    "errors": {
+      "invalid": "Periksa kembali isian.",
+      "not_found": "Pengguna tidak ditemukan.",
+      "self": "Anda tidak dapat mengubah peran atau menonaktifkan akun sendiri. 2FA Anda sendiri ada di halaman Keamanan akun.",
+      "last_director": "Harus tetap ada minimal satu Direktur aktif.",
+      "needs_property": "Pilih minimal satu properti untuk peran ini.",
+      "exists": "Email ini sudah terdaftar sebagai staf.",
+      "confirm": "Centang \"Saya yakin\" untuk melanjutkan.",
+      "role": "Peran Anda tidak dapat melakukan ini."
+    },
+    "done": {
+      "saved": "Perubahan tersimpan.",
+      "deactivated": "Pengguna dinonaktifkan dan sudah dikeluarkan.",
+      "reactivated": "Pengguna diaktifkan kembali.",
+      "twoFactor": "2FA direset. Pengguna memasang ulang autentikator saat masuk berikutnya."
+    },
+    "inviteForm": {
+      "title": "Undang pengguna",
+      "intro": "Pengguna baru membuat password sendiri lewat link sekali pakai, lalu wajib memasang verifikasi dua langkah.",
+      "submit": "Kirim undangan",
+      "done": "{name} sudah diundang.",
+      "openProfile": "Buka profil",
+      "another": "Undang orang lain"
+    },
+    "history": {
+      "staff.invited": "Diundang",
+      "staff.reinvited": "Diundang ulang",
+      "staff.updated": "Profil atau peran diubah",
+      "staff.deactivated": "Dinonaktifkan",
+      "staff.reactivated": "Diaktifkan kembali",
+      "staff.two_factor_reset": "2FA direset",
+      "staff.link_issued": "Link password dibuat"
+    },
+    "copy": "Salin",
+    "copied": "Tersalin",
+    "working": "Memproses..."
+  },
+  "settings": {
+    "title": "Pengaturan",
+    "intro": "Semua tentang cara kerja tiap properti: jam dan kebijakan, yang dibaca tamu, vila, dan layanan yang terhubung.",
+    "tabs": {
+      "property": "Properti & kebijakan",
+      "content": "Konten & invoice",
+      "villas": "Tipe vila & unit",
+      "integrations": "Integrasi"
+    },
+    "saved": "Pengaturan tersimpan.",
+    "createdType": "Tipe vila dibuat. Atur tarif dan musimnya di halaman Tarif, lalu tawarkan di website bila sudah siap.",
+    "readOnly": "Hanya-lihat: pengaturan properti ini diubah oleh Direktur atau Manajer Cabang properti.",
+    "newBookingsNote": "Pajak, service, deposit, dan kebijakan pembatalan berlaku untuk booking baru; booking yang sudah ada tetap memakai aturan saat dipesan.",
+    "save": "Simpan",
+    "errors": {
+      "invalid": "Periksa kembali isian.",
+      "times": "Periksa jam: check-out harus sebelum check-in, dan batas permintaan tamu ada di antaranya.",
+      "tiers": "Periksa kebijakan pembatalan: 1 sampai 5 baris, hari berbeda, dan biaya tidak turun saat kedatangan makin dekat.",
+      "code_taken": "Kode vila itu sudah dipakai.",
+      "has_bookings": "Vila ini punya booking yang sedang berjalan atau akan datang; pindahkan dulu.",
+      "not_found": "Tidak ditemukan.",
+      "role": "Peran Anda tidak dapat mengubah pengaturan ini."
+    },
+    "general": {
+      "title": "Umum",
+      "name": "Nama properti",
+      "timezone": "Zona waktu",
+      "currency": "Mata uang",
+      "fixed": "Ditetapkan saat properti dibuat."
+    },
+    "times": {
+      "title": "Check-in & check-out",
+      "checkIn": "Check-in mulai",
+      "checkOut": "Check-out paling lambat",
+      "lateLatest": "Late check-out paling lambat yang bisa diminta tamu",
+      "earlyEarliest": "Early check-in paling awal yang bisa diminta tamu",
+      "turnover": "Waktu bersih-bersih antar tamu (menit)",
+      "hint": "Check-out harus lebih awal dari check-in. Permintaan tamu di halaman booking dibatasi oleh dua batas di atas."
+    },
+    "money": {
+      "title": "Pajak, service & pembayaran",
+      "tax": "Pajak (%)",
+      "service": "Service (%)",
+      "deposit": "Deposit saat booking (%)",
+      "depositHint": "100 = dibayar penuh saat booking.",
+      "balanceDays": "Pelunasan jatuh tempo (hari sebelum check-in)",
+      "hold": "Lama vila ditahan saat tamu membayar (menit, 5–120)"
+    },
+    "discounts": {
+      "title": "Batas diskon staf",
+      "frontOffice": "Front Office (%)",
+      "manager": "Manajer Cabang (%)",
+      "hint": "Persentase maksimal dari harga malam yang boleh diberikan tiap peran."
+    },
+    "cancellation": {
+      "title": "Kebijakan pembatalan",
+      "hint": "Biaya ditentukan oleh berapa hari sebelum kedatangan tamu membatalkan. Biaya tidak boleh turun saat kedatangan makin dekat. Pembatalan lebih dekat dari baris terakhir dikenai 100%.",
+      "daysBefore": "Minimal … hari sebelum kedatangan",
+      "charge": "Biaya (% dari total)",
+      "rowHint": "Kosongkan baris untuk menghapusnya."
+    },
+    "content": {
+      "guestTitle": "Yang dibaca tamu",
+      "tagline": "Tagline",
+      "description": "Deskripsi",
+      "location": "Lokasi",
+      "indonesian": "Bahasa Indonesia",
+      "english": "English",
+      "rulesTitle": "Aturan rumah",
+      "rulesHint": "Satu aturan per baris. Tamu menyetujuinya saat pre-check-in. Kosongkan untuk memakai aturan umum.",
+      "invoiceTitle": "Data penjual di invoice",
+      "legalName": "Nama badan usaha",
+      "address": "Alamat",
+      "taxId": "NPWP",
+      "phone": "Telepon",
+      "email": "Email penagihan"
+    },
+    "villas": {
+      "typesTitle": "Tipe vila",
+      "typeName": "Nama tipe",
+      "bedrooms": "Kamar tidur",
+      "maxGuests": "Maks. tamu",
+      "summary": "Ringkasan",
+      "description": "Deskripsi",
+      "published": "Ditawarkan di website",
+      "notPublished": "Tidak di website",
+      "checklist": "Checklist inspeksi",
+      "checklistHint": "Satu item per baris. Kosongkan untuk memakai checklist umum.",
+      "ratesLink": "Tarif dan musim tipe ini ada di halaman Tarif.",
+      "units": "Vila",
+      "unitCode": "Kode",
+      "unitName": "Nama",
+      "active": "Dipakai",
+      "inactive": "Tidak dipakai",
+      "deactivate": "Berhenti pakai",
+      "activate": "Pakai lagi",
+      "addUnit": "Tambah vila",
+      "addUnitHint": "Kode unik untuk semua properti: huruf besar, angka, dan tanda hubung (mis. UBD-RVP-04).",
+      "newType": "Tipe vila baru",
+      "newTypeHint": "Tipe baru tidak tampil di website sampai \"Ditawarkan di website\" dicentang.",
+      "baseRate": "Tarif dasar per malam (Rp)",
+      "create": "Buat tipe",
+      "saveType": "Simpan tipe",
+      "unitsCount": "{count} vila"
+    },
+    "integrations": {
+      "intro": "Status layanan yang dipakai sistem. Kunci dan rahasia diisi di hPanel (Environment variables), tidak pernah di halaman ini.",
+      "on": "Aktif",
+      "off": "Belum aktif",
+      "warn": "Perhatian",
+      "docs": "Panduan langkah demi langkah: docs/03-NOTIFIKASI.md",
+      "email": {
+        "name": "Email (Resend)",
+        "on": "Email dikirim dari {from}.",
+        "off": "Isi RESEND_API_KEY dan EMAIL_FROM. Sampai itu, email tamu, undangan staf, dan laporan terjadwal tidak terkirim."
+      },
+      "whatsapp": {
+        "name": "WhatsApp",
+        "on": "Pesan WhatsApp dikirim dari nomor bisnis.",
+        "off": "Isi WHATSAPP_TOKEN dan WHATSAPP_PHONE_NUMBER_ID, lalu ajukan template pesan ke Meta."
+      },
+      "payments": {
+        "name": "Pembayaran (Xendit)",
+        "test": "Mode uji (test).",
+        "live": "Mode produksi (live).",
+        "off": "Isi XENDIT_SECRET_KEY dan XENDIT_CALLBACK_TOKEN. Sampai itu, pembayaran memakai simulasi."
+      },
+      "cron": {
+        "name": "Tugas terjadwal (cron)",
+        "on": "CRON_SECRET terisi. Pastikan cron job Hostinger memanggil /api/cron/tick tiap 5 menit.",
+        "off": "Isi CRON_SECRET dan buat cron job di Hostinger. Tanpa ini, hold tidak kedaluwarsa otomatis, pengingat dan laporan tidak terkirim."
+      },
+      "guestData": {
+        "name": "Kunci data tamu",
+        "on": "GUEST_DATA_KEY terisi: nomor dokumen dienkripsi dengan kunci khusus.",
+        "off": "Belum diisi: nomor dokumen dienkripsi dengan kunci turunan BETTER_AUTH_SECRET. Disarankan mengisi GUEST_DATA_KEY."
+      },
+      "seo": {
+        "name": "Mesin pencari",
+        "on": "SITE_INDEXABLE=true: situs boleh diindeks mesin pencari.",
+        "off": "Situs tertutup dari mesin pencari. Isi SITE_INDEXABLE=true saat peluncuran."
+      },
+      "ical": {
+        "name": "Kalender kanal (iCal)",
+        "on": "{count} kalender terhubung.",
+        "off": "Belum ada kalender Airbnb/Booking.com yang terhubung."
+      },
+      "demo": {
+        "name": "Data demo",
+        "on": "Data demo masih ada di database. Jalankan npm run demo:clear sebelum peluncuran dan sebelum mengisi kunci email, WhatsApp, atau cron.",
+        "off": "Tidak ada data demo."
+      }
+    }
   }
 }

@@ -22,8 +22,8 @@ export function BarChart({
   const top = Math.max(max ?? 0, ...points.map((p) => p.value), 1e-9);
   const every = Math.max(1, Math.ceil(points.length / 8));
   return (
-    <figure className="rounded-xl border border-line bg-white/70 p-4">
-      <figcaption className="text-sm font-medium text-ink">{title}</figcaption>
+    <figure className="rounded-2xl border border-line/80 bg-white p-5 shadow-sm">
+      <figcaption className="text-sm font-semibold text-ink">{title}</figcaption>
       <div className="mt-3 grid grid-cols-[auto_1fr] gap-x-2">
         <div className="flex h-36 flex-col justify-between text-right text-[11px] text-stone">
           <span>{format(top)}</span>

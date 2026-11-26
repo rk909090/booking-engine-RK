@@ -48,7 +48,7 @@ export function createAuth(db: AnyDb, settings: AuthSettings) {
       sendResetPassword: async ({ user, token }) => {
         const url = new URL(`/${STAFF_LOCALE}/ops/set-password`, settings.baseURL);
         url.searchParams.set("token", token);
-        deliverSetupLink({ email: user.email, url: url.toString() });
+        await deliverSetupLink({ email: user.email, url: url.toString() });
       },
     },
     session: {

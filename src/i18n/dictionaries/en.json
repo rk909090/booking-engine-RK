@@ -303,7 +303,22 @@
     "tasks": "Tasks",
     "rates": "Rates",
     "owners": "Owners",
-    "guests": "Guests"
+    "guests": "Guests",
+    "users": "Users",
+    "roles": "Roles & permissions",
+    "settings": "Settings",
+    "groups": {
+      "main": "Main",
+      "operations": "Operations",
+      "business": "Business",
+      "admin": "Administration"
+    },
+    "collapse": "Collapse menu",
+    "expand": "Expand menu",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "language": "Bahasa Indonesia",
+    "account": "Account"
   },
   "resList": {
     "title": "Reservations",
@@ -1447,7 +1462,9 @@
     "guestTimesIntro": "From their booking page guests may ask for a late check-out (after {checkOut}) or an early check-in (before {checkIn}); staff still approve each request, and later or earlier times can be arranged at the desk.",
     "lateLatest": "Latest late check-out",
     "earlyEarliest": "Earliest early check-in",
-    "readOnly": "View only: rates, offers, add-ons and promo codes are changed by the branch manager."
+    "readOnly": "View only: rates, offers, add-ons and promo codes are changed by the branch manager.",
+    "guestTimesMoved": "Check-in and check-out times and the limits of guests' early/late requests are now under Settings › Property & policies.",
+    "guestTimesLink": "Open settings"
   },
   "owners": {
     "title": "Owners",
@@ -1846,5 +1863,541 @@
     "attached": "The full figures are in the attached Excel files.",
     "open": "Open the reports",
     "footer": "Sent automatically by {brand}. Ask your branch manager to change who receives it."
+  },
+  "dash": {
+    "greeting": {
+      "morning": "Good morning, {name}",
+      "afternoon": "Good afternoon, {name}",
+      "evening": "Good evening, {name}"
+    },
+    "allProperties": "All properties",
+    "newBooking": "New booking",
+    "tonight": "Occupancy tonight",
+    "tonightSub": "{sold} of {total} villas taken",
+    "arrivals": "Arriving today",
+    "arrivalsSub": "{done} checked in",
+    "departures": "Departing today",
+    "departuresSub": "{done} checked out",
+    "inHouse": "In house",
+    "inHouseSub": "Guests checked in now",
+    "attention": "Needs attention",
+    "allClear": "All clear: nothing is waiting.",
+    "attentionItems": {
+      "requests": "Guest requests awaiting a decision",
+      "depositOverdue": "Deposits past their due date",
+      "refunds": "Refunds not yet paid",
+      "notReady": "Villas not ready for today's arrivals",
+      "tasksLate": "Late tasks",
+      "tasksUnassigned": "Tasks without anyone assigned",
+      "conflicts": "Clashes with channel calendars",
+      "balanceToday": "Arrivals today with a balance due"
+    },
+    "arrivalsTitle": "Today's arrivals",
+    "departuresTitle": "Today's departures",
+    "noArrivals": "No arrivals today.",
+    "noDepartures": "No departures today.",
+    "viewAll": "View all",
+    "arrived": "Checked in",
+    "notArrived": "Not arrived",
+    "departed": "Checked out",
+    "staying": "Still in house",
+    "eta": "Arrives {time}",
+    "etaUnknown": "Arrival time unknown",
+    "balance": "Balance {amount}",
+    "early": "Early check-in {time}",
+    "earlyPending": "Asks early check-in {time}",
+    "late": "Late check-out {time}",
+    "latePending": "Asks late check-out {time}",
+    "guests": "{count} guests",
+    "villasTitle": "Villa status",
+    "villasLink": "Open villa status",
+    "tasksTitle": "Tasks",
+    "tasksOpen": "{count} active",
+    "tasksDueToday": "Due today",
+    "tasksLate": "Late",
+    "tasksUnassigned": "Nobody assigned",
+    "tasksLink": "Open the task board",
+    "monthTitle": "This month · {month}",
+    "monthNote": "Includes nights already booked until the end of the month, compared with the same month last year.",
+    "occupancy": "Occupancy",
+    "revenue": "Room revenue",
+    "adr": "Average nightly rate",
+    "revpar": "RevPAR",
+    "bookingsMade": "Bookings made",
+    "lastYear": "Last year {value}",
+    "noLastYear": "No data for last year",
+    "forwardTitle": "Occupancy, next 14 nights",
+    "forwardTable": "Occupancy by night",
+    "forwardColumn": "Occupancy",
+    "reportsLink": "Open reports"
+  },
+  "panel": {
+    "close": "Close",
+    "openFull": "Open as full page",
+    "reservation": "Reservation {code}",
+    "guest": "Guest profile",
+    "task": "Task",
+    "user": "User",
+    "invite": "Invite a user"
+  },
+  "taskDetail": {
+    "title": "Task",
+    "back": "All tasks",
+    "notFound": "Task not found, or not at your property.",
+    "about": "Details",
+    "villa": "Villa",
+    "property": "Property",
+    "booking": "Booking",
+    "created": "Created",
+    "completed": "Finished",
+    "by": "{when} by {name}",
+    "system": "the system",
+    "guest": "the guest",
+    "history": "History",
+    "noHistory": "No changes recorded yet.",
+    "actions": {
+      "task.assigned": "Assigned",
+      "task.cancelled": "Cancelled",
+      "task.claimed": "Taken",
+      "task.done": "Finished",
+      "task.inspection_failed": "Inspection failed",
+      "task.inspection_passed": "Inspection passed",
+      "task.maintenance_reported": "Ticket reported"
+    },
+    "due": "Due"
+  },
+  "rbac": {
+    "title": "Roles & permissions",
+    "intro": "What each role may do. Ticked = allowed. Changes apply at once to everyone with that role, on every page and action (the server checks them).",
+    "role": "Permission",
+    "locked": "Fixed: keeps the group from locking itself out",
+    "changed": "Changed from the default",
+    "save": "Save permissions",
+    "saved": "Permissions saved ({count} changed).",
+    "noChange": "Nothing changed.",
+    "resetTitle": "Back to the defaults",
+    "resetHint": "Undo every change and use the standard permissions again.",
+    "resetConfirm": "Yes, reset all roles",
+    "reset": "Reset to defaults",
+    "resetDone": "All roles are back to the default permissions.",
+    "discountNote": "Discount limits are set per role in Settings; roles other than branch manager and front office have a limit of 0.",
+    "scopeNote": "Directors act on every property; other roles only on the properties assigned to them on the Users page.",
+    "groups": {
+      "home": "Home & calendar",
+      "reservations": "Reservations",
+      "money": "Payments & bills",
+      "guests": "Guests",
+      "operations": "Villas & tasks",
+      "business": "Rates, reports & owners",
+      "admin": "Administration"
+    },
+    "actions": {
+      "dashboard.view": {
+        "label": "Home",
+        "hint": "See the operations home page."
+      },
+      "calendar.view": {
+        "label": "Calendar",
+        "hint": "See the booking calendar per villa."
+      },
+      "reservation.view": {
+        "label": "View reservations",
+        "hint": "Open the reservation list and details."
+      },
+      "reservation.create": {
+        "label": "Create bookings",
+        "hint": "Make bookings at the desk (walk-in, phone, agent)."
+      },
+      "reservation.modify": {
+        "label": "Change dates",
+        "hint": "Change stay dates and approve date-change requests."
+      },
+      "reservation.move": {
+        "label": "Move villa",
+        "hint": "Move a booking to another villa of the same type."
+      },
+      "reservation.discount": {
+        "label": "Give discounts",
+        "hint": "Give a staff discount, up to the per-role limit in Settings."
+      },
+      "reservation.guarantee": {
+        "label": "Confirm without deposit",
+        "hint": "Confirm a booking with a guarantee and a deposit due date."
+      },
+      "reservation.check_in": {
+        "label": "Check in",
+        "hint": "Record arrivals, including early check-in."
+      },
+      "reservation.check_out": {
+        "label": "Check out",
+        "hint": "Record departures, including late check-out."
+      },
+      "reservation.no_show": {
+        "label": "Record no-show",
+        "hint": "Mark guests who did not arrive."
+      },
+      "reservation.cancel": {
+        "label": "Cancel bookings",
+        "hint": "Cancel under the cancellation policy."
+      },
+      "payment.record": {
+        "label": "Record payments",
+        "hint": "Record money received at the desk."
+      },
+      "payment.refund": {
+        "label": "Pay refunds",
+        "hint": "Record refunds paid back to guests."
+      },
+      "folio.charge": {
+        "label": "Charges & invoices",
+        "hint": "Add charges, split bills and issue invoices."
+      },
+      "addon.manage": {
+        "label": "Manage add-on orders",
+        "hint": "Confirm, decline or add add-ons on a booking."
+      },
+      "guest.view": {
+        "label": "View guests",
+        "hint": "Open the guest list and profiles."
+      },
+      "guest.edit": {
+        "label": "Edit guest profiles",
+        "hint": "Change a guest's contact details, tags and notes."
+      },
+      "guest.merge": {
+        "label": "Merge guests",
+        "hint": "Merge two profiles of the same guest."
+      },
+      "guest.privacy": {
+        "label": "Guest privacy (PDP law)",
+        "hint": "Download a guest's data and erase their personal data."
+      },
+      "guest.apoa": {
+        "label": "Immigration report (APOA)",
+        "hint": "Download foreign guests and mark them reported."
+      },
+      "villa_status.view": {
+        "label": "View villa status",
+        "hint": "Open the villa readiness board."
+      },
+      "housekeeping.update": {
+        "label": "Change villa status",
+        "hint": "Mark villas dirty, to inspect or ready."
+      },
+      "unit.block": {
+        "label": "Block villas",
+        "hint": "Take a villa out of sale for maintenance."
+      },
+      "tasks.view": {
+        "label": "View tasks",
+        "hint": "Open the task board."
+      },
+      "tasks.work": {
+        "label": "Work on tasks",
+        "hint": "Take and finish tasks, report maintenance."
+      },
+      "tasks.assign": {
+        "label": "Assign tasks",
+        "hint": "Give tasks to staff and cancel them."
+      },
+      "tasks.configure": {
+        "label": "Inspection checklists",
+        "hint": "Change the inspection checklist per villa type."
+      },
+      "performance.view": {
+        "label": "View reports",
+        "hint": "Open performance and pace reports and Excel downloads."
+      },
+      "reports.schedule": {
+        "label": "Report schedules",
+        "hint": "Choose who receives the scheduled report emails."
+      },
+      "rates.view": {
+        "label": "View rates",
+        "hint": "See rates, offers, add-ons and promo codes."
+      },
+      "rates.manage": {
+        "label": "Change rates",
+        "hint": "Change rates, seasons, offers, add-ons and promo codes."
+      },
+      "channels.manage": {
+        "label": "Channels (iCal)",
+        "hint": "Connect Airbnb/Booking.com calendars."
+      },
+      "owners.view": {
+        "label": "View owners",
+        "hint": "See villa owners and monthly statements."
+      },
+      "owners.manage": {
+        "label": "Manage owners",
+        "hint": "Set ownership, fees and commissions; lock and pay statements."
+      },
+      "owners.expense": {
+        "label": "Record owner costs",
+        "hint": "Record costs charged to villa owners."
+      },
+      "team.view": {
+        "label": "View users",
+        "hint": "See the staff list (branch managers: their properties' staff)."
+      },
+      "users.manage": {
+        "label": "Manage users",
+        "hint": "Invite staff, change role and properties, deactivate, reset 2FA."
+      },
+      "roles.manage": {
+        "label": "Roles & permissions",
+        "hint": "Change what each role may do on this screen."
+      },
+      "settings.view": {
+        "label": "View settings",
+        "hint": "Open the Settings pages."
+      },
+      "settings.manage": {
+        "label": "Change settings",
+        "hint": "Change property settings, content and villas."
+      }
+    }
+  },
+  "users": {
+    "title": "Users",
+    "intro": "Staff who can sign in to the operations area, their role and the properties they work on.",
+    "invite": "Invite user",
+    "search": "Search name or email",
+    "allRoles": "All roles",
+    "allStatus": "All statuses",
+    "apply": "Filter",
+    "active": "Active",
+    "inactive": "Deactivated",
+    "count": "{count} users",
+    "columns": {
+      "name": "Name",
+      "role": "Role",
+      "properties": "Properties",
+      "twoFactor": "2FA",
+      "status": "Status",
+      "lastSeen": "Last active"
+    },
+    "allProps": "All properties",
+    "twoFactorOn": "On",
+    "twoFactorOff": "Not set up",
+    "never": "Never signed in",
+    "noResults": "No users match.",
+    "readOnly": "Only directors can change users.",
+    "you": "You",
+    "profile": "Profile",
+    "fullName": "Full name",
+    "email": "Email",
+    "emailFixed": "Used to sign in; cannot be changed here.",
+    "roleLabel": "Role",
+    "propertiesLabel": "Properties",
+    "propertiesHint": "Required for every role except director, who works on all properties.",
+    "save": "Save changes",
+    "security": "Account security",
+    "twoFactorStatus": "Two-step verification",
+    "created": "Added {date}",
+    "newLink": "New password link",
+    "newLinkHint": "For a forgotten password or an expired invitation. The link is valid for 24 hours; the old password works until it is used.",
+    "linkReady": "One-time link, valid for 24 hours. Send it privately (for example by WhatsApp) to {name} only.",
+    "linkEmailed": "It was also emailed to {email}.",
+    "linkNotEmailed": "Email is not set up, so the link is only shown here. Copy it now: it will not be shown again.",
+    "reset2fa": "Reset 2FA",
+    "reset2faHint": "For a lost or new phone. {name} is signed out and sets up the authenticator again at the next sign-in.",
+    "deactivate": "Deactivate",
+    "deactivateHint": "{name} is signed out at once and cannot sign in. History and records stay; the account can be reactivated.",
+    "reactivate": "Reactivate",
+    "confirm": "I am sure",
+    "activity": "Recent activity",
+    "noActivity": "No activity yet.",
+    "changes": "Account history",
+    "errors": {
+      "invalid": "Please check the form.",
+      "not_found": "User not found.",
+      "self": "You cannot change your own role or deactivate yourself. Your own 2FA is on the account security page.",
+      "last_director": "At least one active director must remain.",
+      "needs_property": "Choose at least one property for this role.",
+      "exists": "This email already belongs to a staff member.",
+      "confirm": "Tick \"I am sure\" to continue.",
+      "role": "Your role cannot do this."
+    },
+    "done": {
+      "saved": "Changes saved.",
+      "deactivated": "User deactivated and signed out.",
+      "reactivated": "User reactivated.",
+      "twoFactor": "2FA reset. The user sets up the authenticator again at the next sign-in."
+    },
+    "inviteForm": {
+      "title": "Invite a user",
+      "intro": "New users choose their own password through a one-time link, then must set up two-step verification.",
+      "submit": "Send invitation",
+      "done": "{name} has been invited.",
+      "openProfile": "Open profile",
+      "another": "Invite someone else"
+    },
+    "history": {
+      "staff.invited": "Invited",
+      "staff.reinvited": "Invited again",
+      "staff.updated": "Profile or role changed",
+      "staff.deactivated": "Deactivated",
+      "staff.reactivated": "Reactivated",
+      "staff.two_factor_reset": "2FA reset",
+      "staff.link_issued": "Password link created"
+    },
+    "copy": "Copy",
+    "copied": "Copied",
+    "working": "Working..."
+  },
+  "settings": {
+    "title": "Settings",
+    "intro": "Everything about how each property works: times and policies, what guests read, the villas, and connected services.",
+    "tabs": {
+      "property": "Property & policies",
+      "content": "Content & invoices",
+      "villas": "Villa types & villas",
+      "integrations": "Integrations"
+    },
+    "saved": "Settings saved.",
+    "createdType": "Villa type created. Set its rates and seasons on the Rates page, then offer it on the website when ready.",
+    "readOnly": "View only: this property's settings are changed by a director or the property's branch manager.",
+    "newBookingsNote": "Tax, service, deposit and the cancellation policy apply to new bookings; existing bookings keep the rules they were made with.",
+    "save": "Save",
+    "errors": {
+      "invalid": "Please check the values.",
+      "times": "Check the times: check-out must be before check-in, and the guests' request limits between them.",
+      "tiers": "Check the cancellation policy: 1 to 5 rows, different days, and a charge that does not drop as arrival gets closer.",
+      "code_taken": "That villa code is already used.",
+      "has_bookings": "This villa has a current or coming booking; move it first.",
+      "not_found": "Not found.",
+      "role": "Your role cannot change these settings."
+    },
+    "general": {
+      "title": "General",
+      "name": "Property name",
+      "timezone": "Time zone",
+      "currency": "Currency",
+      "fixed": "Set when the property was created."
+    },
+    "times": {
+      "title": "Check-in & check-out",
+      "checkIn": "Check-in from",
+      "checkOut": "Check-out by",
+      "lateLatest": "Latest late check-out guests may ask for",
+      "earlyEarliest": "Earliest early check-in guests may ask for",
+      "turnover": "Cleaning time between guests (minutes)",
+      "hint": "Check-out must be before check-in. Guests' requests on their booking page stay within the two limits."
+    },
+    "money": {
+      "title": "Tax, service & payment",
+      "tax": "Tax (%)",
+      "service": "Service (%)",
+      "deposit": "Deposit at booking (%)",
+      "depositHint": "100 = paid in full at booking.",
+      "balanceDays": "Balance due (days before check-in)",
+      "hold": "How long a villa is held while the guest pays (minutes, 5–120)"
+    },
+    "discounts": {
+      "title": "Staff discount limits",
+      "frontOffice": "Front office (%)",
+      "manager": "Branch manager (%)",
+      "hint": "Largest share off the nights' price each role may give."
+    },
+    "cancellation": {
+      "title": "Cancellation policy",
+      "hint": "The charge depends on how many days before arrival the guest cancels. It may not drop as arrival gets closer. Cancelling later than the last row costs 100%.",
+      "daysBefore": "At least … days before arrival",
+      "charge": "Charge (% of the total)",
+      "rowHint": "Leave a row empty to remove it."
+    },
+    "content": {
+      "guestTitle": "What guests read",
+      "tagline": "Tagline",
+      "description": "Description",
+      "location": "Location",
+      "indonesian": "Bahasa Indonesia",
+      "english": "English",
+      "rulesTitle": "House rules",
+      "rulesHint": "One rule per line. Guests agree to them at pre-check-in. Leave empty to use the general rules.",
+      "invoiceTitle": "Seller on invoices",
+      "legalName": "Legal name",
+      "address": "Address",
+      "taxId": "Tax number (NPWP)",
+      "phone": "Phone",
+      "email": "Billing email"
+    },
+    "villas": {
+      "typesTitle": "Villa types",
+      "typeName": "Type name",
+      "bedrooms": "Bedrooms",
+      "maxGuests": "Max. guests",
+      "summary": "Summary",
+      "description": "Description",
+      "published": "Offered on the website",
+      "notPublished": "Not on the website",
+      "checklist": "Inspection checklist",
+      "checklistHint": "One item per line. Leave empty for the general checklist.",
+      "ratesLink": "This type's rates and seasons are on the Rates page.",
+      "units": "Villas",
+      "unitCode": "Code",
+      "unitName": "Name",
+      "active": "In use",
+      "inactive": "Not in use",
+      "deactivate": "Stop using",
+      "activate": "Use again",
+      "addUnit": "Add villa",
+      "addUnitHint": "A code unique across all properties: capitals, digits and dashes (e.g. UBD-RVP-04).",
+      "newType": "New villa type",
+      "newTypeHint": "A new type stays off the website until \"Offered on the website\" is ticked.",
+      "baseRate": "Base rate per night (Rp)",
+      "create": "Create type",
+      "saveType": "Save type",
+      "unitsCount": "{count} villas"
+    },
+    "integrations": {
+      "intro": "Status of the services the system uses. Keys and secrets are entered in hPanel (Environment variables), never on this page.",
+      "on": "On",
+      "off": "Not set up",
+      "warn": "Attention",
+      "docs": "Step-by-step guide: docs/03-NOTIFIKASI.md",
+      "email": {
+        "name": "Email (Resend)",
+        "on": "Emails are sent from {from}.",
+        "off": "Set RESEND_API_KEY and EMAIL_FROM. Until then guest emails, staff invitations and scheduled reports are not sent."
+      },
+      "whatsapp": {
+        "name": "WhatsApp",
+        "on": "WhatsApp messages are sent from the business number.",
+        "off": "Set WHATSAPP_TOKEN and WHATSAPP_PHONE_NUMBER_ID, and submit the message templates to Meta."
+      },
+      "payments": {
+        "name": "Payments (Xendit)",
+        "test": "Test mode.",
+        "live": "Live mode.",
+        "off": "Set XENDIT_SECRET_KEY and XENDIT_CALLBACK_TOKEN. Until then payments use the simulator."
+      },
+      "cron": {
+        "name": "Scheduled jobs (cron)",
+        "on": "CRON_SECRET is set. Make sure the Hostinger cron job calls /api/cron/tick every 5 minutes.",
+        "off": "Set CRON_SECRET and create the Hostinger cron job. Without it holds do not expire, and reminders and reports are not sent."
+      },
+      "guestData": {
+        "name": "Guest data key",
+        "on": "GUEST_DATA_KEY is set: document numbers are encrypted with their own key.",
+        "off": "Not set: document numbers are encrypted with a key derived from BETTER_AUTH_SECRET. Setting GUEST_DATA_KEY is recommended."
+      },
+      "seo": {
+        "name": "Search engines",
+        "on": "SITE_INDEXABLE=true: search engines may index the site.",
+        "off": "The site is closed to search engines. Set SITE_INDEXABLE=true at launch."
+      },
+      "ical": {
+        "name": "Channel calendars (iCal)",
+        "on": "{count} calendars connected.",
+        "off": "No Airbnb/Booking.com calendar connected yet."
+      },
+      "demo": {
+        "name": "Demo data",
+        "on": "Demo data is still in the database. Run npm run demo:clear before launch and before setting the email, WhatsApp or cron keys.",
+        "off": "No demo data."
+      }
+    }
   }
 }

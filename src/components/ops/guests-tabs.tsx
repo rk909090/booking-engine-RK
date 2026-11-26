@@ -6,7 +6,7 @@ import type { Dictionary } from "@/i18n/get-dictionary";
 export function GuestsTabs({ lang, dict, current, showApoa }: { lang: Locale; dict: Dictionary; current: "list" | "apoa"; showApoa: boolean }) {
   const tabs = [
     { key: "list", href: `/${lang}/ops/guests`, label: dict.guests.tabList },
-    ...(showApoa ? [{ key: "apoa", href: `/${lang}/ops/guests/apoa`, label: dict.guests.tabApoa }] : []),
+    ...(showApoa ? [{ key: "apoa", href: `/${lang}/ops/immigration`, label: dict.guests.tabApoa }] : []),
   ];
   return (
     <nav aria-label={dict.guests.title} className="mt-4 flex gap-1 border-b border-line">

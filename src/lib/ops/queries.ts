@@ -287,7 +287,8 @@ export async function calendarData(actor: Actor, propertySlug: string | undefine
 }
 
 /** Today's figures for the staff home page, within the actor's scope. */
-export async function todayCounts(actor: Actor, today: string) {
+/** Today's counts for the home page; one property, or all the actor may see. */
+export async function todayCounts(actor: Actor, today: string, propertyId?: string) {
   const db = getDb();
   const [row] = await db
     .select({
@@ -299,7 +300,7 @@ export async function todayCounts(actor: Actor, today: string) {
       requestsPending: sql<number>`count(*) FILTER (WHERE ${requestPending} AND ${schema.reservations.status} IN ('confirmed', 'in_house'))::int`,
     })
     .from(schema.reservations)
-    .where(scope(actor));
+    .where(and(scope(actor), propertyId ? eq(schema.reservations.propertyId, propertyId) : undefined));
   return row;
 }
 

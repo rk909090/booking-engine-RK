@@ -4,7 +4,7 @@ import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
 import type { Role } from "@/lib/authz/permissions";
 import type { Auth } from "./config";
-import { setLinkCollector, type OutgoingLink } from "./outbox";
+import { collectLinks } from "./outbox";
 
 type AnyDb = PgDatabase<PgQueryResultHKT, typeof schema>;
 
@@ -14,9 +14,11 @@ export type StaffInvite = {
   role: Role;
   /** Property slugs; required for every role except director. */
   propertySlugs: string[];
+  /** The staff member inviting (the users page); the log says "system" for the script. */
+  actorId?: string;
 };
 
-export type InviteResult = { staffId: string; authUserId: string; setupUrl: string; created: boolean };
+export type InviteResult = { staffId: string; authUserId: string; setupUrl: string; created: boolean; emailed: boolean };
 
 /**
  * Creates (or refreshes) a staff member and returns a one-time link where
@@ -78,7 +80,8 @@ export async function inviteStaff(auth: Auth, db: AnyDb, input: StaffInvite): Pr
         .values(properties.map((p) => ({ staffId: staff.id, propertyId: p.id })));
     }
     await tx.insert(schema.auditEvents).values({
-      actorType: "system",
+      actorType: input.actorId ? "staff" : "system",
+      actorId: input.actorId ?? null,
       entityType: "staff_member",
       entityId: staff.id,
       action: created ? "staff.invited" : "staff.reinvited",
@@ -87,15 +90,18 @@ export async function inviteStaff(auth: Auth, db: AnyDb, input: StaffInvite): Pr
     return staff.id;
   });
 
-  const links: OutgoingLink[] = [];
-  setLinkCollector((link) => links.push(link));
-  try {
-    await auth.api.requestPasswordReset({ body: { email } });
-  } finally {
-    setLinkCollector(undefined);
-  }
+  const link = await issueSetupLink(auth, email);
+  return { staffId, authUserId, setupUrl: link.url, created, emailed: link.emailed };
+}
+
+/**
+ * A new one-time link (24 hours) where the person sets their password; the
+ * previous password stops working once it is used. Emailed when email is set
+ * up; always returned so it can be handed over privately.
+ */
+export async function issueSetupLink(auth: Auth, email: string): Promise<{ url: string; emailed: boolean }> {
+  const { links } = await collectLinks(() => auth.api.requestPasswordReset({ body: { email } }));
   const link = links.find((l) => l.email === email);
   if (!link) throw new Error("No password link was produced");
-
-  return { staffId, authUserId, setupUrl: link.url, created };
+  return { url: link.url, emailed: link.emailed === true };
 }

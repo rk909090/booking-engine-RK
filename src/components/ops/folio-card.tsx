@@ -166,16 +166,17 @@ export function FolioCard({
 
       <div className="space-y-2 border-t border-line pt-3">
         <p className="text-xs font-semibold uppercase tracking-[0.15em] text-terracotta-deep">{t.invoicesTitle}</p>
-        <p className="flex flex-wrap justify-between gap-2">
+        {/* A div: the invoice link can be a form, which may not sit inside a <p>. */}
+        <div className="flex flex-wrap justify-between gap-2">
           <span className="text-ink">{t.guestInvoice}</span>
           {invoiceLink(null)}
-        </p>
+        </div>
         {parties.map((p) => (
           <div key={p.id} className="rounded-lg border border-line p-3">
-            <p className="flex flex-wrap justify-between gap-2">
+            <div className="flex flex-wrap justify-between gap-2">
               <span className="font-medium text-ink">{p.name}</span>
               {invoiceLink(p.id)}
-            </p>
+            </div>
             {p.details ? <p className="whitespace-pre-line text-xs text-stone">{p.details}</p> : null}
             <p className="text-xs text-ink">{format(t.partyTotals, { total: money(p.total), paid: money(p.paid), balance: money(p.balance) })}</p>
             {canCollect && p.balance > 0 ? (

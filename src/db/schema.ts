@@ -245,6 +245,23 @@ export const staffPropertyAccess = pgTable(
   (t) => [primaryKey({ columns: [t.staffId, t.propertyId] })],
 );
 
+/**
+ * Changes a director made to the default permission matrix
+ * (src/lib/authz/permissions.ts): one row per role and action that differs
+ * from the default. Locked cells are never stored.
+ */
+export const rolePermissions = pgTable(
+  "role_permissions",
+  {
+    role: staffRole("role").notNull(),
+    action: text("action").notNull(),
+    allowed: boolean("allowed").notNull(),
+    updatedBy: text("updated_by").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.role, t.action] })],
+);
+
 export const reservations = pgTable(
   "reservations",
   {
