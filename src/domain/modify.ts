@@ -43,6 +43,7 @@ export type StayChangeError =
   | "no_change"
   | "dates_unavailable"
   | "unit_blocked"
+  | "channel_booked"
   | "price_changed";
 
 export type StayChangeRequest = { checkIn: string; checkOut: string; unitId: string };
@@ -114,7 +115,7 @@ export async function refundsPaid(db: Executor, reservationId: string): Promise<
 async function conflictsOn(db: Executor, r: Reservation, unitId: string, checkIn: string, checkOut: string, now: Date) {
   const overlaps = (start: unknown, end: unknown) =>
     sql`daterange(${start}, ${end}, '[)') && daterange(${checkIn}::date, ${checkOut}::date, '[)')`;
-  const [bookings, blocks] = await Promise.all([
+  const [bookings, blocks, channel] = await Promise.all([
     db
       .select({ code: schema.reservations.code })
       .from(schema.reservations)
@@ -139,8 +140,13 @@ async function conflictsOn(db: Executor, r: Reservation, unitId: string, checkIn
         ),
       )
       .limit(1),
+    db
+      .select({ id: schema.icalEvents.id })
+      .from(schema.icalEvents)
+      .where(and(eq(schema.icalEvents.unitId, unitId), overlaps(schema.icalEvents.startDate, schema.icalEvents.endDate)))
+      .limit(1),
   ]);
-  return { codes: bookings.map((b) => b.code), blocked: blocks.length > 0 };
+  return { codes: bookings.map((b) => b.code), blocked: blocks.length > 0, channel: channel.length > 0 };
 }
 
 async function alternativesFor(db: Executor, r: Reservation, checkIn: string, checkOut: string, now: Date) {
@@ -191,10 +197,10 @@ async function evaluate(db: Executor, r: Reservation, timezone: string, req: Sta
   if (!unit || unit.unitTypeId !== r.unitTypeId || (moved && !unit.isActive)) return { ok: false, error: "unit_not_eligible" };
 
   const conflicts = await conflictsOn(db, r, unitId, checkIn, checkOut, now);
-  if (conflicts.codes.length > 0 || conflicts.blocked) {
+  if (conflicts.codes.length > 0 || conflicts.blocked || conflicts.channel) {
     return {
       ok: false,
-      error: conflicts.codes.length > 0 ? "dates_unavailable" : "unit_blocked",
+      error: conflicts.codes.length > 0 ? "dates_unavailable" : conflicts.blocked ? "unit_blocked" : "channel_booked",
       codes: conflicts.codes,
       alternatives: r.status === "confirmed" ? await alternativesFor(db, r, checkIn, checkOut, now) : [],
     };

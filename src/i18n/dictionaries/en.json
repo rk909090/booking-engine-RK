@@ -276,7 +276,8 @@
     "menu": "Operations menu",
     "villaStatus": "Villa status",
     "newBooking": "New booking",
-    "reports": "Reports"
+    "reports": "Reports",
+    "channels": "Channels"
   },
   "resList": {
     "title": "Reservations",
@@ -514,7 +515,8 @@
       "no_move": "Your role cannot move guests to another villa.",
       "not_movable": "This booking cannot be changed from the calendar.",
       "no_change": "Nothing changed."
-    }
+    },
+    "channel": "Booked on another channel"
   },
   "opsHome": {
     "arrivals": "Arriving today",
@@ -620,7 +622,8 @@
       "no_change": "Nothing changed.",
       "dates_unavailable": "This villa is taken on some of those dates.",
       "unit_blocked": "This villa is under maintenance on some of those dates.",
-      "price_changed": "The price changed since the preview. Check the new price, then confirm again."
+      "price_changed": "The price changed since the preview. Check the new price, then confirm again.",
+      "channel_booked": "This villa is booked on another channel (Airbnb/Booking.com) on some of those dates."
     },
     "lateCheckoutCancelled": "The late check-out request for the old departure date will be cancelled, with its fee.",
     "earlyCheckinCancelled": "The early check-in request for the old arrival date will be cancelled, with its fee."
@@ -982,5 +985,43 @@
       "payment_reminder": "Payment reminder"
     },
     "inactive": "{channels} not active yet: messages wait until the keys are set in hPanel, and are skipped if not sent within 48 hours."
+  },
+  "channels": {
+    "title": "Channels (iCal)",
+    "intro": "Sync each villa calendar with Airbnb, Booking.com or other channels by iCal. Channel calendars are read every {minutes} minutes; stays from other channels block those dates here automatically.",
+    "howTitle": "How to connect",
+    "how1": "Copy this villa \"Our calendar\" link and paste it into the channel calendar settings (Airbnb: Availability → Connect another calendar; Booking.com: Rates & Availability → Sync calendars → Import).",
+    "how2": "In the same channel, copy their calendar export link (ending in .ics) and add it under \"Channel calendars\".",
+    "how3": "Repeat for every villa and every channel. Channels usually read our calendar a few times a day, so keep an eye on the conflicts list.",
+    "exportTitle": "Our calendar (paste into the channel)",
+    "exportHint": "Lists unavailable dates only, no guest names or prices. Keep this link private.",
+    "importTitle": "Channel calendars",
+    "noFeeds": "No channel calendars for this villa yet.",
+    "name": "Channel name",
+    "url": "Channel iCal link (https)",
+    "add": "Add & sync",
+    "syncNow": "Sync now",
+    "remove": "Disconnect",
+    "statusOk": "OK · {count} events",
+    "statusError": "Could not be read",
+    "statusNever": "Never read",
+    "lastSync": "Last read {time}",
+    "conflictsTitle": "{count} calendar conflicts",
+    "conflictsHint": "These dates are booked on another channel and here too (or on two channels). Move one guest to another villa or cancel on the channel concerned.",
+    "conflictsWith": "conflicts with",
+    "homeConflicts": "{count} conflicts between our bookings and other channels (Airbnb/Booking.com).",
+    "homeOpen": "See Channels",
+    "done": {
+      "added": "Channel calendar added and read.",
+      "synced": "Channel calendar read again.",
+      "removed": "Channel calendar disconnected."
+    },
+    "errors": {
+      "invalid_url": "The link must be an https address from the channel (not a local address or IP).",
+      "duplicate": "This link is already added for this villa.",
+      "sync_failed": "The channel calendar could not be read. Check the link; details are shown under the channel name.",
+      "role": "Your role cannot manage channels for this villa.",
+      "not_found": "Villa or calendar not found."
+    }
   }
 }

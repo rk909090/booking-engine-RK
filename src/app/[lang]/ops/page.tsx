@@ -14,6 +14,7 @@ import { OpsNav, OpsShell } from "@/components/ops/ops-shell";
 import { todayIn } from "@/domain/dates";
 import { authorize, can, canAccessProperty, hasGlobalScope } from "@/lib/authz/permissions";
 import { todayCounts } from "@/lib/ops/queries";
+import { calendarConflicts } from "@/domain/ical";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/ops">): Promise<Metadata> {
   const { lang } = await params;
@@ -53,6 +54,10 @@ async function StaffHome({ lang, dict }: { lang: Locale; dict: Dictionary }) {
   const today = todayIn(brand.timezone);
   const counts = can(staff.actor, "reservation.view").allowed ? await todayCounts(staff.actor, today) : null;
   const listHref = (qs: string) => `/${lang}/ops/reservations?${qs}`;
+  // Overlaps between our bookings and stays imported from other channels.
+  const conflicts = can(staff.actor, "reservation.view").allowed
+    ? await calendarConflicts(getDb(), { propertyIds: visible.map((p) => p.id), today })
+    : [];
 
   return (
     <div className="space-y-8">
@@ -73,6 +78,17 @@ async function StaffHome({ lang, dict }: { lang: Locale; dict: Dictionary }) {
           <Stat label={dict.opsHome.requestsPending} value={counts.requestsPending} href={listHref("requests=pending")} warn={counts.requestsPending > 0} />
           <Stat label={dict.opsHome.depositOverdue} value={counts.depositsOverdue} href={listHref("deposit=overdue")} warn={counts.depositsOverdue > 0} />
         </ul>
+      ) : null}
+
+      {conflicts.length ? (
+        <p role="alert" className="rounded-lg border border-danger/40 bg-danger/5 px-4 py-3 text-sm text-danger">
+          {format(dict.channels.homeConflicts, { count: conflicts.length })}{" "}
+          {can(staff.actor, "channels.manage").allowed ? (
+            <Link href={`/${lang}/ops/channels`} className="font-medium underline-offset-4 hover:underline">
+              {dict.channels.homeOpen}
+            </Link>
+          ) : null}
+        </p>
       ) : null}
 
       <section aria-labelledby="properties-heading">

@@ -276,7 +276,8 @@
     "menu": "Menu operasional",
     "villaStatus": "Status vila",
     "newBooking": "Reservasi baru",
-    "reports": "Laporan"
+    "reports": "Laporan",
+    "channels": "Kanal"
   },
   "resList": {
     "title": "Reservasi",
@@ -514,7 +515,8 @@
       "no_move": "Peran Anda tidak dapat memindah tamu ke vila lain.",
       "not_movable": "Pesanan ini tidak bisa diubah dari kalender.",
       "no_change": "Tidak ada yang berubah."
-    }
+    },
+    "channel": "Dipesan di kanal lain"
   },
   "opsHome": {
     "arrivals": "Tiba hari ini",
@@ -620,7 +622,8 @@
       "no_change": "Tidak ada yang berubah.",
       "dates_unavailable": "Vila ini sudah dipakai pada sebagian tanggal tersebut.",
       "unit_blocked": "Vila ini sedang dalam perawatan pada sebagian tanggal tersebut.",
-      "price_changed": "Harga berubah sejak pratinjau. Periksa harga baru, lalu konfirmasi lagi."
+      "price_changed": "Harga berubah sejak pratinjau. Periksa harga baru, lalu konfirmasi lagi.",
+      "channel_booked": "Vila ini sudah dipesan di kanal lain (Airbnb/Booking.com) pada sebagian tanggal tersebut."
     },
     "lateCheckoutCancelled": "Permintaan late check-out untuk tanggal check-out lama akan dibatalkan, beserta biayanya.",
     "earlyCheckinCancelled": "Permintaan early check-in untuk tanggal check-in lama akan dibatalkan, beserta biayanya."
@@ -982,5 +985,43 @@
       "payment_reminder": "Pengingat pembayaran"
     },
     "inactive": "{channels} belum aktif: pesan menunggu sampai kuncinya diisi di hPanel, dan dilewati bila belum terkirim dalam 48 jam."
+  },
+  "channels": {
+    "title": "Kanal (iCal)",
+    "intro": "Sinkronkan kalender setiap vila dengan Airbnb, Booking.com, atau kanal lain lewat iCal. Kalender kanal dibaca ulang setiap {minutes} menit; tamu dari kanal lain otomatis memblokir tanggalnya di sini.",
+    "howTitle": "Cara menghubungkan",
+    "how1": "Salin tautan \"Kalender kita\" vila ini, lalu tempel di pengaturan kalender kanal (Airbnb: Ketersediaan → Hubungkan kalender lain; Booking.com: Tarif & Ketersediaan → Sinkronisasi kalender → Impor).",
+    "how2": "Di kanal yang sama, salin tautan ekspor kalender mereka (berakhiran .ics) dan tambahkan di bawah \"Kalender kanal\".",
+    "how3": "Ulangi untuk setiap vila dan setiap kanal. Kanal biasanya membaca kalender kita beberapa kali sehari, jadi tetap cek daftar konflik.",
+    "exportTitle": "Kalender kita (untuk ditempel di kanal)",
+    "exportHint": "Hanya berisi tanggal tidak tersedia, tanpa nama tamu atau harga. Rahasiakan tautan ini.",
+    "importTitle": "Kalender kanal",
+    "noFeeds": "Belum ada kalender kanal untuk vila ini.",
+    "name": "Nama kanal",
+    "url": "Tautan iCal kanal (https)",
+    "add": "Tambah & sinkronkan",
+    "syncNow": "Sinkron sekarang",
+    "remove": "Lepas",
+    "statusOk": "OK · {count} acara",
+    "statusError": "Gagal dibaca",
+    "statusNever": "Belum pernah dibaca",
+    "lastSync": "Terakhir dibaca {time}",
+    "conflictsTitle": "{count} bentrok kalender",
+    "conflictsHint": "Tanggal ini dipesan di kanal lain dan juga di sini (atau di dua kanal). Pindahkan salah satu tamu ke vila lain atau batalkan di kanal yang bersangkutan.",
+    "conflictsWith": "bentrok dengan",
+    "homeConflicts": "{count} bentrok antara booking kita dan kanal lain (Airbnb/Booking.com).",
+    "homeOpen": "Lihat di Kanal",
+    "done": {
+      "added": "Kalender kanal ditambahkan dan sudah dibaca.",
+      "synced": "Kalender kanal sudah dibaca ulang.",
+      "removed": "Kalender kanal dilepas."
+    },
+    "errors": {
+      "invalid_url": "Tautan harus berupa alamat https dari kanal (bukan alamat lokal atau IP).",
+      "duplicate": "Tautan ini sudah ditambahkan untuk vila ini.",
+      "sync_failed": "Kalender kanal tidak dapat dibaca. Periksa tautannya; detail ada di bawah nama kanal.",
+      "role": "Peran Anda tidak dapat mengatur kanal untuk vila ini.",
+      "not_found": "Vila atau kalender tidak ditemukan."
+    }
   }
 }

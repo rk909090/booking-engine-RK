@@ -35,6 +35,7 @@ export const actions = [
   "portfolio.view",
   "team.view",
   "settings.view",
+  "channels.manage",
 ] as const;
 export type Action = (typeof actions)[number];
 
@@ -71,6 +72,8 @@ const matrix: Record<Action, readonly Role[]> = {
   "portfolio.view": ["director"],
   "team.view": ["director", "branch_manager"],
   "settings.view": R.all,
+  /** Connect villas to Airbnb/Booking.com calendars (iCal); see domain/ical.ts. */
+  "channels.manage": R.managers,
 };
 
 export type Actor = {

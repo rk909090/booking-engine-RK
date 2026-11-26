@@ -152,6 +152,8 @@ export const units = pgTable(
     code: text("code").notNull().unique(),
     name: text("name").notNull(),
     isActive: boolean("is_active").notNull().default(true),
+    /** Secret part of this villa's iCal export URL (domain/ical.ts); null until first used. */
+    icalExportToken: text("ical_export_token").unique(),
     ...timestamps,
   },
   (t) => [
@@ -577,5 +579,57 @@ export const preCheckinGuests = pgTable(
   (t) => [
     check("pre_checkin_guests_document_type", sql`${t.documentType} IS NULL OR ${t.documentType} IN ('passport', 'id_card')`),
     uniqueIndex("pre_checkin_guests_position_idx").on(t.preCheckinId, t.position),
+  ],
+);
+
+/**
+ * Calendars of other channels (Airbnb, Booking.com, VRBO…) imported per villa
+ * by iCal (domain/ical.ts). The URL is secret: whoever has it can read the
+ * channel's calendar, so it is shown masked after saving.
+ */
+export const icalFeeds = pgTable(
+  "ical_feeds",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    unitId: uuid("unit_id")
+      .notNull()
+      .references(() => units.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    url: text("url").notNull(),
+    isActive: boolean("is_active").notNull().default(true),
+    lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+    lastStatus: text("last_status"),
+    lastError: text("last_error"),
+    eventCount: integer("event_count").notNull().default(0),
+    createdBy: text("created_by"),
+    ...timestamps,
+  },
+  (t) => [
+    check("ical_feeds_status", sql`${t.lastStatus} IS NULL OR ${t.lastStatus} IN ('ok', 'error')`),
+    uniqueIndex("ical_feeds_unit_url_idx").on(t.unitId, t.url),
+  ],
+);
+
+/** Busy periods read from an imported calendar; the villa is not bookable on these nights. */
+export const icalEvents = pgTable(
+  "ical_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    feedId: uuid("feed_id")
+      .notNull()
+      .references(() => icalFeeds.id, { onDelete: "cascade" }),
+    unitId: uuid("unit_id")
+      .notNull()
+      .references(() => units.id, { onDelete: "cascade" }),
+    uid: text("uid").notNull(),
+    startDate: date("start_date", { mode: "string" }).notNull(),
+    endDate: date("end_date", { mode: "string" }).notNull(),
+    summary: text("summary"),
+    ...timestamps,
+  },
+  (t) => [
+    check("ical_events_dates_ordered", sql`${t.endDate} > ${t.startDate}`),
+    uniqueIndex("ical_events_feed_uid_idx").on(t.feedId, t.uid),
+    index("ical_events_unit_idx").on(t.unitId, t.startDate),
   ],
 );

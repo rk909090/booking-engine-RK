@@ -252,7 +252,31 @@ export async function calendarData(actor: Actor, propertySlug: string | undefine
         sql`daterange(${schema.unitBlocks.startDate}, ${schema.unitBlocks.endDate}, '[)') && daterange(${from}::date, ${to}::date, '[)')`,
       ),
     );
-  return { properties, property, units, stays, blocks };
+  // Stays imported from other channels (Airbnb, Booking.com…) block the villa too.
+  const channelStays = await db
+    .select({
+      id: schema.icalEvents.id,
+      unitId: schema.icalEvents.unitId,
+      startDate: schema.icalEvents.startDate,
+      endDate: schema.icalEvents.endDate,
+      reason: schema.icalFeeds.name,
+    })
+    .from(schema.icalEvents)
+    .innerJoin(schema.icalFeeds, eq(schema.icalFeeds.id, schema.icalEvents.feedId))
+    .innerJoin(schema.units, eq(schema.units.id, schema.icalEvents.unitId))
+    .where(
+      and(
+        eq(schema.units.propertyId, property.id),
+        sql`daterange(${schema.icalEvents.startDate}, ${schema.icalEvents.endDate}, '[)') && daterange(${from}::date, ${to}::date, '[)')`,
+      ),
+    );
+  return {
+    properties,
+    property,
+    units,
+    stays,
+    blocks: [...blocks.map((b) => ({ ...b, kind: "maintenance" as const })), ...channelStays.map((b) => ({ ...b, kind: "channel" as const }))],
+  };
 }
 
 /** Today's figures for the staff home page, within the actor's scope. */

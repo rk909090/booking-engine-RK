@@ -13,7 +13,7 @@ import { applyCalendarMove, previewCalendarMove, type CalendarPreview } from "@/
 
 type Stay = { code: string; unitId: string; status: string; checkIn: string; checkOut: string; guestName: string };
 type Unit = { id: string; code: string; name: string; unitTypeId: string };
-type Block = { id: string; unitId: string; startDate: string; endDate: string; reason: string };
+type Block = { id: string; unitId: string; startDate: string; endDate: string; reason: string; kind: "maintenance" | "channel" };
 type Move = { code: string; checkIn: string; checkOut: string; unitId: string };
 
 type Props = {
@@ -226,6 +226,19 @@ export function TapeChartBoard({ lang, dict, from, days, today, units, stays, bl
                   const startCol = Math.max(0, diffDays(from, b.startDate));
                   const endCol = Math.min(span, diffDays(from, b.endDate));
                   if (endCol <= startCol) return null;
+                  if (b.kind === "channel") {
+                    return (
+                      <div
+                        key={b.id}
+                        title={`${t.channel}: ${b.reason}`}
+                        className="pointer-events-none z-0 mx-0.5 my-1.5 truncate rounded-md border border-stone/40 bg-[repeating-linear-gradient(135deg,#ece8df,#ece8df_6px,#f5f2ec_6px,#f5f2ec_12px)] px-2 py-1 text-[11px] leading-tight text-ink"
+                        style={{ gridRow, gridColumn: `${startCol + 2} / ${endCol + 2}` }}
+                      >
+                        <span className="font-medium">{b.reason}</span>
+                        <span className="block opacity-70">{t.channel}</span>
+                      </div>
+                    );
+                  }
                   return (
                     <div
                       key={b.id}
@@ -299,6 +312,12 @@ export function TapeChartBoard({ lang, dict, from, days, today, units, stays, bl
             <span className={`inline-block h-3 w-5 rounded border ${barTone[s]}`} /> {dict.status[s]}
           </span>
         ))}
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-5 rounded border border-danger/30 bg-[repeating-linear-gradient(45deg,#f6e3e1,#f6e3e1_3px,#fbf1ef_3px,#fbf1ef_6px)]" /> {t.block}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-5 rounded border border-stone/40 bg-[repeating-linear-gradient(135deg,#ece8df,#ece8df_3px,#f5f2ec_3px,#f5f2ec_6px)]" /> {t.channel}
+        </span>
       </div>
 
       {panel ? (
