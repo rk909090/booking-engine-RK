@@ -2,6 +2,7 @@ import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
 import { addDays, isIsoDate, todayIn } from "./dates";
+import { syncRequestTask } from "./tasks";
 
 type AnyDb = PgDatabase<PgQueryResultHKT, typeof schema>;
 
@@ -174,6 +175,7 @@ export async function savePreCheckin(
     if (arrival) {
       await tx.update(schema.reservations).set({ estimatedArrival: arrival, updatedAt: now }).where(eq(schema.reservations.id, r.id));
     }
+    await syncRequestTask(tx, { reservationId: r.id, source: "precheckin", text: input.requests, now });
     await tx.insert(schema.auditEvents).values({
       actorType: "guest",
       propertyId: r.propertyId,

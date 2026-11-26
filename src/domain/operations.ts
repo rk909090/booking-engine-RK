@@ -5,6 +5,7 @@ import * as schema from "@/db/schema";
 import { addDays, todayIn } from "./dates";
 import { createPendingPayment, recordPaymentPaid } from "./booking";
 import { balanceDue } from "./pricing";
+import { cancelReservationTasks } from "./tasks";
 import { openBlockToday, recordState, unitState, type HkState } from "./housekeeping";
 
 type AnyDb = PgDatabase<PgQueryResultHKT, typeof schema>;
@@ -218,6 +219,7 @@ export async function markNoShow(db: AnyDb, input: { reservationId: string; acto
     if (!state.allowed) return { ok: false, error: state.reason } as const;
     await tx.update(schema.reservations).set({ status: "no_show", updatedAt: now }).where(eq(schema.reservations.id, row.r.id));
     await audit(tx, row.r, input.actor, "reservation.no_show", { status: row.r.status }, { status: "no_show" }, now);
+    await cancelReservationTasks(tx, row.r.id, now);
     return { ok: true } as const;
   });
 }

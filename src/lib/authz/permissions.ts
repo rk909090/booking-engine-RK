@@ -37,6 +37,10 @@ export const actions = [
   "team.view",
   "settings.view",
   "channels.manage",
+  "tasks.view",
+  "tasks.work",
+  "tasks.assign",
+  "tasks.configure",
 ] as const;
 export type Action = (typeof actions)[number];
 
@@ -77,6 +81,13 @@ const matrix: Record<Action, readonly Role[]> = {
   "settings.view": R.all,
   /** Connect villas to Airbnb/Booking.com calendars (iCal); see domain/ical.ts. */
   "channels.manage": R.managers,
+  /** Housekeeping, maintenance and guest-request tasks (domain/tasks.ts). */
+  "tasks.view": ["branch_manager", "front_office", "housekeeping"],
+  /** Claim, start and finish tasks; report maintenance. */
+  "tasks.work": ["branch_manager", "front_office", "housekeeping"],
+  "tasks.assign": R.operators,
+  /** Edit the inspection checklists. */
+  "tasks.configure": R.managers,
 };
 
 export type Actor = {

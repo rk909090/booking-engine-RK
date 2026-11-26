@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
 import { queueGuestMessage } from "./notifications";
+import { syncRequestTask } from "./tasks";
 import { isIsoDate, todayIn } from "./dates";
 import type { Guarantee } from "./types";
 
@@ -80,6 +81,7 @@ export async function confirmWithoutDeposit(
         after: { status: "confirmed", reason, payBy: input.payBy, deposit: r.depositAmount },
         occurredAt: now,
       });
+      await syncRequestTask(tx, { reservationId: r.id, source: "booking", text: r.specialRequests, now });
       await queueGuestMessage(tx, { reservationId: r.id, kind: "booking_confirmed", payload: { payBy: input.payBy, depositDue: r.depositAmount }, now });
       return { ok: true };
     },

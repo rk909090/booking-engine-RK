@@ -22,6 +22,8 @@ export type LocalizedText = { id: string; en: string };
 export type UnitTypeContent = {
   summary?: LocalizedText;
   description?: LocalizedText;
+  /** Items checked when inspecting a villa of this type; a general default is used until set. */
+  inspectionChecklist?: string[];
   /** Gradient used as the image placeholder until real photography exists. */
   palette?: [string, string];
 };

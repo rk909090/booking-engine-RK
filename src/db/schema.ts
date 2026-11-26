@@ -729,3 +729,52 @@ export const invoices = pgTable(
     uniqueIndex("invoices_party_idx").on(t.partyId).where(sql`${t.partyId} IS NOT NULL`),
   ],
 );
+
+/**
+ * Work for housekeeping, front office and maintenance (domain/tasks.ts):
+ * cleaning and inspection follow the villa's cleaning state automatically,
+ * maintenance tickets can take the villa out of sale, and guests' requests
+ * become tasks due before they arrive.
+ */
+export const tasks = pgTable(
+  "tasks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    unitId: uuid("unit_id").references(() => units.id, { onDelete: "cascade" }),
+    reservationId: uuid("reservation_id").references(() => reservations.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    /** For requests: where it came from ("booking" or "precheckin"). */
+    source: text("source"),
+    title: text("title").notNull(),
+    notes: text("notes"),
+    status: text("status").notNull().default("open"),
+    assigneeId: uuid("assignee_id").references(() => staffMembers.id, { onDelete: "set null" }),
+    /** Local date and time it must be done by (e.g. the next guest's arrival). */
+    dueDate: date("due_date", { mode: "string" }),
+    dueTime: time("due_time"),
+    /** The maintenance block a ticket opened, resolved when the ticket is done. */
+    blockId: uuid("block_id").references(() => unitBlocks.id, { onDelete: "set null" }),
+    /** Inspection results: each checklist item and whether it was fine. */
+    checklist: jsonb("checklist").$type<Array<{ item: string; ok: boolean }>>(),
+    result: text("result"),
+    createdBy: text("created_by"),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    completedBy: text("completed_by"),
+    ...timestamps,
+  },
+  (t) => [
+    check("tasks_kind", sql`${t.kind} IN ('clean', 'inspect', 'maintenance', 'request')`),
+    check("tasks_status", sql`${t.status} IN ('open', 'in_progress', 'done', 'cancelled')`),
+    check("tasks_result", sql`${t.result} IS NULL OR ${t.result} IN ('passed', 'failed')`),
+    // One active cleaning and one active inspection per villa; one active request per booking and source.
+    uniqueIndex("tasks_one_clean_idx").on(t.unitId).where(sql`${t.kind} = 'clean' AND ${t.status} IN ('open', 'in_progress')`),
+    uniqueIndex("tasks_one_inspect_idx").on(t.unitId).where(sql`${t.kind} = 'inspect' AND ${t.status} IN ('open', 'in_progress')`),
+    uniqueIndex("tasks_one_request_idx").on(t.reservationId, t.source).where(sql`${t.kind} = 'request' AND ${t.status} IN ('open', 'in_progress')`),
+    index("tasks_property_status_idx").on(t.propertyId, t.status),
+    index("tasks_assignee_idx").on(t.assigneeId, t.status),
+  ],
+);

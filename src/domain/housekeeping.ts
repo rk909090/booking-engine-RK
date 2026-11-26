@@ -69,6 +69,63 @@ export async function recordState(tx: Executor, unitId: string, from: HkState, t
     note,
     occurredAt: now,
   });
+  await syncCleaningTasks(tx, unitId, to, actor, note, now);
+}
+
+const ACTIVE_TASK = ["open", "in_progress"] as const;
+
+/** The next guest due in this villa (today or later): when the villa must be ready. */
+async function nextArrivalDue(tx: Executor, unitId: string, today: string, checkInTime: string) {
+  const [next] = await tx
+    .select({ id: schema.reservations.id, checkIn: schema.reservations.checkIn })
+    .from(schema.reservations)
+    .where(and(eq(schema.reservations.unitId, unitId), eq(schema.reservations.status, "confirmed"), sql`${schema.reservations.checkIn} >= ${today}`))
+    .orderBy(schema.reservations.checkIn)
+    .limit(1);
+  if (!next) return { dueDate: null, dueTime: null };
+  const [early] = await tx
+    .select({ time: schema.earlyCheckinRequests.requestedTime })
+    .from(schema.earlyCheckinRequests)
+    .where(and(eq(schema.earlyCheckinRequests.reservationId, next.id), eq(schema.earlyCheckinRequests.status, "approved"), eq(schema.earlyCheckinRequests.forDate, next.checkIn)))
+    .limit(1);
+  return { dueDate: next.checkIn, dueTime: (early?.time ?? checkInTime).slice(0, 5) };
+}
+
+/**
+ * Keeps cleaning tasks in step with the villa's state (see domain/tasks.ts):
+ * dirty opens a cleaning task, inspect closes it and opens an inspection,
+ * ready closes both. Runs inside the transaction that changes the state.
+ */
+async function syncCleaningTasks(tx: Executor, unitId: string, to: HkState, actor: Actor, note: string | null, now: Date) {
+  const [unit] = await tx
+    .select({ propertyId: schema.units.propertyId, checkInTime: schema.properties.checkInTime, timezone: schema.properties.timezone })
+    .from(schema.units)
+    .innerJoin(schema.properties, eq(schema.properties.id, schema.units.propertyId))
+    .where(eq(schema.units.id, unitId));
+  if (!unit) return;
+  const by = actor.id ?? actor.type;
+  const finish = (kind: "clean" | "inspect", status: "done" | "cancelled") =>
+    tx
+      .update(schema.tasks)
+      .set({ status, completedAt: now, completedBy: by, updatedAt: now })
+      .where(and(eq(schema.tasks.unitId, unitId), eq(schema.tasks.kind, kind), inArray(schema.tasks.status, [...ACTIVE_TASK])));
+  const open = async (kind: "clean" | "inspect") => {
+    const due = await nextArrivalDue(tx, unitId, todayIn(unit.timezone, now), unit.checkInTime);
+    await tx
+      .insert(schema.tasks)
+      .values({ propertyId: unit.propertyId, unitId, kind, title: kind === "clean" ? "Clean villa" : "Inspect villa", notes: note, ...due, createdBy: by, createdAt: now, updatedAt: now })
+      .onConflictDoNothing();
+  };
+  if (to === "dirty") {
+    await finish("inspect", "cancelled");
+    await open("clean");
+  } else if (to === "inspect") {
+    await finish("clean", "done");
+    await open("inspect");
+  } else {
+    await finish("clean", "done");
+    await finish("inspect", "done");
+  }
 }
 
 export async function openBlockToday(db: Executor, unitId: string, today: string) {
@@ -200,7 +257,8 @@ export async function resolveBlock(db: AnyDb, input: { blockId: string; actor: A
       .where(eq(schema.unitBlocks.id, block.id));
     const from = await unitState(tx, block.unitId);
     // A dirty unit stays dirty (it still needs cleaning); a ready one must be re-inspected.
-    if (from === "ready") await recordState(tx, block.unitId, from, "inspect", input.actor, `Maintenance finished: ${block.reason}`, now);
+    // The note is the reason staff wrote (in their own language), not fixed English text.
+    if (from === "ready") await recordState(tx, block.unitId, from, "inspect", input.actor, block.reason, now);
     await tx.insert(schema.auditEvents).values({
       actorType: input.actor.type,
       actorId: input.actor.id ?? null,

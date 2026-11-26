@@ -277,7 +277,8 @@
     "villaStatus": "Status vila",
     "newBooking": "Reservasi baru",
     "reports": "Laporan",
-    "channels": "Kanal"
+    "channels": "Kanal",
+    "tasks": "Tugas"
   },
   "resList": {
     "title": "Reservasi",
@@ -1127,5 +1128,86 @@
       "manual": "di meja depan"
     },
     "backToReservation": "Kembali ke reservasi"
+  },
+  "tasks": {
+    "title": "Tugas",
+    "intro": "Bersihkan dan inspeksi vila (dibuat otomatis setelah check-out), tiket maintenance, dan permintaan tamu. Tugas yang paling mendesak tampil paling atas.",
+    "mine": "Tugas saya ({count})",
+    "mineEmpty": "Tidak ada tugas untuk Anda.",
+    "unassigned": "Belum ada petugas ({count})",
+    "unassignedEmpty": "Semua tugas sudah ada petugasnya.",
+    "others": "Dikerjakan orang lain ({count})",
+    "doneRecently": "Selesai dalam 24 jam terakhir ({count})",
+    "kinds": {
+      "clean": "Bersihkan vila",
+      "inspect": "Inspeksi vila",
+      "request": "Permintaan tamu"
+    },
+    "kindLabels": {
+      "clean": "Bersih",
+      "inspect": "Inspeksi",
+      "maintenance": "Maintenance",
+      "request": "Permintaan"
+    },
+    "inProgress": "sedang dikerjakan",
+    "villaBlocked": "vila diblokir",
+    "dueToday": "Sebelum {time} hari ini",
+    "dueOn": "Sebelum {date} {time}",
+    "late": "Terlambat",
+    "assignedTo": "Petugas: {name}",
+    "nobody": "Belum ada petugas",
+    "claim": "Ambil",
+    "start": "Mulai",
+    "assign": "Tugaskan",
+    "finishCleaning": "Selesai dibersihkan",
+    "noteOptional": "Catatan (opsional)",
+    "checklist": "Checklist inspeksi",
+    "inspectionNote": "Catatan (wajib bila tidak lulus)",
+    "pass": "Lulus, vila siap",
+    "fail": "Tidak lulus, bersihkan ulang",
+    "passed": "Inspeksi lulus.",
+    "failed": "Inspeksi tidak lulus: {items}",
+    "finishMaintenance": "Selesai diperbaiki",
+    "finishRequest": "Selesai",
+    "cancel": "Batalkan",
+    "reportTitle": "Laporkan kerusakan (maintenance)",
+    "villa": "Vila",
+    "reportWhat": "Apa yang rusak",
+    "reportWhatHint": "mis. AC kamar utama bocor",
+    "notes": "Keterangan",
+    "reportBlock": "Blokir vila sampai diperbaiki",
+    "reportBlockUntil": "Blokir sampai (tidak termasuk)",
+    "reportSubmit": "Kirim laporan",
+    "checklistsTitle": "Checklist inspeksi per tipe vila",
+    "checklistsHint": "Satu item per baris. Petugas harus mencentang semua item sebelum vila dinyatakan siap.",
+    "checklistSave": "Simpan checklist",
+    "defaultChecklist": {
+      "bedroom": "Kamar tidur rapi, sprei dan sarung bantal baru",
+      "bathroom": "Kamar mandi bersih, handuk baru",
+      "amenities": "Perlengkapan mandi dan air minum lengkap",
+      "minibar": "Minibar terisi dan dicek",
+      "pool": "Kolam dan area luar bersih",
+      "working": "AC, lampu, TV, dan Wi-Fi berfungsi",
+      "lostFound": "Tidak ada barang tamu tertinggal"
+    },
+    "done": {
+      "1": "Tersimpan.",
+      "reported": "Laporan maintenance dibuat.",
+      "checklist": "Checklist disimpan."
+    },
+    "errors": {
+      "not_found": "Tugas tidak ditemukan.",
+      "role": "Peran Anda tidak dapat melakukan ini.",
+      "not_active": "Tugas ini sudah selesai atau dibatalkan.",
+      "wrong_kind": "Aksi ini tidak berlaku untuk jenis tugas ini.",
+      "invalid_assignee": "Petugas tidak bisa menerima tugas di properti ini.",
+      "already_assigned": "Tugas ini sudah diambil orang lain.",
+      "checklist_incomplete": "Centang semua item checklist sebelum menyatakan lulus.",
+      "note_required": "Tulis catatan mengapa inspeksi tidak lulus.",
+      "invalid_title": "Tulis apa yang rusak.",
+      "invalid_dates": "Tanggal blokir tidak valid.",
+      "blocked_dates_taken": "Vila tidak bisa diblokir: ada booking pada tanggal itu. Pindahkan dulu",
+      "unit_state": "Status vila tidak sesuai (mis. tamu masih menginap atau sudah diubah orang lain)."
+    }
   }
 }

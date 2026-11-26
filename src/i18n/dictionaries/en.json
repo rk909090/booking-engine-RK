@@ -277,7 +277,8 @@
     "villaStatus": "Villa status",
     "newBooking": "New booking",
     "reports": "Reports",
-    "channels": "Channels"
+    "channels": "Channels",
+    "tasks": "Tasks"
   },
   "resList": {
     "title": "Reservations",
@@ -1127,5 +1128,86 @@
       "manual": "at the front desk"
     },
     "backToReservation": "Back to the reservation"
+  },
+  "tasks": {
+    "title": "Tasks",
+    "intro": "Villa cleaning and inspection (created automatically after check-out), maintenance tickets, and guest requests. The most urgent tasks come first.",
+    "mine": "My tasks ({count})",
+    "mineEmpty": "No tasks for you.",
+    "unassigned": "Not assigned ({count})",
+    "unassignedEmpty": "Every task has someone on it.",
+    "others": "Assigned to others ({count})",
+    "doneRecently": "Done in the last 24 hours ({count})",
+    "kinds": {
+      "clean": "Clean villa",
+      "inspect": "Inspect villa",
+      "request": "Guest request"
+    },
+    "kindLabels": {
+      "clean": "Cleaning",
+      "inspect": "Inspection",
+      "maintenance": "Maintenance",
+      "request": "Request"
+    },
+    "inProgress": "in progress",
+    "villaBlocked": "villa blocked",
+    "dueToday": "By {time} today",
+    "dueOn": "By {date} {time}",
+    "late": "Late",
+    "assignedTo": "Assigned: {name}",
+    "nobody": "Nobody yet",
+    "claim": "Take",
+    "start": "Start",
+    "assign": "Assign",
+    "finishCleaning": "Cleaning done",
+    "noteOptional": "Note (optional)",
+    "checklist": "Inspection checklist",
+    "inspectionNote": "Note (required if it fails)",
+    "pass": "Passed, villa ready",
+    "fail": "Failed, clean again",
+    "passed": "Inspection passed.",
+    "failed": "Inspection failed: {items}",
+    "finishMaintenance": "Fixed",
+    "finishRequest": "Done",
+    "cancel": "Cancel",
+    "reportTitle": "Report a problem (maintenance)",
+    "villa": "Villa",
+    "reportWhat": "What is broken",
+    "reportWhatHint": "e.g. master bedroom AC leaking",
+    "notes": "Details",
+    "reportBlock": "Block the villa until it is fixed",
+    "reportBlockUntil": "Block until (exclusive)",
+    "reportSubmit": "Send report",
+    "checklistsTitle": "Inspection checklists per villa type",
+    "checklistsHint": "One item per line. Every item must be ticked before a villa is declared ready.",
+    "checklistSave": "Save checklist",
+    "defaultChecklist": {
+      "bedroom": "Bedroom tidy, fresh sheets and pillowcases",
+      "bathroom": "Bathroom clean, fresh towels",
+      "amenities": "Toiletries and drinking water complete",
+      "minibar": "Minibar stocked and checked",
+      "pool": "Pool and outdoor area clean",
+      "working": "AC, lights, TV and Wi-Fi working",
+      "lostFound": "No guest belongings left behind"
+    },
+    "done": {
+      "1": "Saved.",
+      "reported": "Maintenance report created.",
+      "checklist": "Checklist saved."
+    },
+    "errors": {
+      "not_found": "Task not found.",
+      "role": "Your role cannot do this.",
+      "not_active": "This task is already done or cancelled.",
+      "wrong_kind": "This action does not apply to this kind of task.",
+      "invalid_assignee": "That person cannot take tasks at this property.",
+      "already_assigned": "Someone else already took this task.",
+      "checklist_incomplete": "Tick every checklist item before passing.",
+      "note_required": "Write why the inspection failed.",
+      "invalid_title": "Write what is broken.",
+      "invalid_dates": "The block date is not valid.",
+      "blocked_dates_taken": "The villa cannot be blocked: there are bookings on those dates. Move them first",
+      "unit_state": "The villa is not in the expected state (e.g. a guest is still in, or someone changed it)."
+    }
   }
 }

@@ -23,12 +23,13 @@ export function OpsShell({ lang, dict, children }: { lang: Locale; dict: Diction
   );
 }
 
-type NavKey = "home" | "reservations" | "calendar" | "villaStatus" | "reports" | "channels";
+type NavKey = "home" | "reservations" | "calendar" | "villaStatus" | "tasks" | "reports" | "channels";
 const items: Array<{ key: NavKey; href: string; action: Action }> = [
   { key: "home", href: "", action: "dashboard.view" },
   { key: "reservations", href: "/reservations", action: "reservation.view" },
   { key: "calendar", href: "/calendar", action: "calendar.view" },
   { key: "villaStatus", href: "/villa-status", action: "villa_status.view" },
+  { key: "tasks", href: "/tasks", action: "tasks.view" },
   { key: "reports", href: "/reports", action: "performance.view" },
   { key: "channels", href: "/channels", action: "channels.manage" },
 ];
