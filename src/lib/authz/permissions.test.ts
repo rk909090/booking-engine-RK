@@ -25,6 +25,15 @@ describe("permissions matrix", () => {
     expect(can(director, "portfolio.view")).toEqual({ allowed: true });
   });
 
+  it("lets directors look at tasks, villa status and rates without changing them", () => {
+    const director = actor("director", { propertyIds: [] });
+    for (const action of ["tasks.view", "villa_status.view", "rates.view"] as const) expect(can(director, action, UBUD).allowed).toBe(true);
+    for (const action of ["tasks.work", "tasks.assign", "tasks.configure", "housekeeping.update", "unit.block", "rates.manage", "addon.manage"] as const) {
+      expect(can(director, action, UBUD).allowed).toBe(false);
+    }
+    expect(can(actor("front_office"), "rates.view", UBUD).allowed).toBe(false);
+  });
+
   it("lets only branch managers cancel", () => {
     expect(can(actor("branch_manager"), "reservation.cancel", UBUD).allowed).toBe(true);
     expect(can(actor("front_office"), "reservation.cancel", UBUD)).toEqual({

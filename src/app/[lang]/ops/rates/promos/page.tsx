@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { NoAccess, OpsNav, OpsShell } from "@/components/ops/ops-shell";
+import { ReadOnly } from "@/components/ops/read-only";
 import { RatesTabs } from "@/components/ops/rates-tabs";
 import { ErrorNote, SuccessNote } from "@/components/ui";
 import { getDb } from "@/db/client";
@@ -41,12 +42,13 @@ const input = "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm t
 
 async function Promos({ lang, dict, searchParams }: { lang: Locale; dict: Dictionary; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const staff = await requireStaff(lang);
-  if (!can(staff.actor, "rates.manage").allowed) return <NoAccess lang={lang} dict={dict} staff={staff} />;
+  if (!can(staff.actor, "rates.view").allowed) return <NoAccess lang={lang} dict={dict} staff={staff} />;
   const t = dict.rates;
   const sp = await searchParams;
-  const properties = (await visibleProperties(staff.actor)).filter((p) => can(staff.actor, "rates.manage", p.id).allowed);
+  const properties = (await visibleProperties(staff.actor)).filter((p) => can(staff.actor, "rates.view", p.id).allowed);
   const property = properties.find((p) => p.slug === sp.property) ?? properties[0];
   if (!property) return <NoAccess lang={lang} dict={dict} staff={staff} />;
+  const canManage = can(staff.actor, "rates.manage", property.id).allowed;
   const db = getDb();
   const types = await db.select({ id: schema.unitTypes.id, name: schema.unitTypes.name }).from(schema.unitTypes).where(eq(schema.unitTypes.propertyId, property.id)).orderBy(asc(schema.unitTypes.sortOrder));
   const promos = await db.select().from(schema.promoCodes).where(eq(schema.promoCodes.propertyId, property.id)).orderBy(desc(schema.promoCodes.isActive), desc(schema.promoCodes.createdAt));
@@ -82,6 +84,7 @@ async function Promos({ lang, dict, searchParams }: { lang: Locale; dict: Dictio
         <ErrorNote>{error}</ErrorNote>
       </div>
 
+      <ReadOnly readOnly={!canManage} note={t.readOnly}>
       <section id="promo-list" className="mt-6 scroll-mt-6 rounded-xl border border-line bg-white/70 p-5">
         <h2 className="font-display text-xl text-lagoon">{t.promosTitle}</h2>
         {promos.length ? (
@@ -137,7 +140,9 @@ async function Promos({ lang, dict, searchParams }: { lang: Locale; dict: Dictio
           <p className="mt-2 text-sm text-stone">{t.noPromos}</p>
         )}
       </section>
+      </ReadOnly>
 
+      {canManage ? (
       <section id="new-promo" className="mt-6 scroll-mt-6 rounded-xl border border-line bg-white/70 p-5">
         <h2 className="font-display text-xl text-lagoon">{t.newPromo}</h2>
         <p className="mt-1 text-sm text-stone">{t.newPromoIntro}</p>
@@ -207,6 +212,7 @@ async function Promos({ lang, dict, searchParams }: { lang: Locale; dict: Dictio
           </div>
         </form>
       </section>
+      ) : null}
     </>
   );
 }

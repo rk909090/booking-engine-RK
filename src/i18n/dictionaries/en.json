@@ -1446,7 +1446,8 @@
     "guestTimesTitle": "Flexible times guests can ask for",
     "guestTimesIntro": "From their booking page guests may ask for a late check-out (after {checkOut}) or an early check-in (before {checkIn}); staff still approve each request, and later or earlier times can be arranged at the desk.",
     "lateLatest": "Latest late check-out",
-    "earlyEarliest": "Earliest early check-in"
+    "earlyEarliest": "Earliest early check-in",
+    "readOnly": "View only: rates, offers, add-ons and promo codes are changed by the branch manager."
   },
   "owners": {
     "title": "Owners",

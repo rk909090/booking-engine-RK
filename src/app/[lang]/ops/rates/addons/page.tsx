@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { NoAccess, OpsNav, OpsShell } from "@/components/ops/ops-shell";
+import { ReadOnly } from "@/components/ops/read-only";
 import { RatesTabs } from "@/components/ops/rates-tabs";
 import { ErrorNote, SuccessNote } from "@/components/ui";
 import { getDb } from "@/db/client";
@@ -40,12 +41,13 @@ const input = "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm t
 
 async function Catalog({ lang, dict, searchParams }: { lang: Locale; dict: Dictionary; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const staff = await requireStaff(lang);
-  if (!can(staff.actor, "rates.manage").allowed) return <NoAccess lang={lang} dict={dict} staff={staff} />;
+  if (!can(staff.actor, "rates.view").allowed) return <NoAccess lang={lang} dict={dict} staff={staff} />;
   const t = dict.addons;
   const sp = await searchParams;
-  const properties = (await visibleProperties(staff.actor)).filter((p) => can(staff.actor, "rates.manage", p.id).allowed);
+  const properties = (await visibleProperties(staff.actor)).filter((p) => can(staff.actor, "rates.view", p.id).allowed);
   const property = properties.find((p) => p.slug === sp.property) ?? properties[0];
   if (!property) return <NoAccess lang={lang} dict={dict} staff={staff} />;
+  const canManage = can(staff.actor, "rates.manage", property.id).allowed;
   const addons = await getDb().select().from(schema.addons).where(eq(schema.addons.propertyId, property.id)).orderBy(asc(schema.addons.sortOrder), asc(schema.addons.createdAt));
   const categories = dict.folio.categories as Record<string, string>;
   const done = typeof sp.done === "string" ? dict.rates.saved : undefined;
@@ -130,6 +132,7 @@ async function Catalog({ lang, dict, searchParams }: { lang: Locale; dict: Dicti
         <ErrorNote>{error}</ErrorNote>
       </div>
 
+      <ReadOnly readOnly={!canManage} note={dict.rates.readOnly}>
       <section id="catalog" className="mt-6 scroll-mt-6 rounded-xl border border-line bg-white/70 p-5">
         <h2 className="font-display text-xl text-lagoon">{t.catalogTitle}</h2>
         {addons.length ? (
@@ -166,7 +169,9 @@ async function Catalog({ lang, dict, searchParams }: { lang: Locale; dict: Dicti
           <p className="mt-2 text-sm text-stone">{t.noAddons}</p>
         )}
       </section>
+      </ReadOnly>
 
+      {canManage ? (
       <section id="new-addon" className="mt-6 scroll-mt-6 rounded-xl border border-line bg-white/70 p-5">
         <h2 className="font-display text-xl text-lagoon">{t.newAddon}</h2>
         <p className="mt-1 text-sm text-stone">{t.newAddonIntro}</p>
@@ -178,6 +183,7 @@ async function Catalog({ lang, dict, searchParams }: { lang: Locale; dict: Dicti
           </button>
         </form>
       </section>
+      ) : null}
     </>
   );
 }

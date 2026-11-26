@@ -32,7 +32,7 @@ const items: Array<{ key: NavKey; href: string; action: Action | Action[] }> = [
   { key: "villaStatus", href: "/villa-status", action: "villa_status.view" },
   { key: "tasks", href: "/tasks", action: "tasks.view" },
   { key: "reports", href: "/reports", action: "performance.view" },
-  { key: "rates", href: "/rates", action: "rates.manage" },
+  { key: "rates", href: "/rates", action: "rates.view" },
   // Front office reach the owners area for expenses only.
   { key: "owners", href: "/owners", action: ["owners.view", "owners.expense"] },
   { key: "channels", href: "/channels", action: "channels.manage" },

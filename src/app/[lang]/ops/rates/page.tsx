@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import { NoAccess, OpsNav, OpsShell } from "@/components/ops/ops-shell";
+import { ReadOnly } from "@/components/ops/read-only";
 import { RatesTabs } from "@/components/ops/rates-tabs";
 import { ErrorNote, SuccessNote } from "@/components/ui";
 import { getDb } from "@/db/client";
@@ -51,14 +52,15 @@ const pct = (bp: number | null | undefined) => (bp ? String(bp / 100) : "");
 
 async function Rates({ lang, dict, searchParams }: { lang: Locale; dict: Dictionary; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const staff = await requireStaff(lang);
-  if (!can(staff.actor, "rates.manage").allowed) return <NoAccess lang={lang} dict={dict} staff={staff} />;
+  if (!can(staff.actor, "rates.view").allowed) return <NoAccess lang={lang} dict={dict} staff={staff} />;
   const t = dict.rates;
   const sp = await searchParams;
-  const properties = (await visibleProperties(staff.actor)).filter((p) => can(staff.actor, "rates.manage", p.id).allowed);
+  const properties = (await visibleProperties(staff.actor)).filter((p) => can(staff.actor, "rates.view", p.id).allowed);
   const chosen = properties.find((p) => p.slug === sp.property) ?? properties[0];
   if (!chosen) return <NoAccess lang={lang} dict={dict} staff={staff} />;
   const db = getDb();
   const [property] = await db.select().from(schema.properties).where(eq(schema.properties.id, chosen.id));
+  const canManage = can(staff.actor, "rates.manage", property.id).allowed;
   const types = await db.select().from(schema.unitTypes).where(eq(schema.unitTypes.propertyId, property.id)).orderBy(asc(schema.unitTypes.sortOrder));
   const seasons = types.length
     ? await db.select().from(schema.rateSeasons).where(inArray(schema.rateSeasons.unitTypeId, types.map((x) => x.id))).orderBy(asc(schema.rateSeasons.startDate))
@@ -91,6 +93,7 @@ async function Rates({ lang, dict, searchParams }: { lang: Locale; dict: Diction
         <ErrorNote>{error}</ErrorNote>
       </div>
 
+      <ReadOnly readOnly={!canManage} note={t.readOnly}>
       <Section id="offers" title={t.offersTitle} intro={t.offersIntro}>
         <form action={updateOffersAction} className="space-y-4">
           {hidden("offers")}
@@ -339,6 +342,7 @@ async function Rates({ lang, dict, searchParams }: { lang: Locale; dict: Diction
           </button>
         </form>
       </Section>
+      </ReadOnly>
     </>
   );
 }

@@ -42,6 +42,7 @@ export const actions = [
   "team.view",
   "settings.view",
   "channels.manage",
+  "rates.view",
   "rates.manage",
   "reports.schedule",
   "owners.view",
@@ -81,7 +82,7 @@ const matrix: Record<Action, readonly Role[]> = {
   /** Add or void folio charges, add paying parties, issue invoices (domain/folio.ts). */
   "folio.charge": R.operators,
   "calendar.view": R.allButHousekeeping,
-  "villa_status.view": ["branch_manager", "front_office", "housekeeping"],
+  "villa_status.view": R.all,
   "housekeeping.update": ["branch_manager", "front_office", "housekeeping"],
   "unit.block": R.operators,
   "guest.view": R.allButHousekeeping,
@@ -100,6 +101,8 @@ const matrix: Record<Action, readonly Role[]> = {
   "settings.view": R.all,
   /** Connect villas to Airbnb/Booking.com calendars (iCal); see domain/ical.ts. */
   "channels.manage": R.managers,
+  /** See rates, seasons, offers, add-ons and promo codes (directors read only). */
+  "rates.view": ["director", "branch_manager"],
   /** Rates, seasons, closed-to-arrival dates, rate plans, automatic discounts and promo codes (domain/rates.ts). */
   "rates.manage": R.managers,
   /** Choose who receives the scheduled report emails (domain/report-schedule.ts). */
@@ -111,7 +114,7 @@ const matrix: Record<Action, readonly Role[]> = {
   /** Record costs charged to owners (also a maintenance ticket's cost). */
   "owners.expense": R.operators,
   /** Housekeeping, maintenance and guest-request tasks (domain/tasks.ts). */
-  "tasks.view": ["branch_manager", "front_office", "housekeeping"],
+  "tasks.view": R.all,
   /** Claim, start and finish tasks; report maintenance. */
   "tasks.work": ["branch_manager", "front_office", "housekeeping"],
   "tasks.assign": R.operators,

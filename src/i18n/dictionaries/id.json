@@ -1446,7 +1446,8 @@
     "guestTimesTitle": "Jam fleksibel yang bisa diminta tamu",
     "guestTimesIntro": "Dari halaman booking, tamu bisa minta late check-out (setelah {checkOut}) atau early check-in (sebelum {checkIn}); staf tetap menyetujui setiap permintaan, dan jam di luar batas ini bisa diatur langsung di meja depan.",
     "lateLatest": "Late check-out paling lambat",
-    "earlyEarliest": "Early check-in paling awal"
+    "earlyEarliest": "Early check-in paling awal",
+    "readOnly": "Hanya-lihat: tarif, penawaran, add-on, dan kode promo diubah oleh Manajer Cabang."
   },
   "owners": {
     "title": "Pemilik",
