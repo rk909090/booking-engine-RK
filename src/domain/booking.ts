@@ -7,7 +7,8 @@ import { queueGuestMessage } from "./notifications";
 import { cancelReservationTasks, syncRequestTask } from "./tasks";
 import type { Locale } from "@/i18n/config";
 import { todayIn } from "./dates";
-import { cancellationOutcome, NON_REFUNDABLE_TIERS, quoteStay, snapshotOf, type PricingRules, type PromoOffer, type Quote, type QuoteError } from "./pricing";
+import { applyBp, cancellationOutcome, NON_REFUNDABLE_TIERS, quoteStay, snapshotOf, type PricingRules, type PromoOffer, type Quote, type QuoteError } from "./pricing";
+import { checkCheckoutAddons, recordCheckoutAddons, type AddonChoice, type AddonError, type CheckedAddons } from "./addons";
 import { findOrCreateGuest } from "./guests";
 import { checkPromo, type PromoError } from "./promos";
 import type { DiscountTerms, RatePlan } from "./types";
@@ -214,6 +215,8 @@ export type HoldInput = {
   discount?: DiscountTerms | null;
   ratePlan?: RatePlan;
   promoCode?: string | null;
+  /** Add-ons chosen at checkout: charged on the booking and confirmed by staff later. */
+  addons?: AddonChoice[];
 };
 
 export type HoldError =
@@ -222,6 +225,7 @@ export type HoldError =
   | { kind: "invalid_guest" }
   | { kind: "sold_out" }
   | { kind: "promo"; error: PromoError }
+  | { kind: "addon"; error: AddonError }
   | ({ kind: "quote" } & { error: QuoteError });
 
 export type HoldResult =
@@ -275,6 +279,15 @@ export async function createHold(db: AnyDb, input: HoldInput): Promise<HoldResul
     if (!priced.ok) return { ok: false, error: { kind: "quote", error: priced.error } } as const;
     const quote = priced.quote;
     const nonRefundable = quote.ratePlan === "non_refundable";
+    let addonCheck: CheckedAddons | null = null;
+    if (input.addons?.length) {
+      addonCheck = await checkCheckoutAddons(tx, { propertyId: property.id, stay: { checkIn: input.checkIn, checkOut: input.checkOut, adults: input.adults, children: input.children }, choices: input.addons, timezone: property.timezone, now });
+      if (!addonCheck.ok) return { ok: false, error: { kind: "addon", error: addonCheck.error } } as const;
+    }
+    // Add-ons join the total, so the deposit covers them too.
+    const addonsTotal = addonCheck?.ok ? addonCheck.total : 0;
+    const totalAmount = quote.total + addonsTotal;
+    const depositAmount = addonsTotal === 0 ? quote.dueNow : quote.payInFull ? totalAmount : applyBp(totalAmount, rules.depositRateBp);
 
     await tx
       .update(schema.reservations)
@@ -343,7 +356,8 @@ export async function createHold(db: AnyDb, input: HoldInput): Promise<HoldResul
               checkOut: input.checkOut,
               adults: input.adults,
               children: input.children,
-              totalAmount: quote.total,
+              totalAmount,
+              extrasAmount: addonsTotal,
               subtotalAmount: quote.subtotal,
               discountAmount: quote.discount ?? 0,
               discount: discount && quote.staffDiscount ? discount : null,
@@ -353,7 +367,7 @@ export async function createHold(db: AnyDb, input: HoldInput): Promise<HoldResul
               breakfastAmount: quote.breakfast ?? 0,
               serviceAmount: quote.service,
               taxAmount: quote.tax,
-              depositAmount: quote.dueNow,
+              depositAmount,
               balanceDueDate: quote.balanceDueDate,
               currency: property.currency,
               holdExpiresAt,
@@ -373,6 +387,7 @@ export async function createHold(db: AnyDb, input: HoldInput): Promise<HoldResul
             .returning();
           return row;
         });
+        if (addonCheck?.ok) await recordCheckoutAddons(tx, reservation, addonCheck.checked, now);
         await tx.insert(schema.auditEvents).values({
           actorType: input.source === "website" ? "guest" : "staff",
           actorId: input.actorId ?? null,

@@ -8,7 +8,7 @@ import { SiteShell } from "@/components/site/site-shell";
 import { ErrorNote, SuccessNote } from "@/components/ui";
 import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
-import { todayIn } from "@/domain/dates";
+import { diffDays, todayIn } from "@/domain/dates";
 import { guaranteeDue } from "@/domain/guarantee";
 import { guestLateCheckout } from "@/domain/late-checkout";
 import { preCheckinOpen, preCheckinView } from "@/domain/pre-checkin";
@@ -21,7 +21,11 @@ import { format } from "@/i18n/format";
 import { formatDate, formatDateRange, formatMoney } from "@/i18n/formatters";
 import { getDictionary, type Dictionary } from "@/i18n/get-dictionary";
 import { verifyBookingAccessToken } from "@/lib/booking/access";
-import { cancelBookingAsGuest, cancelLateCheckoutFromPortal, requestLateCheckoutFromPortal } from "@/lib/booking/actions";
+import { cancelAddonFromPortal, cancelBookingAsGuest, cancelLateCheckoutFromPortal, requestAddonFromPortal, requestLateCheckoutFromPortal } from "@/lib/booking/actions";
+import { AddonFields } from "@/components/addon-fields";
+import { activeAddons, addonOrdersFor } from "@/domain/addons";
+import { addonViews } from "@/lib/addon-views";
+import { stayDays } from "@/lib/addon-input";
 import { offerLabel } from "@/lib/pricing-labels";
 import { latestCheckoutUrl } from "@/lib/site/queries";
 
@@ -96,6 +100,11 @@ async function BookingDetails({
   const balance = balanceDue(r);
   const depositDue = guaranteeDue(r, todayIn(row.timezone));
   const late = r.status === "confirmed" || r.status === "in_house" ? await guestLateCheckout(getDb(), r.id) : null;
+  const canOrderAddons = r.status === "confirmed" || r.status === "in_house";
+  const addonCatalog = canOrderAddons ? addonViews(await activeAddons(getDb(), r.propertyId), lang, dict) : [];
+  const addonOrders = await addonOrdersFor(getDb(), r.id);
+  const addonDates = stayDays(r.checkIn, r.checkOut).map((d) => ({ value: d, label: formatDate(d, lang, { weekday: "short", day: "numeric", month: "short" }) }));
+  const addonMessage = typeof sp.addon === "string" ? (dict.addons.messages as Record<string, string>)[sp.addon] ?? (dict.addons.errors as Record<string, string>)[sp.addon] : undefined;
   const today = todayIn(row.timezone);
   const preOpen = preCheckinOpen(r, today);
   const pre = r.status === "confirmed" || r.status === "in_house" ? await preCheckinView(getDb(), r.id) : null;
@@ -304,6 +313,71 @@ async function BookingDetails({
               )}
             </div>
           )}
+        </section>
+      ) : null}
+
+      {addonOrders.length || addonCatalog.length ? (
+        <section id="addons" className="scroll-mt-6 rounded-2xl border border-line p-5" aria-labelledby="addons-title">
+          <h2 id="addons-title" className="font-display text-xl text-lagoon">
+            {dict.addons.portalTitle}
+          </h2>
+          {addonMessage ? sp.addon === "sent" || sp.addon === "withdrawn" ? <SuccessNote>{addonMessage}</SuccessNote> : <ErrorNote>{addonMessage}</ErrorNote> : null}
+          {addonOrders.length ? (
+            <ul className="mt-3 divide-y divide-line text-sm">
+              {addonOrders.map(({ order: o, addon: a }) => (
+                <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <span>
+                    <span className="font-medium text-ink">{a.name[lang] || a.name.id}</span>
+                    <span className="block text-xs text-stone">
+                      {formatDate(o.serviceDate, lang, { weekday: "short", day: "numeric", month: "short" })}
+                      {o.serviceTime ? ` · ${o.serviceTime.slice(0, 5)}` : ""} · {formatMoney(o.amount, lang)}
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-2 text-xs">
+                    <span className={o.status === "confirmed" ? "font-medium text-success" : o.status === "requested" ? "text-terracotta-deep" : "text-stone"}>{(dict.addons.status as Record<string, string>)[o.status]}</span>
+                    {o.status === "requested" && o.source === "portal" ? (
+                      <form action={cancelAddonFromPortal}>
+                        <input type="hidden" name="lang" value={lang} />
+                        <input type="hidden" name="code" value={r.code} />
+                        <input type="hidden" name="t" value={token} />
+                        <input type="hidden" name="orderId" value={o.id} />
+                        <button type="submit" className="text-stone underline-offset-4 hover:underline">
+                          {dict.addons.withdraw}
+                        </button>
+                      </form>
+                    ) : null}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {addonCatalog.length ? (
+            <div className="mt-4 space-y-3">
+              <p className="text-sm text-stone">{dict.addons.portalIntro}</p>
+              {addonCatalog.map((a) => (
+                <details key={a.id} className="rounded-xl border border-line bg-white/70 p-4">
+                  <summary className="cursor-pointer list-none">
+                    <span className="flex flex-wrap justify-between gap-2 text-sm">
+                      <span className="font-medium text-ink">{a.name}</span>
+                      <span className="text-stone">{a.price}</span>
+                    </span>
+                    {a.description ? <span className="mt-1 block text-xs text-stone">{a.description}</span> : null}
+                  </summary>
+                  <form action={requestAddonFromPortal} className="mt-3 space-y-3">
+                    <input type="hidden" name="lang" value={lang} />
+                    <input type="hidden" name="code" value={r.code} />
+                    <input type="hidden" name="t" value={token} />
+                    <input type="hidden" name="addonId" value={a.id} />
+                    <AddonFields addon={a} prefix="" t={dict.addons} dates={addonDates} guests={r.adults + r.children} nights={Math.max(1, diffDays(r.checkIn, r.checkOut))} />
+                    <p className="text-xs text-stone">{format(dict.addons.leadNote, { hours: a.leadHours })}</p>
+                    <button type="submit" className="rounded-lg bg-lagoon px-4 py-2 text-sm font-medium text-ivory hover:bg-lagoon-deep">
+                      {dict.addons.request}
+                    </button>
+                  </form>
+                </details>
+              ))}
+            </div>
+          ) : null}
         </section>
       ) : null}
 

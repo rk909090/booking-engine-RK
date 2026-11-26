@@ -29,6 +29,7 @@ export type StaffBookingFormError =
   | "invalid_discount"
   | "smaller_than_offer"
   | "promo"
+  | "addon"
   | "over_limit"
   | "guarantee_reason_required"
   | "guarantee_invalid_pay_by"

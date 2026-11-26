@@ -74,7 +74,8 @@ const depositOverdue = (today: string) => sql`(${depositOpen} AND (${schema.rese
 
 /** A late check-out or early check-in request on this booking waits for a decision. */
 const requestPending = sql<boolean>`(EXISTS (SELECT 1 FROM ${schema.lateCheckoutRequests} l WHERE l.reservation_id = ${schema.reservations.id} AND l.status = 'requested')
-  OR EXISTS (SELECT 1 FROM ${schema.earlyCheckinRequests} e WHERE e.reservation_id = ${schema.reservations.id} AND e.status = 'requested'))`;
+  OR EXISTS (SELECT 1 FROM ${schema.earlyCheckinRequests} e WHERE e.reservation_id = ${schema.reservations.id} AND e.status = 'requested')
+  OR EXISTS (SELECT 1 FROM ${schema.addonOrders} a WHERE a.reservation_id = ${schema.reservations.id} AND a.status = 'requested'))`;
 
 export async function listReservations(actor: Actor, filters: ReservationFilters) {
   const db = getDb();

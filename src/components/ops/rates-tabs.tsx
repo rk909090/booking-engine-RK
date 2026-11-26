@@ -3,13 +3,14 @@ import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
 
 /** Switches between rate settings and promo codes, keeping the property. */
-export function RatesTabs({ lang, dict, current, property, properties }: { lang: Locale; dict: Dictionary; current: "rates" | "promos"; property: string; properties: Array<{ slug: string; name: string }> }) {
+export function RatesTabs({ lang, dict, current, property, properties }: { lang: Locale; dict: Dictionary; current: "rates" | "promos" | "addons"; property: string; properties: Array<{ slug: string; name: string }> }) {
   const qs = `?property=${encodeURIComponent(property)}`;
   const tabs = [
     { key: "rates", href: `/${lang}/ops/rates${qs}`, label: dict.rates.tabRates },
     { key: "promos", href: `/${lang}/ops/rates/promos${qs}`, label: dict.rates.tabPromos },
+    { key: "addons", href: `/${lang}/ops/rates/addons${qs}`, label: dict.rates.tabAddons },
   ] as const;
-  const base = current === "rates" ? `/${lang}/ops/rates` : `/${lang}/ops/rates/promos`;
+  const base = current === "rates" ? `/${lang}/ops/rates` : `/${lang}/ops/rates/${current}`;
   return (
     <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-b border-line">
       <nav aria-label={dict.rates.title} className="flex gap-1">

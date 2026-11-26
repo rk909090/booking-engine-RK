@@ -189,7 +189,8 @@
       "agree": "Setujui kebijakan pembatalan untuk melanjutkan.",
       "payment": "Pembayaran belum bisa dibuat. Coba lagi sebentar lagi.",
       "rate_limited": "Terlalu banyak percobaan. Tunggu beberapa menit lalu coba lagi.",
-      "promo": "Kode promo tidak bisa dipakai lagi. Hapus kode atau coba lagi."
+      "promo": "Kode promo tidak bisa dipakai lagi. Hapus kode atau coba lagi.",
+      "addon": "Add-on tidak bisa ditambahkan."
     },
     "planTitle": "Pilih tarif",
     "planChosen": "Dipilih",
@@ -450,7 +451,16 @@
       "folio_invalid_amount": "Jumlah melebihi sisa tagihan pihak ini.",
       "folio_invalid_method": "Metode pembayaran tidak valid.",
       "folio_invalid_name": "Tulis nama pihak.",
-      "discount_smaller_than_offer": "Booking ini sudah mendapat diskon yang lebih besar (promo, early-bird, atau menginap lama). Hanya satu diskon yang berlaku, jadi diskon ini tidak akan terhitung."
+      "discount_smaller_than_offer": "Booking ini sudah mendapat diskon yang lebih besar (promo, early-bird, atau menginap lama). Hanya satu diskon yang berlaku, jadi diskon ini tidak akan terhitung.",
+      "addon_not_found": "Add-on ini tidak tersedia.",
+      "addon_not_allowed": "Add-on hanya bisa ditambahkan ke booking terkonfirmasi atau sedang menginap.",
+      "addon_invalid_date": "Pilih hari dalam masa inap.",
+      "addon_invalid_time": "Pilih jamnya.",
+      "addon_too_late": "Terlalu dekat dengan waktu layanan.",
+      "addon_invalid_count": "Periksa jumlah orang, malam, atau jumlah pesanan.",
+      "addon_already_decided": "Pesanan ini sudah ditangani.",
+      "addon_reason_required": "Alasan wajib diisi.",
+      "addon_charge_failed": "Tagihan tidak bisa diperbarui."
     },
     "activityTitle": "Aktivitas",
     "noActivity": "Belum ada aktivitas.",
@@ -726,7 +736,8 @@
       "guarantee_failed": "Konfirmasi tanpa deposit gagal dan vila sudah dilepas. Coba lagi.",
       "guarantee_role": "Peran Anda tidak dapat mengonfirmasi tanpa deposit.",
       "smaller_than_offer": "Diskon Anda lebih kecil dari promo atau diskon otomatis yang sudah berlaku. Satu booking hanya memakai satu diskon.",
-      "promo": "Kode promo tidak bisa dipakai lagi untuk masa menginap ini. Perbarui harga lalu coba lagi."
+      "promo": "Kode promo tidak bisa dipakai lagi untuk masa menginap ini. Perbarui harga lalu coba lagi.",
+      "addon": "Add-on tidak bisa ditambahkan."
     },
     "modeReceivedHintFull": "Booking langsung terkonfirmasi. Kedatangan sudah dekat, jadi harus lunas: {amount}.",
     "discountTitle": "Diskon (opsional)",
@@ -1011,6 +1022,11 @@
     "payment": {
       "subject": "Pengingat pembayaran · {code}",
       "intro": "Pengingat: pembayaran {amount} jatuh tempo pada {date}. Abaikan pesan ini bila sudah membayar."
+    },
+    "addon": {
+      "subject": "Permintaan add-on Anda · {code}",
+      "confirmed": "{addon} pada {when} sudah dikonfirmasi. {amount} ditambahkan ke tagihan Anda.",
+      "declined": "Mohon maaf, kami tidak bisa menyiapkan {addon} pada {when}. Tidak ada biaya untuk itu (bila sudah dibayar, akan dikembalikan)."
     }
   },
   "messageLog": {
@@ -1034,7 +1050,8 @@
       "late_checkout_decided": "Keputusan late check-out",
       "early_checkin_decided": "Keputusan early check-in",
       "precheckin_reminder": "Pengingat pre-check-in",
-      "payment_reminder": "Pengingat pembayaran"
+      "payment_reminder": "Pengingat pembayaran",
+      "addon_decided": "Keputusan add-on"
     },
     "inactive": "{channels} belum aktif: pesan menunggu sampai kuncinya diisi di hPanel, dan dilewati bila belum terkirim dalam 48 jam."
   },
@@ -1363,7 +1380,8 @@
       "overlap": "Musim ini bertumpuk dengan musim lain pada tipe vila yang sama.",
       "code_taken": "Kode ini sudah ada di properti ini.",
       "tiers": "Periksa tingkat menginap lama: minimal 2 malam, jumlah malam berbeda, dan persentase antara 0,01 dan 90."
-    }
+    },
+    "tabAddons": "Add-on & pengalaman"
   },
   "owners": {
     "title": "Pemilik",
@@ -1577,6 +1595,97 @@
       "anonymized": "Data pribadi tamu ini sudah dihapus.",
       "active_booking": "Tamu masih punya booking aktif (ditahan, terkonfirmasi, atau sedang menginap). Hapus datanya setelah booking selesai atau dibatalkan.",
       "none_selected": "Pilih minimal satu booking."
+    }
+  },
+  "addons": {
+    "day": "Hari",
+    "time": "Jam",
+    "persons": "Orang",
+    "nights": "Malam / hari",
+    "quantity": "Jumlah",
+    "note": "Catatan (opsional)",
+    "notePlaceholder": "mis. vegetarian, penerbangan QF43",
+    "pricing": {
+      "per_booking": "{price}",
+      "per_person": "{price} / orang",
+      "per_night": "{price} / malam",
+      "per_person_night": "{price} / orang / malam"
+    },
+    "pricingNames": {
+      "per_booking": "Tetap per pesanan (× jumlah)",
+      "per_person": "Per orang",
+      "per_night": "Per malam / hari",
+      "per_person_night": "Per orang per malam"
+    },
+    "checkoutTitle": "Tambah pengalaman (opsional)",
+    "checkoutIntro": "Add-on yang dipilih ditambahkan ke total (deposit ikut menghitungnya); jumlah akhir tampil di langkah pembayaran. Tim kami mengonfirmasi setiap add-on dan mengabari Anda; yang tidak bisa disiapkan akan dikembalikan dananya.",
+    "portalTitle": "Pengalaman & add-on",
+    "portalIntro": "Minta pengalaman untuk masa inap Anda. Tim kami mengonfirmasi lalu menambahkannya ke tagihan; dibayar bersama sisa tagihan atau di vila.",
+    "leadNote": "Mohon minta paling lambat {hours} jam sebelumnya.",
+    "request": "Kirim permintaan",
+    "withdraw": "Tarik kembali",
+    "status": {
+      "requested": "Menunggu konfirmasi",
+      "confirmed": "Dikonfirmasi",
+      "declined": "Tidak tersedia",
+      "cancelled": "Dibatalkan"
+    },
+    "sources": {
+      "checkout": "saat booking",
+      "portal": "dari halaman booking",
+      "staff": "oleh staf"
+    },
+    "messages": {
+      "sent": "Permintaan terkirim. Kami akan segera mengonfirmasi.",
+      "withdrawn": "Permintaan ditarik kembali.",
+      "rate_limited": "Terlalu banyak permintaan. Coba lagi beberapa menit lagi."
+    },
+    "errors": {
+      "not_found": "Add-on ini tidak tersedia.",
+      "not_allowed": "Add-on hanya bisa diminta untuk booking yang sudah terkonfirmasi.",
+      "invalid_date": "Pilih hari dalam masa inap Anda.",
+      "invalid_time": "Pilih jamnya.",
+      "too_late": "Waktunya terlalu dekat. Silakan hubungi kami langsung.",
+      "invalid_count": "Periksa jumlah orang, malam, atau jumlah pesanan.",
+      "already_decided": "Permintaan ini sudah ditangani.",
+      "reason_required": "Alasan wajib diisi.",
+      "charge_failed": "Tagihan tidak bisa diperbarui."
+    },
+    "staffTitle": "Add-on & pengalaman",
+    "unitsLine": "{units} × {price}",
+    "reasonLine": "Alasan: {reason}",
+    "onBill": "sudah di tagihan",
+    "confirm": "Konfirmasi",
+    "decline": "Tolak",
+    "declineReason": "Alasan (tamu menerima kabar tidak tersedia)",
+    "cancelOrder": "Batalkan pesanan",
+    "cancelReason": "Alasan",
+    "noOrders": "Belum ada add-on di booking ini.",
+    "addForGuest": "Tambahkan untuk tamu",
+    "staffAddHint": "Langsung dikonfirmasi dan masuk tagihan; juga muncul di papan Tugas. Batas waktu pemesanan tidak berlaku.",
+    "addConfirmed": "Tambahkan (terkonfirmasi)",
+    "catalogIntro": "Add-on dan pengalaman yang bisa dipesan tamu saat checkout atau dari halaman booking. Harga sudah termasuk pajak dan service, seperti biaya lain.",
+    "catalogTitle": "Katalog",
+    "noAddons": "Belum ada add-on.",
+    "newAddon": "Add-on baru",
+    "newAddonIntro": "Beri nama dalam dua bahasa. Mengubah harga nanti tidak mengubah pesanan yang sudah dibuat.",
+    "nameId": "Nama (Indonesia)",
+    "nameEn": "Nama (Inggris)",
+    "descId": "Deskripsi (Indonesia)",
+    "descEn": "Deskripsi (Inggris)",
+    "category": "Kategori tagihan",
+    "pricingLabel": "Cara hitung",
+    "priceLabel": "Harga (Rp)",
+    "leadHoursLabel": "Pesan paling lambat (jam)",
+    "sortOrder": "Urutan",
+    "needsTime": "Tamu memilih jam",
+    "active": "Ditawarkan ke tamu",
+    "off": "nonaktif",
+    "create": "Tambah ke katalog",
+    "catalogErrors": {
+      "not_found": "Tidak ditemukan.",
+      "role": "Hanya manajer cabang yang bisa mengubah katalog.",
+      "invalid": "Periksa isiannya: nama dua bahasa, harga rupiah bulat di atas 0, batas pesan 0–720 jam."
     }
   }
 }

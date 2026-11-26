@@ -29,6 +29,7 @@ import {
   type OwnerStatementData,
   type DiscountTerms,
   type Guarantee,
+  type LocalizedText,
   type LongStayTier,
   type PolicySnapshot,
   type PriceSnapshot,
@@ -1026,5 +1027,91 @@ export const ownerStatements = pgTable(
     check("owner_statements_status", sql`${t.status} IN ('locked', 'paid')`),
     check("owner_statements_month_first_day", sql`extract(day from ${t.month}) = 1`),
     index("owner_statements_property_month_idx").on(t.propertyId, t.month),
+  ],
+);
+
+/*
+ * Add-ons and experiences (decided with the owner, 26 Nov 2026): a catalog
+ * per property (private chef, spa, transfer, tours, decoration...), priced
+ * per booking, per person, per night or per person per night, prices
+ * including tax and service like other charges. Guests add them at checkout
+ * (they join the booking total, so the deposit covers them) or later from
+ * their booking page; staff add them too. Staff confirm or decline each
+ * order: a confirmed order becomes a task and, if not charged yet, a charge
+ * on the bill; a declined checkout order is taken off the bill (refund owed
+ * if already paid).
+ */
+export const ADDON_PRICING = ["per_booking", "per_person", "per_night", "per_person_night"] as const;
+
+export const addons = pgTable(
+  "addons",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id),
+    name: jsonb("name").$type<LocalizedText>().notNull(),
+    description: jsonb("description").$type<LocalizedText>(),
+    /** Folio category the charge is booked under. */
+    category: text("category").notNull(),
+    pricing: text("pricing").notNull(),
+    price: bigint("price", { mode: "number" }).notNull(),
+    /** The guest chooses a time (chef dinner, spa, transfer). */
+    needsTime: boolean("needs_time").notNull().default(true),
+    /** Orders must be placed at least this many hours before the service. */
+    leadHours: smallint("lead_hours").notNull().default(24),
+    isActive: boolean("is_active").notNull().default(true),
+    sortOrder: smallint("sort_order").notNull().default(0),
+    createdBy: text("created_by").notNull(),
+    ...timestamps,
+  },
+  (t) => [
+    check("addons_pricing", sql`${t.pricing} IN ('per_booking', 'per_person', 'per_night', 'per_person_night')`),
+    check("addons_category", sql`${t.category} IN ('food_beverage', 'minibar', 'spa', 'transfer', 'laundry', 'tour', 'other')`),
+    check("addons_price_positive", sql`${t.price} > 0`),
+    check("addons_lead_hours_range", sql`${t.leadHours} BETWEEN 0 AND 720`),
+    index("addons_property_idx").on(t.propertyId, t.sortOrder),
+  ],
+);
+
+export const addonOrders = pgTable(
+  "addon_orders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reservationId: uuid("reservation_id")
+      .notNull()
+      .references(() => reservations.id, { onDelete: "cascade" }),
+    addonId: uuid("addon_id")
+      .notNull()
+      .references(() => addons.id),
+    /** requested, confirmed, declined, cancelled */
+    status: text("status").notNull().default("requested"),
+    /** checkout, portal or staff */
+    source: text("source").notNull(),
+    serviceDate: date("service_date", { mode: "string" }).notNull(),
+    serviceTime: time("service_time"),
+    persons: smallint("persons").notNull().default(1),
+    nights: smallint("nights").notNull().default(1),
+    quantity: smallint("quantity").notNull().default(1),
+    /** Units charged (persons, nights or both, or the quantity) and the price per unit at order time. */
+    units: smallint("units").notNull(),
+    unitPrice: bigint("unit_price", { mode: "number" }).notNull(),
+    amount: bigint("amount", { mode: "number" }).notNull(),
+    note: text("note"),
+    /** The charge on the bill (checkout orders have one from the start; others once confirmed). */
+    folioChargeId: uuid("folio_charge_id").references(() => folioCharges.id),
+    taskId: uuid("task_id").references(() => tasks.id, { onDelete: "set null" }),
+    decidedBy: text("decided_by"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    declineReason: text("decline_reason"),
+    ...timestamps,
+  },
+  (t) => [
+    check("addon_orders_status", sql`${t.status} IN ('requested', 'confirmed', 'declined', 'cancelled')`),
+    check("addon_orders_source", sql`${t.source} IN ('checkout', 'portal', 'staff')`),
+    check("addon_orders_counts", sql`${t.persons} >= 1 AND ${t.nights} >= 1 AND ${t.quantity} >= 1 AND ${t.units} >= 1`),
+    check("addon_orders_amount", sql`${t.amount} = ${t.units} * ${t.unitPrice}`),
+    index("addon_orders_reservation_idx").on(t.reservationId),
+    index("addon_orders_status_idx").on(t.status, t.serviceDate),
   ],
 );

@@ -55,7 +55,7 @@ function bookingLink(code: string, locale: Locale) {
 /** First name for a friendly greeting. */
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;
 
-type Payload = { refund?: number; fee?: number; approved?: boolean; time?: string; amount?: number; dueDate?: string; payBy?: string; depositDue?: number };
+type Payload = { refund?: number; fee?: number; approved?: boolean; time?: string; amount?: number; dueDate?: string; payBy?: string; depositDue?: number; addon?: { id: string; en: string }; date?: string };
 
 export async function renderEmail(message: OutboxMessage, ctx: MessageContext): Promise<EmailMessage> {
   const { r } = ctx;
@@ -100,6 +100,13 @@ export async function renderEmail(message: OutboxMessage, ctx: MessageContext): 
       subject = format(t.precheckin.subject, vars);
       lines.push(format(t.precheckin.intro, { ...vars, days: Math.max(1, diffDays(todayIn(ctx.timezone), r.checkIn)) }));
       break;
+    case "addon_decided": {
+      const name = (p.addon as { id: string; en: string } | undefined)?.[locale] ?? "";
+      const when = `${p.date ? date(String(p.date)) : ""}${p.time ? ` ${p.time}` : ""}`;
+      subject = format(t.addon.subject, vars);
+      lines.push(p.approved ? format(t.addon.confirmed, { addon: name, when, amount: money(Number(p.amount ?? 0)) }) : format(t.addon.declined, { addon: name, when }));
+      break;
+    }
     case "payment_reminder":
       subject = format(t.payment.subject, vars);
       lines.push(format(t.payment.intro, { amount: money(p.amount ?? balanceDue(r)), date: date(p.dueDate ?? r.balanceDueDate ?? r.checkIn) }));
@@ -165,6 +172,11 @@ export function renderWhatsApp(message: OutboxMessage, ctx: MessageContext): Wha
     }
     case "precheckin_reminder":
       return make("precheckin_reminder", [name, ctx.propertyName, formatDate(r.checkIn, locale), link]);
+    case "addon_decided": {
+      const addon = (p.addon as { id: string; en: string } | undefined)?.[locale] ?? "";
+      const when = `${p.date ? formatDate(String(p.date), locale) : ""}${p.time ? ` ${p.time}` : ""}`;
+      return p.approved ? make("addon_confirmed", [name, addon, when, money(Number(p.amount ?? 0)), link]) : make("addon_declined", [name, addon, when, link]);
+    }
     case "payment_reminder":
       return make("payment_reminder", [name, money(p.amount ?? balanceDue(r)), formatDate(p.dueDate ?? r.balanceDueDate ?? r.checkIn, locale), link]);
   }

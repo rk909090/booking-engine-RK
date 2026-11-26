@@ -31,6 +31,7 @@ export const actions = [
   "villa_status.view",
   "housekeeping.update",
   "unit.block",
+  "addon.manage",
   "guest.view",
   "guest.edit",
   "guest.merge",
@@ -83,6 +84,8 @@ const matrix: Record<Action, readonly Role[]> = {
   "housekeeping.update": ["branch_manager", "front_office", "housekeeping"],
   "unit.block": R.operators,
   "guest.view": R.allButHousekeeping,
+  /** Confirm, decline, cancel or add add-on orders on a booking (domain/addons.ts). */
+  "addon.manage": R.operators,
   /** Contact details, notes, preferences and tags of a guest profile (domain/guests.ts). */
   "guest.edit": R.operators,
   "guest.merge": R.operators,

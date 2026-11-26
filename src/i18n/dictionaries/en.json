@@ -189,7 +189,8 @@
       "agree": "Please agree to the cancellation policy to continue.",
       "payment": "We could not start the payment. Please try again shortly.",
       "rate_limited": "Too many attempts. Please wait a few minutes and try again.",
-      "promo": "The promo code can no longer be used. Remove it or try again."
+      "promo": "The promo code can no longer be used. Remove it or try again.",
+      "addon": "An add-on could not be added."
     },
     "planTitle": "Choose your rate",
     "planChosen": "Selected",
@@ -450,7 +451,16 @@
       "folio_invalid_amount": "The amount is more than this party owes.",
       "folio_invalid_method": "The payment method is not valid.",
       "folio_invalid_name": "Write the party name.",
-      "discount_smaller_than_offer": "The booking already has a larger discount (promo, early-bird or long-stay). Only one discount applies, so this one would not count."
+      "discount_smaller_than_offer": "The booking already has a larger discount (promo, early-bird or long-stay). Only one discount applies, so this one would not count.",
+      "addon_not_found": "This add-on is not available.",
+      "addon_not_allowed": "Add-ons can be added to confirmed or in-house bookings only.",
+      "addon_invalid_date": "Choose a day within the stay.",
+      "addon_invalid_time": "Choose a time.",
+      "addon_too_late": "Too close to the service time.",
+      "addon_invalid_count": "Check the persons, nights or quantity.",
+      "addon_already_decided": "This order has already been handled.",
+      "addon_reason_required": "A reason is required.",
+      "addon_charge_failed": "The charge on the bill could not be updated."
     },
     "activityTitle": "Activity",
     "noActivity": "No activity yet.",
@@ -726,7 +736,8 @@
       "guarantee_failed": "Confirming without a deposit failed and the villa was released. Please try again.",
       "guarantee_role": "Your role cannot confirm without a deposit.",
       "smaller_than_offer": "Your discount is smaller than the promo or automatic discount already applied. Only one discount counts per booking.",
-      "promo": "The promo code can no longer be used for this stay. Update the price and try again."
+      "promo": "The promo code can no longer be used for this stay. Update the price and try again.",
+      "addon": "An add-on could not be added."
     },
     "modeReceivedHintFull": "The booking is confirmed at once. Arrival is close, so payment in full is due: {amount}.",
     "discountTitle": "Discount (optional)",
@@ -1011,6 +1022,11 @@
     "payment": {
       "subject": "Payment reminder · {code}",
       "intro": "Reminder: a payment of {amount} is due on {date}. Please ignore this if you have already paid."
+    },
+    "addon": {
+      "subject": "Your add-on request · {code}",
+      "confirmed": "{addon} on {when} is confirmed. {amount} has been added to your bill.",
+      "declined": "Sorry, we cannot arrange {addon} on {when}. Nothing has been charged for it (if it was already paid, it will be refunded)."
     }
   },
   "messageLog": {
@@ -1034,7 +1050,8 @@
       "late_checkout_decided": "Late check-out decision",
       "early_checkin_decided": "Early check-in decision",
       "precheckin_reminder": "Pre-check-in reminder",
-      "payment_reminder": "Payment reminder"
+      "payment_reminder": "Payment reminder",
+      "addon_decided": "Add-on decision"
     },
     "inactive": "{channels} not active yet: messages wait until the keys are set in hPanel, and are skipped if not sent within 48 hours."
   },
@@ -1363,7 +1380,8 @@
       "overlap": "This season overlaps another season of the same villa type.",
       "code_taken": "This code already exists at this property.",
       "tiers": "Check the long-stay tiers: at least 2 nights each, different nights, and a percentage between 0.01 and 90."
-    }
+    },
+    "tabAddons": "Add-ons & experiences"
   },
   "owners": {
     "title": "Owners",
@@ -1577,6 +1595,97 @@
       "anonymized": "This guest's personal data has been erased.",
       "active_booking": "The guest still has an active booking (held, confirmed or in house). Erase their data after it ends or is cancelled.",
       "none_selected": "Select at least one booking."
+    }
+  },
+  "addons": {
+    "day": "Day",
+    "time": "Time",
+    "persons": "Persons",
+    "nights": "Nights / days",
+    "quantity": "Quantity",
+    "note": "Note (optional)",
+    "notePlaceholder": "e.g. vegetarian, flight QF43",
+    "pricing": {
+      "per_booking": "{price}",
+      "per_person": "{price} / person",
+      "per_night": "{price} / night",
+      "per_person_night": "{price} / person / night"
+    },
+    "pricingNames": {
+      "per_booking": "Fixed per order (× quantity)",
+      "per_person": "Per person",
+      "per_night": "Per night / day",
+      "per_person_night": "Per person per night"
+    },
+    "checkoutTitle": "Add experiences (optional)",
+    "checkoutIntro": "Chosen add-ons are added to your total (the deposit includes them); the final amount is shown on the payment step. Our team confirms each one and lets you know; anything we cannot arrange is refunded.",
+    "portalTitle": "Experiences & add-ons",
+    "portalIntro": "Request an experience for your stay. Our team confirms it and adds it to your bill; you pay with the balance or at the villa.",
+    "leadNote": "Please request at least {hours} hours ahead.",
+    "request": "Send request",
+    "withdraw": "Withdraw",
+    "status": {
+      "requested": "Waiting for confirmation",
+      "confirmed": "Confirmed",
+      "declined": "Not available",
+      "cancelled": "Cancelled"
+    },
+    "sources": {
+      "checkout": "at booking",
+      "portal": "from booking page",
+      "staff": "by staff"
+    },
+    "messages": {
+      "sent": "Request sent. We will confirm it soon.",
+      "withdrawn": "Request withdrawn.",
+      "rate_limited": "Too many requests. Please try again in a few minutes."
+    },
+    "errors": {
+      "not_found": "This add-on is not available.",
+      "not_allowed": "Add-ons can be requested for confirmed bookings only.",
+      "invalid_date": "Choose a day within your stay.",
+      "invalid_time": "Choose a time.",
+      "too_late": "This is too close to the time requested. Please contact us directly.",
+      "invalid_count": "Check the number of persons, nights or quantity.",
+      "already_decided": "This request has already been handled.",
+      "reason_required": "A reason is required.",
+      "charge_failed": "The charge could not be updated."
+    },
+    "staffTitle": "Add-ons & experiences",
+    "unitsLine": "{units} × {price}",
+    "reasonLine": "Reason: {reason}",
+    "onBill": "already on the bill",
+    "confirm": "Confirm",
+    "decline": "Decline",
+    "declineReason": "Reason (shown to the guest as not available)",
+    "cancelOrder": "Cancel order",
+    "cancelReason": "Reason",
+    "noOrders": "No add-ons on this booking.",
+    "addForGuest": "Add for the guest",
+    "staffAddHint": "Confirmed at once and added to the bill; it also appears on the task board. The notice period does not apply.",
+    "addConfirmed": "Add (confirmed)",
+    "catalogIntro": "Add-ons and experiences guests can book at checkout or from their booking page. Prices include tax and service, like other charges.",
+    "catalogTitle": "Catalog",
+    "noAddons": "No add-ons yet.",
+    "newAddon": "New add-on",
+    "newAddonIntro": "Name it in both languages. Changing a price later does not change orders already placed.",
+    "nameId": "Name (Indonesian)",
+    "nameEn": "Name (English)",
+    "descId": "Description (Indonesian)",
+    "descEn": "Description (English)",
+    "category": "Bill category",
+    "pricingLabel": "Pricing",
+    "priceLabel": "Price (Rp)",
+    "leadHoursLabel": "Notice (hours)",
+    "sortOrder": "Order",
+    "needsTime": "The guest chooses a time",
+    "active": "Offered to guests",
+    "off": "off",
+    "create": "Add to catalog",
+    "catalogErrors": {
+      "not_found": "Not found.",
+      "role": "Only the branch manager can change the catalog.",
+      "invalid": "Check the entries: both names, a price in whole rupiah above 0, notice between 0 and 720 hours."
     }
   }
 }

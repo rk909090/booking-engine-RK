@@ -10,6 +10,8 @@ import { cancelReservation, createHold, createPendingPayment, findGuestReservati
 import { cancelLateCheckoutAsGuest, requestLateCheckoutAsGuest } from "@/domain/late-checkout";
 import { savePreCheckin, type PreCheckinError } from "@/domain/pre-checkin";
 import { RATE_PLANS, type RatePlan } from "@/domain/types";
+import { parseAddonChoice, parseCheckoutAddons } from "@/lib/addon-input";
+import { cancelAddonAsGuest, requestAddonAsGuest } from "@/domain/addons";
 import { sealGuestData } from "@/lib/crypto/guest-data";
 import { isCountryCode } from "@/lib/countries";
 import { deliverSoon } from "@/lib/notifications/deliver";
@@ -26,11 +28,12 @@ export type StartBookingError =
   | "unknown_unit_type"
   | "quote"
   | "promo"
+  | "addon"
   | "agree"
   | "payment"
   | "rate_limited";
 
-export type StartBookingState = { error?: StartBookingError };
+export type StartBookingState = { error?: StartBookingError; addonError?: string };
 
 function text(form: FormData, key: string): string {
   const value = form.get(key);
@@ -71,8 +74,9 @@ export async function startBooking(_prev: StartBookingState, form: FormData): Pr
     source: "website",
     ratePlan: (RATE_PLANS as readonly string[]).includes(text(form, "ratePlan")) ? (text(form, "ratePlan") as RatePlan) : "standard",
     promoCode: text(form, "promo").slice(0, 20) || null,
+    addons: parseCheckoutAddons(form),
   });
-  if (!held.ok) return { error: held.error.kind };
+  if (!held.ok) return held.error.kind === "addon" ? { error: "addon", addonError: held.error.error } : { error: held.error.kind };
 
   const { reservation, quote } = held;
   const returnUrl = new URL(bookingPath(lang, reservation.code), appUrl()).toString();
@@ -204,6 +208,26 @@ export async function requestLateCheckoutFromPortal(form: FormData) {
   if (!allowRequest(`late:${clientIp(await headers())}`, 10, 10 * 60_000)) redirect(bookingPath(lang, code, "&late=rate_limited"));
   const result = await requestLateCheckoutAsGuest(getDb(), { reservationId: id, time: text(form, "time"), note: text(form, "note") || null });
   redirect(bookingPath(lang, code, `&late=${result.ok ? "sent" : result.error}`));
+}
+
+/** The guest asks for an add-on from their booking page; staff confirm it. */
+export async function requestAddonFromPortal(form: FormData) {
+  const lang = localeOf(form);
+  const { code, id } = await guestReservation(form);
+  if (!id) redirect(bookingPath(lang, code));
+  if (!allowRequest(`addon:${clientIp(await headers())}`, 20, 10 * 60_000)) redirect(bookingPath(lang, code, "&addon=rate_limited#addons"));
+  const addonId = text(form, "addonId");
+  const result = await requestAddonAsGuest(getDb(), { reservationId: id, choice: parseAddonChoice(form, "", addonId) });
+  redirect(bookingPath(lang, code, `&addon=${result.ok ? "sent" : result.error}#addons`));
+}
+
+/** The guest withdraws an add-on request that is still waiting. */
+export async function cancelAddonFromPortal(form: FormData) {
+  const lang = localeOf(form);
+  const { code, id } = await guestReservation(form);
+  if (!id) redirect(bookingPath(lang, code));
+  const result = await cancelAddonAsGuest(getDb(), { reservationId: id, orderId: text(form, "orderId") });
+  redirect(bookingPath(lang, code, `&addon=${result.ok ? "withdrawn" : result.error}#addons`));
 }
 
 /** The guest withdraws a late check-out request that is still waiting. */

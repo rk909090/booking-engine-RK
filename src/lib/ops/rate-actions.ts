@@ -17,6 +17,7 @@ import {
   type RatesResult,
 } from "@/domain/rates";
 import type { LongStayTier } from "@/domain/types";
+import { createAddon, updateAddon } from "@/domain/addons";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { requireStaff } from "@/lib/auth/current-staff";
 import { can } from "@/lib/authz/permissions";
@@ -61,12 +62,12 @@ const date = (form: FormData, key: string) => field(form, key) || null;
 
 type Ctx = { lang: Locale; actor: { type: "staff"; id: string } };
 
-async function guarded(form: FormData, page: "rates" | "promos", propertyIdOf: () => Promise<string | null>, op: (ctx: Ctx) => Promise<RatesResult>) {
+async function guarded(form: FormData, page: "rates" | "promos" | "addons", propertyIdOf: () => Promise<string | null>, op: (ctx: Ctx) => Promise<RatesResult>) {
   const langRaw = field(form, "lang");
   const lang: Locale = hasLocale(langRaw) ? langRaw : "id";
   const property = field(form, "property");
   const anchor = field(form, "anchor");
-  const path = page === "rates" ? "rates" : "rates/promos";
+  const path = page === "rates" ? "rates" : `rates/${page}`;
   const back = (query: string): never => {
     refresh();
     redirect(`/${lang}/ops/${path}?${property ? `property=${encodeURIComponent(property)}&` : ""}${query}${/^[a-z0-9-]+$/i.test(anchor) ? `#${anchor}` : ""}`);
@@ -225,4 +226,37 @@ export async function setPromoActiveAction(form: FormData) {
     },
     ({ actor }) => setPromoActive(getDb(), { promoId, active: field(form, "active") === "1", actor }),
   );
+}
+
+function addonFields(form: FormData) {
+  return {
+    name: { id: field(form, "nameId"), en: field(form, "nameEn") },
+    description: { id: field(form, "descId"), en: field(form, "descEn") },
+    category: field(form, "category"),
+    pricing: field(form, "pricing"),
+    price: money(form, "price") ?? NaN,
+    needsTime: form.get("needsTime") === "on",
+    leadHours: int(form, "leadHours") ?? 24,
+    sortOrder: int(form, "sortOrder") ?? 0,
+  };
+}
+
+/** Adds an add-on or experience to the property's catalog. */
+export async function createAddonAction(form: FormData) {
+  const propertyId = field(form, "propertyId");
+  await guarded(form, "addons", () => propertyById(propertyId), async ({ actor }) => {
+    const r = await createAddon(getDb(), { propertyId, ...addonFields(form), actor });
+    return r.ok ? { ok: true } : { ok: false, error: "invalid" };
+  });
+}
+
+/** Changes an add-on (orders already placed keep their price), or switches it off. */
+export async function updateAddonAction(form: FormData) {
+  const propertyId = field(form, "propertyId");
+  const addonId = field(form, "addonId");
+  await guarded(form, "addons", () => propertyById(propertyId), async ({ actor }) => {
+    if (!UUID.test(addonId)) return { ok: false, error: "not_found" };
+    const r = await updateAddon(getDb(), { propertyId, addonId, isActive: form.get("isActive") === "on", ...addonFields(form), actor });
+    return r.ok ? { ok: true } : { ok: false, error: r.error };
+  });
 }

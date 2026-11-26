@@ -25,6 +25,10 @@ import { getDb } from "@/db/client";
 import * as schema from "@/db/schema";
 import { and, desc, eq, lte, sql } from "drizzle-orm";
 import { GuestBadges } from "@/components/ops/guest-badges";
+import { AddonCard } from "@/components/ops/addon-card";
+import { activeAddons, addonOrdersFor } from "@/domain/addons";
+import { addonViews } from "@/lib/addon-views";
+import { stayDays } from "@/lib/addon-input";
 import { channelStatus } from "@/lib/notifications/providers";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { format } from "@/i18n/format";
@@ -399,6 +403,21 @@ async function Detail({
                 ))}
               </ul>
             )}
+          </Card>
+
+          <Card title={dict.addons.staffTitle}>
+            <AddonCard
+              lang={lang}
+              dict={dict}
+              code={r.code}
+              orders={await addonOrdersFor(getDb(), r.id)}
+              catalog={r.status === "confirmed" || r.status === "in_house" ? addonViews(await activeAddons(getDb(), r.propertyId), lang, dict) : []}
+              dates={stayDays(r.checkIn, r.checkOut).map((d) => ({ value: d, label: formatDate(d, lang, { weekday: "short", day: "numeric", month: "short" }) }))}
+              guests={r.adults + r.children}
+              nights={Math.max(1, diffDays(r.checkIn, r.checkOut))}
+              canManage={can(staff.actor, "addon.manage", r.propertyId).allowed}
+              open={r.status === "confirmed" || r.status === "in_house"}
+            />
           </Card>
 
           <Card title={dict.folio.title}>

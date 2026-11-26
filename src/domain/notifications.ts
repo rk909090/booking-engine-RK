@@ -30,6 +30,7 @@ export const MESSAGE_KINDS = [
   "early_checkin_decided",
   "precheckin_reminder",
   "payment_reminder",
+  "addon_decided",
 ] as const;
 export type MessageKind = (typeof MESSAGE_KINDS)[number];
 export type Channel = "email" | "whatsapp";

@@ -289,8 +289,12 @@ export async function syncRequestTask(db: Executor, input: { reservationId: stri
   });
 }
 
-/** Cancels the open request tasks of a booking that will not arrive (cancelled, no-show). */
+/** Cancels the open request tasks (and add-on orders) of a booking that will not arrive (cancelled, no-show). */
 export async function cancelReservationTasks(db: Executor, reservationId: string, now: Date) {
+  await db
+    .update(schema.addonOrders)
+    .set({ status: "cancelled", updatedAt: now })
+    .where(and(eq(schema.addonOrders.reservationId, reservationId), inArray(schema.addonOrders.status, ["requested", "confirmed"])));
   await db
     .update(schema.tasks)
     .set({ status: "cancelled", completedAt: now, completedBy: "system", updatedAt: now })

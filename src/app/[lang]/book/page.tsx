@@ -13,6 +13,9 @@ import { hasLocale, type Locale } from "@/i18n/config";
 import { format } from "@/i18n/format";
 import { formatDate, formatDateRange, formatMoney } from "@/i18n/formatters";
 import { getDictionary, type Dictionary } from "@/i18n/get-dictionary";
+import { activeAddons } from "@/domain/addons";
+import { addonViews } from "@/lib/addon-views";
+import { stayDays } from "@/lib/addon-input";
 import { offerLabel } from "@/lib/pricing-labels";
 import { getUnitTypeById } from "@/lib/site/queries";
 import { CheckoutForm } from "./checkout-form";
@@ -125,6 +128,8 @@ async function Checkout({
         : p.planHints.standard;
   const tiers = [...property.cancellationTiers].sort((a, b) => b.minDaysBefore - a.minDaysBefore);
   const nonRefundable = q.ratePlan === "non_refundable";
+  const addons = addonViews(await activeAddons(getDb(), property.id), lang, dict);
+  const addonDates = stayDays(checkIn, checkOut).map((d) => ({ value: d, label: formatDate(d, lang, { weekday: "short", day: "numeric", month: "short" }) }));
 
   return (
     <div className="mt-6 grid gap-10 lg:grid-cols-[1fr_380px]">
@@ -206,6 +211,7 @@ async function Checkout({
             t={t}
             stay={{ unitTypeId, checkIn, checkOut, adults, children, ratePlan: chosen.plan, promo: promo && !q.promoIgnored ? promo.code : "" }}
             holdMinutes={property.holdMinutes}
+            addons={{ items: addons, dates: addonDates, guests: adults + children, nights: q.nightsCount, t: dict.addons }}
           />
         </div>
       </section>
