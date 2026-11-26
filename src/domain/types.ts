@@ -30,6 +30,8 @@ export type PropertyContent = {
   tagline?: LocalizedText;
   description?: LocalizedText;
   location?: LocalizedText;
+  /** Seller details printed on invoices (legal name, address, tax number, contact). */
+  invoice?: { legalName?: string; address?: string; taxId?: string; phone?: string; email?: string };
   /** House rules guests agree to at pre-check-in; a general default is used until set. */
   houseRules?: { id: string[]; en: string[] };
 };

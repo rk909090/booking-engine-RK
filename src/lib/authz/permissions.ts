@@ -26,6 +26,7 @@ export const actions = [
   "reservation.cancel",
   "payment.refund",
   "payment.record",
+  "folio.charge",
   "calendar.view",
   "villa_status.view",
   "housekeeping.update",
@@ -63,6 +64,8 @@ const matrix: Record<Action, readonly Role[]> = {
   "reservation.cancel": R.managers,
   "payment.refund": R.managers,
   "payment.record": R.operators,
+  /** Add or void folio charges, add paying parties, issue invoices (domain/folio.ts). */
+  "folio.charge": R.operators,
   "calendar.view": R.allButHousekeeping,
   "villa_status.view": ["branch_manager", "front_office", "housekeeping"],
   "housekeeping.update": ["branch_manager", "front_office", "housekeeping"],

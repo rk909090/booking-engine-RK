@@ -7,6 +7,8 @@ import { OpsNav, OpsShell, StatusBadge, NoAccess } from "@/components/ops/ops-sh
 import { CopyField } from "@/components/ops/copy-field";
 import { DiscountCard } from "@/components/ops/discount-card";
 import { PreCheckinGuests } from "@/components/ops/pre-checkin-card";
+import { FolioCard } from "@/components/ops/folio-card";
+import { partyBalances } from "@/domain/folio";
 import { TimeRequest, type TimeRequestView } from "@/components/ops/time-request";
 import { StayChange } from "@/components/ops/stay-change";
 import { ErrorNote, SuccessNote } from "@/components/ui";
@@ -119,6 +121,11 @@ async function Detail({
     .from(schema.notificationOutbox)
     .where(eq(schema.notificationOutbox.reservationId, r.id))
     .orderBy(desc(schema.notificationOutbox.createdAt));
+  const [folioCharges, folioParties, issuedInvoices] = await Promise.all([
+    getDb().select().from(schema.folioCharges).where(eq(schema.folioCharges.reservationId, r.id)).orderBy(schema.folioCharges.chargeDate, schema.folioCharges.createdAt),
+    partyBalances(getDb(), r.id),
+    getDb().select({ partyId: schema.invoices.partyId, number: schema.invoices.number }).from(schema.invoices).where(eq(schema.invoices.reservationId, r.id)),
+  ]);
   const channels = channelStatus();
   const inactiveChannels = (["email", "whatsapp"] as const).filter((c) => !channels[c]).map((c) => dict.messageLog.channels[c]);
   const regionName = new Intl.DisplayNames([lang === "id" ? "id-ID" : "en-GB"], { type: "region" });
@@ -354,11 +361,33 @@ async function Detail({
                         {formatMoney(p.amount, lang)}
                       </span>
                       <span className="block text-xs text-stone">{t.paymentStatus[p.status]}</span>
+                      {p.folioPartyId ? (
+                        <span className="block text-xs text-terracotta-deep">{folioParties.find((x) => x.id === p.folioPartyId)?.name}</span>
+                      ) : null}
+                      {p.status === "paid" && p.purpose !== "refund" ? (
+                        <Link href={`/${lang}/ops/reservations/${r.code}/receipt/${p.id}`} className="block text-xs text-lagoon hover:underline">
+                          {dict.folio.receipt}
+                        </Link>
+                      ) : null}
                     </span>
                   </li>
                 ))}
               </ul>
             )}
+          </Card>
+
+          <Card title={dict.folio.title}>
+            <FolioCard
+              lang={lang}
+              dict={dict}
+              code={r.code}
+              charges={folioCharges}
+              parties={folioParties}
+              invoices={issuedInvoices}
+              canCharge={can(staff.actor, "folio.charge", r.propertyId).allowed}
+              canCollect={canCollect}
+              open={r.status === "confirmed" || r.status === "in_house" || r.status === "checked_out"}
+            />
           </Card>
 
           <Card title={dict.messageLog.title}>

@@ -13,6 +13,7 @@ import {
   pgEnum,
   pgTable,
   primaryKey,
+  type AnyPgColumn,
   smallint,
   text,
   time,
@@ -353,6 +354,8 @@ export const payments = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     paidAt: timestamp("paid_at", { withTimezone: true }),
     raw: jsonb("raw"),
+    /** Set when another party (split bill) pays its own charges; such payments don't count toward the guest's bill. */
+    folioPartyId: uuid("folio_party_id").references((): AnyPgColumn => folioParties.id),
     ...timestamps,
   },
   (t) => [
@@ -631,5 +634,98 @@ export const icalEvents = pgTable(
     check("ical_events_dates_ordered", sql`${t.endDate} > ${t.startDate}`),
     uniqueIndex("ical_events_feed_uid_idx").on(t.feedId, t.uid),
     index("ical_events_unit_idx").on(t.unitId, t.startDate),
+  ],
+);
+
+/**
+ * Someone other than the guest who pays part of the bill (split bill): a
+ * company, an agent, a second guest. Charges billed to them are kept off the
+ * guest's bill and invoiced separately (domain/folio.ts).
+ */
+export const folioParties = pgTable(
+  "folio_parties",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reservationId: uuid("reservation_id")
+      .notNull()
+      .references(() => reservations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** Address, tax number or other details printed on their invoice. */
+    details: text("details"),
+    email: text("email"),
+    createdBy: text("created_by"),
+    ...timestamps,
+  },
+  (t) => [index("folio_parties_reservation_idx").on(t.reservationId)],
+);
+
+export const folioCategories = ["food_beverage", "minibar", "spa", "transfer", "laundry", "tour", "other"] as const;
+
+/** Extra charges on a booking (prices include tax and service). Voided charges stay for the record. */
+export const folioCharges = pgTable(
+  "folio_charges",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reservationId: uuid("reservation_id")
+      .notNull()
+      .references(() => reservations.id, { onDelete: "cascade" }),
+    /** Null: the guest pays; otherwise the party billed (split bill). */
+    partyId: uuid("party_id").references(() => folioParties.id),
+    category: text("category").notNull(),
+    description: text("description").notNull(),
+    quantity: integer("quantity").notNull(),
+    unitPrice: bigint("unit_price", { mode: "number" }).notNull(),
+    amount: bigint("amount", { mode: "number" }).notNull(),
+    chargeDate: date("charge_date", { mode: "string" }).notNull(),
+    status: text("status").notNull().default("active"),
+    voidReason: text("void_reason"),
+    voidedBy: text("voided_by"),
+    voidedAt: timestamp("voided_at", { withTimezone: true }),
+    createdBy: text("created_by"),
+    ...timestamps,
+  },
+  (t) => [
+    check("folio_charges_category", sql`${t.category} IN ('food_beverage', 'minibar', 'spa', 'transfer', 'laundry', 'tour', 'other')`),
+    check("folio_charges_status", sql`${t.status} IN ('active', 'void')`),
+    check("folio_charges_quantity_positive", sql`${t.quantity} > 0`),
+    check("folio_charges_amount", sql`${t.unitPrice} >= 0 AND ${t.amount} = ${t.quantity} * ${t.unitPrice}`),
+    index("folio_charges_reservation_idx").on(t.reservationId),
+  ],
+);
+
+/** Next invoice number per property and year (INV-<property>-<year>-00001), handed out atomically. */
+export const invoiceCounters = pgTable(
+  "invoice_counters",
+  {
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    year: integer("year").notNull(),
+    last: integer("last").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.propertyId, t.year] })],
+);
+
+/**
+ * An issued invoice: one for the guest and one per other party. The number
+ * never changes; the content always shows the bill as it stands.
+ */
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reservationId: uuid("reservation_id")
+      .notNull()
+      .references(() => reservations.id, { onDelete: "cascade" }),
+    partyId: uuid("party_id").references(() => folioParties.id),
+    number: text("number").notNull().unique(),
+    issuedAt: timestamp("issued_at", { withTimezone: true }).notNull(),
+    issuedBy: text("issued_by"),
+    ...timestamps,
+  },
+  (t) => [
+    // One invoice for the guest (party null) and one per party.
+    uniqueIndex("invoices_guest_idx").on(t.reservationId).where(sql`${t.partyId} IS NULL`),
+    uniqueIndex("invoices_party_idx").on(t.partyId).where(sql`${t.partyId} IS NOT NULL`),
   ],
 );

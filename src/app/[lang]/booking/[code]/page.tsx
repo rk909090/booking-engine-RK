@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { lang as rootLang } from "next/root-params";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -98,6 +98,11 @@ async function BookingDetails({
   const preOpen = preCheckinOpen(r, today);
   const pre = r.status === "confirmed" || r.status === "in_house" ? await preCheckinView(getDb(), r.id) : null;
   const editingPre = preOpen && (!pre || sp.edit === "precheckin");
+  const [guestInvoice] = await getDb()
+    .select({ number: schema.invoices.number })
+    .from(schema.invoices)
+    .where(and(eq(schema.invoices.reservationId, r.id), isNull(schema.invoices.partyId)))
+    .limit(1);
   const houseRules = row.propertyContent.houseRules?.[lang]?.length
     ? row.propertyContent.houseRules[lang]
     : Object.values(dict.preCheckin.defaultRules).map((rule) => format(rule, { checkIn: row.checkInTime.slice(0, 5), checkOut: row.checkOutTime.slice(0, 5) }));
@@ -293,6 +298,14 @@ async function BookingDetails({
             </div>
           )}
         </section>
+      ) : null}
+
+      {guestInvoice ? (
+        <p className="text-sm">
+          <Link href={`/${lang}/booking/${r.code}/invoice?t=${token}`} className="text-lagoon underline-offset-4 hover:underline">
+            {format(dict.invoice.guestLink, { number: guestInvoice.number })}
+          </Link>
+        </p>
       ) : null}
 
       <p className="text-xs text-stone">{t.saveLink}</p>

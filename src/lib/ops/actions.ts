@@ -7,6 +7,7 @@ import * as schema from "@/db/schema";
 import { cancelReservation } from "@/domain/booking";
 import { setDiscount } from "@/domain/discount";
 import { changePayBy, confirmWithoutDeposit } from "@/domain/guarantee";
+import { addCharge, addParty, issueInvoice, recordPartyPayment, voidCharge } from "@/domain/folio";
 import { cancelEarlyCheckin, decideEarlyCheckin, requestEarlyCheckin } from "@/domain/early-checkin";
 import { cancelLateCheckout, decideLateCheckout, requestLateCheckout } from "@/domain/late-checkout";
 import { applyStayChange } from "@/domain/modify";
@@ -99,13 +100,16 @@ export async function checkInAction(form: FormData) {
 }
 
 export async function checkOutAction(form: FormData) {
-  await run(form, "reservation.check_out", ({ reservationId, staffId }) =>
-    checkOut(getDb(), {
+  await run(form, "reservation.check_out", async ({ reservationId, staffId }) => {
+    const result = await checkOut(getDb(), {
       reservationId,
       actor: { type: "staff", id: staffId },
       acknowledgeBalance: form.get("acknowledgeBalance") === "on",
-    }),
-  );
+    });
+    // The guest's invoice is numbered at check-out at the latest.
+    if (result.ok) await issueInvoice(getDb(), { reservationId, actor: { type: "staff", id: staffId } });
+    return result;
+  });
 }
 
 export async function noShowAction(form: FormData) {
@@ -268,5 +272,75 @@ export async function changePayByAction(form: FormData) {
   await run(form, "reservation.guarantee", async ({ reservationId, staffId }) => {
     const result = await changePayBy(getDb(), { reservationId, payBy: field(form, "payBy"), actor: { type: "staff", id: staffId } });
     return result.ok ? { ok: true } : { ok: false, error: result.error === "not_found" ? "not_found" : `guarantee_${result.error}` };
+  });
+}
+
+const folioError = (error: string) => (error === "not_found" ? "not_found" : `folio_${error}`);
+const digits = (value: string) => Number(value.replace(/[^\d]/g, "") || "NaN");
+
+/** Adds an extra charge (minibar, spa, transfer…), paid by the guest or billed to another party. */
+export async function addChargeAction(form: FormData) {
+  await run(form, "folio.charge", async ({ reservationId, staffId }) => {
+    const billTo = field(form, "billTo");
+    const result = await addCharge(getDb(), {
+      reservationId,
+      category: field(form, "category"),
+      description: field(form, "description"),
+      quantity: Number(field(form, "quantity") || "1"),
+      unitPrice: digits(field(form, "unitPrice")),
+      partyId: UUID.test(billTo) ? billTo : null,
+      actor: { type: "staff", id: staffId },
+    });
+    return result.ok ? { ok: true } : { ok: false, error: folioError(result.error) };
+  });
+}
+
+/** Voids a charge with a reason. */
+export async function voidChargeAction(form: FormData) {
+  await run(form, "folio.charge", async ({ reservationId, staffId }) => {
+    const chargeId = field(form, "chargeId");
+    if (!UUID.test(chargeId)) return { ok: false, error: "not_found" };
+    const result = await voidCharge(getDb(), { reservationId, chargeId, reason: field(form, "reason"), actor: { type: "staff", id: staffId } });
+    return result.ok ? { ok: true } : { ok: false, error: folioError(result.error) };
+  });
+}
+
+/** Adds another party who pays part of the bill (split bill). */
+export async function addPartyAction(form: FormData) {
+  await run(form, "folio.charge", async ({ reservationId, staffId }) => {
+    const result = await addParty(getDb(), {
+      reservationId,
+      name: field(form, "name"),
+      details: field(form, "details") || null,
+      email: field(form, "email") || null,
+      actor: { type: "staff", id: staffId },
+    });
+    return result.ok ? { ok: true } : { ok: false, error: folioError(result.error) };
+  });
+}
+
+/** Records a payment by another party toward their own charges. */
+export async function partyPaymentAction(form: FormData) {
+  await run(form, "payment.record", async ({ reservationId, staffId }) => {
+    const partyId = field(form, "partyId");
+    if (!UUID.test(partyId)) return { ok: false, error: "not_found" };
+    const result = await recordPartyPayment(getDb(), {
+      reservationId,
+      partyId,
+      amount: digits(field(form, "amount")),
+      method: field(form, "method"),
+      reference: field(form, "reference") || null,
+      actor: { type: "staff", id: staffId },
+    });
+    return result.ok ? { ok: true } : { ok: false, error: folioError(result.error) };
+  });
+}
+
+/** Issues (numbers) the invoice of the guest or of a party. */
+export async function issueInvoiceAction(form: FormData) {
+  await run(form, "folio.charge", async ({ reservationId, staffId }) => {
+    const partyId = field(form, "partyId");
+    const result = await issueInvoice(getDb(), { reservationId, partyId: UUID.test(partyId) ? partyId : null, actor: { type: "staff", id: staffId } });
+    return result.ok ? { ok: true } : { ok: false, error: folioError(result.error) };
   });
 }
